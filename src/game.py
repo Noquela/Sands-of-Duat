@@ -15,9 +15,9 @@ from assets import load_assets
 
 class Game:
     def __init__(self):
-        # Support both ultrawide and standard resolutions as per CLAUDE.md
-        self.screen_width = 1920
-        self.screen_height = 1080
+        # Support ultrawide 3440x1440 resolution
+        self.screen_width = 3440
+        self.screen_height = 1440
         self.fps = 60
         self.clock: Optional[pygame.time.Clock] = None
         self.screen: Optional[pygame.Surface] = None
@@ -141,20 +141,42 @@ class Game:
 
     def run(self) -> None:
         """Main game loop."""
-        if not self.initialize():
-            return
+        try:
+            if not self.initialize():
+                print("Failed to initialize game!")
+                return
 
-        print("🏺 Starting Sands of Duat - Egyptian Roguelike...")
-        print("Welcome to the Hall of Anubis! Use WASD to explore, E to interact with portals.")
-        
-        while self.running:
-            dt = self.clock.tick(self.fps) / 1000.0  # Delta time in seconds
+            print("*** Starting Sands of Duat - Egyptian Roguelike...")
+            print("Welcome to the Hall of Anubis! Use WASD to explore, E to interact with portals.")
+            print("Press ESC to quit, WASD to move around")
             
-            self.handle_events()
-            self.update(dt)
-            self.render()
-        
-        self.cleanup()
+            frame_count = 0
+            while self.running:
+                frame_count += 1
+                if frame_count == 1:
+                    print("Entering main game loop...")
+                elif frame_count % 300 == 0:  # Every 5 seconds at 60fps
+                    print(f"Game running... Frame {frame_count}")
+                
+                dt = self.clock.tick(self.fps) / 1000.0  # Delta time in seconds
+                
+                try:
+                    self.handle_events()
+                    self.update(dt)
+                    self.render()
+                except Exception as e:
+                    print(f"Error in game loop: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    self.running = False
+            
+            print("Exiting main game loop...")
+            self.cleanup()
+        except Exception as e:
+            print(f"Fatal error in game: {e}")
+            import traceback
+            traceback.print_exc()
+            self.cleanup()
 
     def cleanup(self) -> None:
         """Clean up resources."""

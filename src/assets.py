@@ -141,16 +141,75 @@ def load_assets():
     """Load all game assets."""
     print("Loading game assets...")
     
-    # Try to load existing sprites or generate placeholders
-    asset_manager.generate_character_sprites()
+    # Load AI-generated sprites (fallback to placeholders if not available)
+    player_sprite = load_ai_sprite("player_anubis_idle", "player_anubis")
+    if not player_sprite:
+        # Generate placeholder with correct dimensions for player (64x64 frames)
+        player_sheet = asset_manager.create_sprite_sheet("player_anubis", 64, 64, 4, 1)
+        asset_manager.sprites["player_anubis"] = player_sheet
+        print("Generated placeholder player sprite: 64x64 frames")
     
-    # Load player sprite
-    asset_manager.load_sprite("player_anubis", "generated/player_anubis_placeholder.png")
+    # Load enemy sprites  
+    scarab_sprite = load_ai_sprite("enemy_scarab_idle", "scarab_enemy") 
+    if not scarab_sprite:
+        # Generate placeholder with correct dimensions for enemies (48x48 frames)
+        scarab_sheet = asset_manager.create_sprite_sheet("scarab_enemy", 48, 48, 4, 1)
+        asset_manager.sprites["scarab_enemy"] = scarab_sheet
+        print("Generated placeholder scarab sprite: 48x48 frames")
     
-    # Load enemy sprites
-    asset_manager.load_sprite("scarab_enemy", "generated/scarab_enemy_placeholder.png")
+    # Load portal sprites
+    portal_sprite = load_ai_sprite("portal_arena", "portal_arena")
+    if not portal_sprite:
+        # Generate placeholder portal (96x96 single frame)
+        portal_surface = asset_manager.create_placeholder_sprite(96, 96, "portal")
+        asset_manager.sprites["portal_arena"] = portal_surface
+        print("Generated placeholder portal sprite: 96x96")
+    
+    # Generate placeholders for other entities that might need sprites
+    generate_hub_placeholders()
     
     print("Assets loaded successfully!")
+
+
+def generate_hub_placeholders():
+    """Generate placeholder sprites for hub elements."""
+    # Altar sprites (64x64 single frames for NPCs and altars)
+    for altar in ["altar_ra", "altar_thoth", "altar_isis", "altar_ptah"]:
+        if altar not in asset_manager.sprites:
+            altar_surface = asset_manager.create_placeholder_sprite(64, 64, altar)
+            asset_manager.sprites[altar] = altar_surface
+    
+    # NPC sprites (64x64 single frames)
+    for npc in ["npc_mirror_anubis", "npc_merchant"]:
+        if npc not in asset_manager.sprites:
+            npc_surface = asset_manager.create_placeholder_sprite(64, 64, npc)
+            asset_manager.sprites[npc] = npc_surface
+
+
+def load_ai_sprite(ai_sprite_name: str, sprite_key: str, scale_factor: float = 0.25) -> bool:
+    """Load an AI-generated sprite if available and scale for gameplay."""
+    ai_path = asset_manager.generated_path / f"{ai_sprite_name}.png"
+    
+    if ai_path.exists():
+        try:
+            sprite = pygame.image.load(str(ai_path)).convert_alpha()
+            
+            # Scale down high-resolution AI sprites for gameplay
+            if scale_factor != 1.0:
+                original_size = sprite.get_size()
+                new_size = (int(original_size[0] * scale_factor), int(original_size[1] * scale_factor))
+                sprite = pygame.transform.smoothscale(sprite, new_size)
+                print(f"Scaled AI sprite {ai_sprite_name}: {original_size} -> {new_size}")
+            
+            asset_manager.sprites[sprite_key] = sprite
+            print(f"Loaded AI-generated sprite: {ai_sprite_name}")
+            return True
+        except pygame.error as e:
+            print(f"Failed to load AI sprite {ai_sprite_name}: {e}")
+            return False
+    else:
+        print(f"AI sprite not found: {ai_sprite_name}, using placeholder")
+        return False
 
 
 def get_sprite(name: str) -> Optional[pygame.Surface]:

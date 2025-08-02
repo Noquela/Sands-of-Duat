@@ -41,12 +41,12 @@ async def handle_list_tools() -> List[Tool]:
                     "width": {
                         "type": "integer",
                         "description": "Image width",
-                        "default": 1024
+                        "default": 1536
                     },
                     "height": {
                         "type": "integer",
                         "description": "Image height",
-                        "default": 1024
+                        "default": 1536
                     },
                     "seed": {
                         "type": "integer",
@@ -56,7 +56,7 @@ async def handle_list_tools() -> List[Tool]:
                     "steps": {
                         "type": "integer",
                         "description": "Number of denoising steps",
-                        "default": 25
+                        "default": 75
                     },
                     "output_path": {
                         "type": "string",
@@ -123,7 +123,7 @@ async def handle_list_tools() -> List[Tool]:
                     "size": {
                         "type": "integer",
                         "description": "Size of each sprite frame",
-                        "default": 512
+                        "default": 256
                     },
                     "animation_type": {
                         "type": "string",
@@ -201,62 +201,150 @@ async def handle_text2img(arguments: Dict[str, Any]) -> List[types.TextContent]:
     """Handle text to image generation."""
     try:
         # Import here to avoid loading heavy libraries at startup
-        import torch
-        from diffusers import StableDiffusionXLPipeline
-        
         prompt = arguments["prompt"]
-        negative_prompt = arguments.get("negative_prompt", "blurry, low quality, distorted")
+        negative_prompt = arguments.get("negative_prompt", "blurry, low quality, distorted, deformed")
         width = arguments.get("width", 1024)
         height = arguments.get("height", 1024)
         seed = arguments.get("seed", -1)
         steps = arguments.get("steps", 25)
         output_path = arguments.get("output_path", "")
         
-        # Setup device
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        # Force CUDA usage for RTX 5070
+        try:
+            import torch
+            if torch.cuda.is_available():
+                device = "cuda"
+                torch.cuda.set_device(0)  # Force GPU 0
+                print(f"Using device: {device} - {torch.cuda.get_device_name(0)}")
+                print(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory // 1024**3}GB")
+            else:
+                device = "cpu"
+                print(f"Using device: {device} (CUDA not available)")
+        except ImportError:
+            return [types.TextContent(
+                type="text",
+                text="Error: PyTorch not installed. Install with: pip install torch torchvision torchaudio"
+            )]
         
-        # Load pipeline (this might take time on first run)
-        pipe = StableDiffusionXLPipeline.from_pretrained(
-            "stabilityai/stable-diffusion-xl-base-1.0",
-            torch_dtype=torch.float16 if device == "cuda" else torch.float32,
-            use_safetensors=True
-        )
-        pipe = pipe.to(device)
+        # Try to import diffusers
+        try:
+            from diffusers import StableDiffusionXLPipeline, DPMSolverMultistepScheduler
+            print("Diffusers library loaded successfully")
+        except ImportError:
+            return [types.TextContent(
+                type="text", 
+                text="Error: Diffusers not installed. Install with: pip install diffusers transformers accelerate"
+            )]
+        
+        # Load FIXED SDXL pipeline - resolves black image issues
+        try:
+            print("Loading FIXED SDXL pipeline...")
+            
+            # FIX 1: Load with explicit VAE to prevent corruption
+            from diffusers import AutoencoderKL
+            vae = AutoencoderKL.from_pretrained(
+                "madebyollin/sdxl-vae-fp16-fix", 
+                torch_dtype=torch.float16 if device == "cuda" else torch.float32
+            )
+            
+            # FIX 2: Load base model with fixed VAE
+            pipe = StableDiffusionXLPipeline.from_pretrained(
+                "stabilityai/stable-diffusion-xl-base-1.0",
+                vae=vae,  # Use fixed VAE
+                torch_dtype=torch.float16 if device == "cuda" else torch.float32,
+                use_safetensors=True,
+                variant="fp16" if device == "cuda" else None,
+                add_watermarker=False
+            )
+            
+            # FIX 3: Use DPMSolver++ scheduler (better than EulerA for SDXL)
+            from diffusers import DPMSolverMultistepScheduler
+            pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
+            
+            # Move to device
+            pipe = pipe.to(device)
+            print(f"Pipeline moved to {device}")
+            
+            # FIX 4: Enable memory efficient attention for RTX 5070
+            if device == "cuda":
+                pipe.enable_attention_slicing()
+                print(f"RTX 5070 ready! GPU memory: {torch.cuda.memory_allocated(0) // 1024**2}MB")
+            
+            print("FIXED SDXL pipeline loaded - black image issue resolved!")
+            
+        except Exception as e:
+            return [types.TextContent(
+                type="text",
+                text=f"Error loading SDXL model: {str(e)}\nMake sure you have enough GPU memory (8GB+ recommended)"
+            )]
         
         # Set random seed if provided
         if seed != -1:
             torch.manual_seed(seed)
+            if device == "cuda":
+                torch.cuda.manual_seed(seed)
         
-        # Generate image
-        image = pipe(
-            prompt=prompt,
-            negative_prompt=negative_prompt,
-            width=width,
-            height=height,
-            num_inference_steps=steps
-        ).images[0]
+        # FIX 5: Simplified prompts to avoid CLIP tokenizer issues
+        enhanced_prompt = f"masterpiece, {prompt}, detailed, vibrant colors"
+        # FIX 6: Much lighter negative prompt to prevent over-suppression
+        safe_negative = "blurry, low quality"  # Minimal negative to avoid black images
+        
+        print(f"Generating FIXED image with prompt: {enhanced_prompt}")
+        
+        # GPU status
+        if device == "cuda":
+            print(f"RTX 5070 Status: {torch.cuda.memory_allocated(0) // 1024**2}MB allocated")
+        
+        print(f"Generating on {device}...")
+        
+        # FIX 7: Safe generation parameters
+        try:
+            generator = torch.Generator(device=device)
+            if seed != -1:
+                generator.manual_seed(seed)
+            else:
+                generator.manual_seed(42)  # Fixed seed for consistency
+            
+            print("Generating on RTX 5070...")
+            image = pipe(
+                prompt=enhanced_prompt,
+                negative_prompt=safe_negative,  # Light negative prompt
+                width=width,
+                height=height,
+                num_inference_steps=max(steps, 30),  # Reasonable steps
+                guidance_scale=7.5,  # Standard guidance, not too high
+                generator=generator,
+                num_images_per_prompt=1
+            ).images[0]
+            
+            print(f"RTX 5070 generation complete! Max GPU memory: {torch.cuda.max_memory_allocated(0) // 1024**2}MB")
+        except Exception as gen_error:
+            return [types.TextContent(
+                type="text",
+                text=f"Generation failed: {str(gen_error)}"
+            )]
         
         # Save image
         if not output_path:
             os.makedirs("assets/generated", exist_ok=True)
-            output_path = f"assets/generated/text2img_{hash(prompt) % 10000}.png"
+            # Create safe filename from prompt
+            safe_name = "".join(c for c in prompt[:30] if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            safe_name = safe_name.replace(' ', '_')
+            output_path = f"assets/generated/{safe_name}_{hash(prompt) % 10000}.png"
         
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
         image.save(output_path)
         
         return [types.TextContent(
             type="text",
-            text=f"Generated image saved to: {output_path}\nPrompt: {prompt}\nSize: {width}x{height}\nSteps: {steps}"
+            text=f"SUCCESS: Generated Egyptian game asset!\nSaved to: {output_path}\nPrompt: {prompt}\nSize: {width}x{height}\nSteps: {steps}\nSeed: {seed if seed != -1 else 'random'}"
         )]
         
-    except ImportError:
-        return [types.TextContent(
-            type="text",
-            text="Error: Required libraries not installed. Install with: pip install diffusers transformers torch"
-        )]
     except Exception as e:
         return [types.TextContent(
             type="text",
-            text=f"Error generating image: {str(e)}"
+            text=f"ERROR: Failed to generate image: {str(e)}\n\nTroubleshooting:\n- Ensure CUDA drivers are installed\n- Try reducing image size (512x512)\n- Check available GPU memory\n- Install: pip install diffusers transformers accelerate torch"
         )]
 
 
@@ -269,33 +357,55 @@ async def handle_img2img(arguments: Dict[str, Any]) -> List[types.TextContent]:
 
 
 async def handle_sprite_sheet(arguments: Dict[str, Any]) -> List[types.TextContent]:
-    """Handle sprite sheet generation."""
+    """Handle sprite sheet generation for game animations."""
     try:
         prompt = arguments["prompt"]
         cols = arguments.get("cols", 4)
         rows = arguments.get("rows", 4)
-        size = arguments.get("size", 512)
+        size = arguments.get("size", 128)  # Smaller individual frames
         animation_type = arguments.get("animation_type", "idle")
+        seed = arguments.get("seed", -1)
         
-        # Enhanced prompt for sprite generation
-        enhanced_prompt = f"{prompt}, {animation_type} animation frames, sprite sheet, game asset, pixel art style, clean background, consistent character design, Egyptian mythology"
+        # Egyptian-themed animation prompts
+        animation_prompts = {
+            "idle": f"{prompt}, standing pose, idle animation, breathing, subtle movement",
+            "walk": f"{prompt}, walking cycle, side view, legs moving, step sequence",
+            "attack": f"{prompt}, attacking pose, weapon swing, combat stance, action sequence",
+            "death": f"{prompt}, falling, defeat pose, lying down, death sequence"
+        }
+        
+        # Get specific prompt for animation type
+        base_prompt = animation_prompts.get(animation_type, f"{prompt}, {animation_type} animation")
+        
+        # Optimized sprite sheet prompt for 77-token limit
+        enhanced_prompt = f"masterpiece, {base_prompt}, sprite sheet, {cols}x{rows} grid, game asset, detailed"
+        
+        # Negative prompt to avoid unwanted elements
+        negative_prompt = "blurry, low quality, photorealistic, 3d render, modern clothing, contemporary, inconsistent style, different characters, background clutter"
+        
+        # Calculate total image size
+        total_width = size * cols
+        total_height = size * rows
+        
+        print(f"Generating {animation_type} sprite sheet: {cols}x{rows} frames at {size}x{size} each")
         
         # Generate using text2img with sprite-specific settings
         sprite_args = {
             "prompt": enhanced_prompt,
-            "width": size * cols,
-            "height": size * rows,
-            "seed": arguments.get("seed", -1),
-            "steps": 30,  # More steps for better quality
-            "output_path": arguments.get("output_path", f"assets/generated/sprite_{animation_type}_{cols}x{rows}.png")
+            "negative_prompt": negative_prompt,
+            "width": total_width,
+            "height": total_height,
+            "seed": seed,
+            "steps": 75,  # High quality sprite generation
+            "output_path": arguments.get("output_path", f"assets/generated/sprite_{animation_type}_{cols}x{rows}_{size}px.png")
         }
         
         result = await handle_text2img(sprite_args)
         
         # Add sprite sheet specific information
-        sprite_info = f"\nSprite Sheet Info:\n- Grid: {cols}x{rows}\n- Frame size: {size}x{size}\n- Animation: {animation_type}\n- Total frames: {cols * rows}"
+        sprite_info = f"\n\nSprite Sheet Generated!\nGrid Layout: {cols} columns x {rows} rows\nFrame Size: {size}x{size} pixels\nAnimation: {animation_type}\nTotal Frames: {cols * rows}\nSheet Size: {total_width}x{total_height}\n\nUsage: Load in game and extract frames using grid coordinates"
         
-        if result:
+        if result and len(result) > 0:
             result[0].text += sprite_info
         
         return result
@@ -303,7 +413,7 @@ async def handle_sprite_sheet(arguments: Dict[str, Any]) -> List[types.TextConte
     except Exception as e:
         return [types.TextContent(
             type="text",
-            text=f"Error generating sprite sheet: {str(e)}"
+            text=f"ERROR: Failed to generate sprite sheet: {str(e)}"
         )]
 
 

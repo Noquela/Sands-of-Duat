@@ -234,8 +234,24 @@ class RenderSystem(System):
             sprite.frame_height * transform.scale_y
         )
         
-        # Apply transformations to sprite
-        sprite_surface = sprite.sprite_sheet.subsurface(source_rect).copy()
+        # Apply transformations to sprite with error handling
+        try:
+            sprite_surface = sprite.sprite_sheet.subsurface(source_rect).copy()
+        except ValueError as e:
+            # Create a fallback surface to prevent crashes
+            sprite_surface = pygame.Surface((sprite.frame_width, sprite.frame_height), pygame.SRCALPHA)
+            sprite_surface.fill((255, 0, 255))  # Magenta for error debugging
+            
+            # Log error only once per sprite to avoid spam
+            sprite_id = id(sprite.sprite_sheet)
+            if not hasattr(self, '_logged_errors'):
+                self._logged_errors = set()
+            if sprite_id not in self._logged_errors:
+                print(f"WARNING: Sprite dimension mismatch!")
+                print(f"  Expected frame: {sprite.frame_width}x{sprite.frame_height}")
+                print(f"  Sprite sheet: {sprite.sprite_sheet.get_size()}")
+                print(f"  Using magenta placeholder")
+                self._logged_errors.add(sprite_id)
         
         # Apply color tint
         if sprite.color_tint != (255, 255, 255):
@@ -582,3 +598,281 @@ class HealthSystem(System):
                 if health.invulnerability_time <= 0:
                     health.invulnerable = False
                     health.invulnerability_time = 0.0
+
+
+class ArtifactSystem(System):
+    """Handles Egyptian artifact effects and stat modifications."""
+    
+    def update(self, dt: float) -> None:
+        if not self.enabled:
+            return
+        
+        # Update all entities with artifact inventories
+        for entity_id in self.entity_manager.get_entities_with_components(ArtifactInventory, Stats):
+            inventory = self.entity_manager.get_component(entity_id, ArtifactInventory)
+            stats = self.entity_manager.get_component(entity_id, Stats)
+            
+            if inventory is None or stats is None:
+                continue
+            
+            # Reset multipliers to base
+            stats.damage_multiplier = 1.0
+            stats.speed_multiplier = 1.0
+            stats.health_multiplier = 1.0
+            stats.crit_chance_bonus = 0.0
+            
+            # Apply all equipped artifacts
+            for artifact_name in inventory.equipped_artifacts:
+                artifact_effects = self._get_artifact_effects(artifact_name)
+                
+                # Apply stat modifications
+                stats.damage_multiplier *= artifact_effects.get('damage_multiplier', 1.0)
+                stats.speed_multiplier *= artifact_effects.get('speed_multiplier', 1.0)
+                stats.health_multiplier *= artifact_effects.get('health_multiplier', 1.0)
+                stats.crit_chance_bonus += artifact_effects.get('crit_chance_bonus', 0.0)
+            
+            # Update actual component stats based on modified stats
+            self._apply_stats_to_components(entity_id, stats)
+    
+    def _get_artifact_effects(self, artifact_name: str) -> Dict[str, float]:
+        """Get the effects for a specific artifact."""
+        # Egyptian artifact database
+        artifact_db = {
+            # Ra Artifacts (Fire/Damage)
+            "Solar Blessing": {
+                "damage_multiplier": 1.15,
+                "description": "Ra's solar power increases attack damage by 15%"
+            },
+            "Pharaoh's Crown": {
+                "damage_multiplier": 1.25,
+                "crit_chance_bonus": 0.1,
+                "description": "Divine authority grants 25% damage and 10% crit chance"
+            },
+            "Desert Storm": {
+                "damage_multiplier": 1.35,
+                "description": "Devastating sandstorm increases damage by 35%"
+            },
+            
+            # Thoth Artifacts (Wisdom/Speed)
+            "Wisdom of Ages": {
+                "speed_multiplier": 1.2,
+                "crit_chance_bonus": 0.05,
+                "description": "Ancient knowledge grants 20% speed and 5% crit chance"
+            },
+            "Scribe's Quill": {
+                "speed_multiplier": 1.15,
+                "description": "Swift as the written word, 15% movement speed"
+            },
+            "Knowledge Keeper": {
+                "speed_multiplier": 1.3,
+                "damage_multiplier": 1.1,
+                "description": "30% speed and 10% damage from divine intellect"
+            },
+            
+            # Isis Artifacts (Protection/Health)
+            "Mother's Protection": {
+                "health_multiplier": 1.25,
+                "description": "Maternal blessing increases health by 25%"
+            },
+            "Magic Ward": {
+                "health_multiplier": 1.2,
+                "speed_multiplier": 1.1,
+                "description": "Magical protection grants 20% health and 10% speed"
+            },
+            "Healing Touch": {
+                "health_multiplier": 1.4,
+                "description": "Divine healing increases health by 40%"
+            },
+            
+            # Ptah Artifacts (Creation/Balanced)
+            "Creator's Hammer": {
+                "damage_multiplier": 1.2,
+                "health_multiplier": 1.15,
+                "description": "Divine craftsmanship: 20% damage, 15% health"
+            },
+            "Divine Craft": {
+                "damage_multiplier": 1.1,
+                "speed_multiplier": 1.1,
+                "health_multiplier": 1.1,
+                "description": "Perfect balance: 10% to all stats"
+            },
+            "Builder's Strength": {
+                "health_multiplier": 1.3,
+                "damage_multiplier": 1.15,
+                "description": "Construction prowess: 30% health, 15% damage"
+            }
+        }
+        
+        return artifact_db.get(artifact_name, {})
+    
+    def _apply_stats_to_components(self, entity_id: int, stats: Stats) -> None:
+        """Apply stat modifications to actual game components."""
+        # Update movement speed
+        movement = self.entity_manager.get_component(entity_id, Movement)
+        if movement is not None:
+            movement.max_speed = stats.get_total_speed()
+        
+        # Update combat damage and crit
+        combat = self.entity_manager.get_component(entity_id, Combat)
+        if combat is not None:
+            combat.attack_damage = stats.get_total_damage()
+            combat.crit_chance = stats.get_total_crit_chance()
+        
+        # Update health (only increase max, don't decrease current)
+        health = self.entity_manager.get_component(entity_id, Health)
+        if health is not None:
+            old_max = health.max_hp
+            new_max = stats.get_total_health()
+            if new_max > old_max:
+                # Increase current health proportionally
+                health.current_hp += (new_max - old_max)
+            health.max_hp = new_max
+
+
+class InteractionSystem(System):
+    """Handles player interactions with altars, NPCs, and portals."""
+    
+    def __init__(self, entity_manager: EntityManager):
+        super().__init__(entity_manager)
+        self.interaction_prompt = None
+        self.active_interactions = set()
+    
+    def update(self, dt: float) -> None:
+        if not self.enabled:
+            return
+        
+        # Find player
+        player_entity = None
+        player_transform = None
+        player_input = None
+        
+        for entity_id in self.entity_manager.get_entities_with_component(PlayerTag):
+            player_entity = entity_id
+            player_transform = self.entity_manager.get_component(entity_id, Transform)
+            player_input = self.entity_manager.get_component(entity_id, InputController)
+            break
+        
+        if player_entity is None or player_transform is None:
+            return
+        
+        # Clear previous interaction prompts
+        self.interaction_prompt = None
+        
+        # Check for nearby interactables
+        nearby_interactables = []
+        for entity_id in self.entity_manager.get_entities_with_component(Interactable):
+            interactable = self.entity_manager.get_component(entity_id, Interactable)
+            transform = self.entity_manager.get_component(entity_id, Transform)
+            
+            if interactable is None or transform is None or not interactable.can_interact:
+                continue
+            
+            # Check distance
+            distance = math.sqrt(
+                (player_transform.x - transform.x) ** 2 + 
+                (player_transform.y - transform.y) ** 2
+            )
+            
+            if distance <= interactable.interaction_range:
+                nearby_interactables.append((entity_id, interactable, transform, distance))
+        
+        # Sort by distance and get closest
+        if nearby_interactables:
+            nearby_interactables.sort(key=lambda x: x[3])
+            closest_entity, closest_interactable, closest_transform, _ = nearby_interactables[0]
+            
+            # Show interaction prompt
+            self.interaction_prompt = {
+                'text': closest_interactable.prompt_text,
+                'position': (closest_transform.x, closest_transform.y - 40),
+                'entity_id': closest_entity
+            }
+            
+            # Handle interaction input
+            if player_input and player_input.interact_pressed:
+                self._handle_interaction(player_entity, closest_entity, closest_interactable)
+    
+    def _handle_interaction(self, player_id: int, target_id: int, interactable: Interactable) -> None:
+        """Handle different types of interactions."""
+        if interactable.interaction_type == "altar":
+            self._handle_altar_interaction(player_id, target_id, interactable)
+        elif interactable.interaction_type == "portal":
+            self._handle_portal_interaction(player_id, target_id)
+        elif interactable.interaction_type == "npc":
+            self._handle_npc_interaction(player_id, target_id, interactable)
+    
+    def _handle_altar_interaction(self, player_id: int, altar_id: int, interactable: Interactable) -> None:
+        """Handle Egyptian god altar interactions."""
+        player_inventory = self.entity_manager.get_component(player_id, ArtifactInventory)
+        egyptian_god = self.entity_manager.get_component(altar_id, EgyptianGod)
+        
+        if player_inventory is None or egyptian_god is None:
+            return
+        
+        # Get available artifacts for this god
+        god_artifacts = egyptian_god.god_artifacts.get(interactable.god_type, [])
+        if not god_artifacts:
+            print(f"No artifacts available for {interactable.god_type}")
+            return
+        
+        # Check if player has room for more artifacts
+        if len(player_inventory.equipped_artifacts) >= player_inventory.max_artifacts:
+            print(f"Artifact inventory full! ({len(player_inventory.equipped_artifacts)}/{player_inventory.max_artifacts})")
+            return
+        
+        # Select a random artifact from the god's pool
+        import random
+        selected_artifact = random.choice(god_artifacts)
+        
+        # Add artifact to inventory
+        if player_inventory.add_artifact(selected_artifact):
+            print(f"\n=== BLESSING RECEIVED ===\nGod: {interactable.god_type}\nArtifact: {selected_artifact}\n")
+            
+            # Increase blessing count and favor
+            egyptian_god.blessing_count += 1
+            if egyptian_god.blessing_count % 3 == 0:
+                egyptian_god.favor_level += 1
+                print(f"{interactable.god_type}'s favor increased to level {egyptian_god.favor_level}!")
+            
+            # Disable altar temporarily (like in Hades)
+            interactable.can_interact = False
+            # TODO: Re-enable after leaving and returning to hub
+    
+    def _handle_portal_interaction(self, player_id: int, portal_id: int) -> None:
+        """Handle portal scene transitions."""
+        portal = self.entity_manager.get_component(portal_id, Portal)
+        if portal is None:
+            return
+        
+        print(f"Entering portal to {portal.destination_scene}...")
+        # TODO: Trigger scene transition
+        # This would typically send an event to the scene manager
+    
+    def _handle_npc_interaction(self, player_id: int, npc_id: int, interactable: Interactable) -> None:
+        """Handle NPC dialogue interactions."""
+        npc_tag = self.entity_manager.get_component(npc_id, NPCTag)
+        if npc_tag is None:
+            return
+        
+        # Simple dialogue system
+        dialogues = {
+            "mirror_anubis": [
+                "Greetings, fellow guardian of the afterlife.",
+                "The gods watch your progress with interest.",
+                "Your artifacts grow in power... as do you."
+            ],
+            "merchant": [
+                "Welcome, traveler! I have rare goods from across the realm.",
+                "Perhaps some divine artifacts interest you?",
+                "The gods have blessed my wares today."
+            ]
+        }
+        
+        dialogue_lines = dialogues.get(npc_tag.npc_type, ["..."]) 
+        import random
+        selected_line = random.choice(dialogue_lines)
+        print(f"\n[{npc_tag.npc_type.replace('_', ' ').title()}]: {selected_line}\n")
+    
+    def get_interaction_prompt(self) -> Optional[Dict[str, Any]]:
+        """Get current interaction prompt for UI rendering."""
+        return self.interaction_prompt

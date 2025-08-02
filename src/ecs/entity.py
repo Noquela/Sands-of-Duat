@@ -148,10 +148,10 @@ def create_player_entity(entity_manager: EntityManager, x: float = 0.0, y: float
     return (EntityBuilder(entity_manager)
             .with_component(Transform(x=x, y=y))
             .with_component(SpriteRenderer(
-                frame_width=64, 
+                frame_width=64,  # Scaled from 256 (256 * 0.25 = 64)
                 frame_height=64, 
                 frames_per_row=4, 
-                total_frames=16
+                total_frames=4  # AI-generated sprite has 4 frames (4x1)
             ))
             .with_component(InputController())
             .with_component(Movement(max_speed=250.0))
@@ -174,10 +174,10 @@ def create_scarab_enemy(entity_manager: EntityManager, x: float = 0.0, y: float 
     return (EntityBuilder(entity_manager)
             .with_component(Transform(x=x, y=y))
             .with_component(SpriteRenderer(
-                frame_width=48, 
+                frame_width=48,  # Scaled from 192 (192 * 0.25 = 48)
                 frame_height=48, 
                 frames_per_row=4, 
-                total_frames=8
+                total_frames=4  # AI-generated sprite has 4 frames (4x1)
             ))
             .with_component(Movement(max_speed=120.0))
             .with_component(Animation())
@@ -209,4 +209,128 @@ def create_combat_dummy(entity_manager: EntityManager, x: float = 0.0, y: float 
             ))
             .with_component(Health(current_hp=9999, max_hp=9999))
             .with_component(Hitbox(width=40.0, height=60.0))
+            .build())
+
+
+def create_egyptian_altar(entity_manager: EntityManager, x: float, y: float, god_type: str) -> int:
+    """Create an Egyptian god altar entity."""
+    from .components import (Transform, SpriteRenderer, Interactable, 
+                           EgyptianGod, AltarTag)
+    
+    # God-specific configurations
+    god_configs = {
+        "Ra": {
+            "color": (255, 215, 0),  # Gold
+            "domain": "Sun and Fire",
+            "prompt": "Press E to receive Ra's blessing"
+        },
+        "Thoth": {
+            "color": (138, 43, 226),  # Blue Violet
+            "domain": "Wisdom and Magic", 
+            "prompt": "Press E to receive Thoth's wisdom"
+        },
+        "Isis": {
+            "color": (0, 191, 255),  # Deep Sky Blue
+            "domain": "Protection and Healing",
+            "prompt": "Press E to receive Isis's protection"
+        },
+        "Ptah": {
+            "color": (160, 82, 45),  # Saddle Brown
+            "domain": "Creation and Craftsmanship",
+            "prompt": "Press E to receive Ptah's craft"
+        }
+    }
+    
+    config = god_configs.get(god_type, god_configs["Ra"])
+    
+    return (EntityBuilder(entity_manager)
+            .with_component(Transform(x=x, y=y))
+            .with_component(SpriteRenderer(
+                frame_width=64,
+                frame_height=64,
+                frames_per_row=1,
+                total_frames=1,
+                color_tint=config["color"]
+            ))
+            .with_component(Interactable(
+                interaction_type="altar",
+                prompt_text=config["prompt"],
+                interaction_range=80.0,
+                god_type=god_type
+            ))
+            .with_component(EgyptianGod(
+                god_name=god_type,
+                domain=config["domain"],
+                color_scheme=config["color"]
+            ))
+            .with_component(AltarTag(
+                god_type=god_type,
+                offering_cost=0,
+                blessing_tier=1
+            ))
+            .build())
+
+
+def create_egyptian_npc(entity_manager: EntityManager, x: float, y: float, npc_type: str) -> int:
+    """Create an Egyptian NPC entity."""
+    from .components import (Transform, SpriteRenderer, Interactable, NPCTag)
+    
+    # NPC-specific configurations
+    npc_configs = {
+        "mirror_anubis": {
+            "prompt": "Press E to speak with Mirror Anubis",
+            "color": (218, 165, 32)  # Goldenrod
+        },
+        "merchant": {
+            "prompt": "Press E to browse wares",
+            "color": (205, 133, 63)  # Peru
+        }
+    }
+    
+    config = npc_configs.get(npc_type, npc_configs["mirror_anubis"])
+    
+    return (EntityBuilder(entity_manager)
+            .with_component(Transform(x=x, y=y))
+            .with_component(SpriteRenderer(
+                frame_width=64,
+                frame_height=64,
+                frames_per_row=1,
+                total_frames=1,
+                color_tint=config["color"]
+            ))
+            .with_component(Interactable(
+                interaction_type="npc",
+                prompt_text=config["prompt"],
+                interaction_range=70.0
+            ))
+            .with_component(NPCTag(
+                npc_type=npc_type,
+                dialogue_key=f"{npc_type}_dialogue"
+            ))
+            .build())
+
+
+def create_arena_portal(entity_manager: EntityManager, x: float, y: float) -> int:
+    """Create a portal to the arena."""
+    from .components import (Transform, SpriteRenderer, Interactable, Portal)
+    
+    return (EntityBuilder(entity_manager)
+            .with_component(Transform(x=x, y=y))
+            .with_component(SpriteRenderer(
+                frame_width=96,
+                frame_height=96,
+                frames_per_row=1,
+                total_frames=1,
+                color_tint=(138, 43, 226)  # Purple energy
+            ))
+            .with_component(Interactable(
+                interaction_type="portal",
+                prompt_text="Press E to enter the Arena",
+                interaction_range=100.0
+            ))
+            .with_component(Portal(
+                destination_scene="arena",
+                portal_type="arena",
+                energy_color=(138, 43, 226)
+            ))
             .build())

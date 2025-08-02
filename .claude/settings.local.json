@@ -11,7 +11,17 @@
       "Bash(cmd /c:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(timeout:*)",
+      "Bash(taskkill:*)",
+      "Bash(pkill:*)",
+      "Bash(kill:*)",
+      "Bash(ls:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "Bash(del assetsgeneratedtest_*)",
+      "Bash(del assetsgenerated*_fixed.png)",
+      "Bash(del toolsfixed_sdxl_generator.py)"
     ],
     "deny": []
   }

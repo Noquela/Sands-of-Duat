@@ -2,7 +2,8 @@
 ECS (Entity-Component-System) package for Sands of Duat
 """
 
-from .entity import EntityManager, EntityBuilder, create_player_entity, create_scarab_enemy, create_combat_dummy
+from .entity import (EntityManager, EntityBuilder, create_player_entity, create_scarab_enemy, 
+                     create_combat_dummy, create_egyptian_altar, create_egyptian_npc, create_arena_portal)
 from .components import *
 from .systems import *
 
@@ -12,6 +13,9 @@ __all__ = [
     'create_player_entity',
     'create_scarab_enemy',
     'create_combat_dummy',
+    'create_egyptian_altar',
+    'create_egyptian_npc', 
+    'create_arena_portal',
     'System',
     'InputSystem',
     'MovementSystem',
@@ -22,6 +26,8 @@ __all__ = [
     'CollisionSystem',
     'AISystem',
     'HealthSystem',
+    'ArtifactSystem',
+    'InteractionSystem',
     'Transform',
     'SpriteRenderer',
     'InputController',
@@ -35,6 +41,14 @@ __all__ = [
     'Hitbox',
     'AttackHitbox',
     'AIController',
+    'Artifact',
+    'ArtifactInventory',
+    'Stats',
+    'Interactable',
+    'Portal',
+    'EgyptianGod',
+    'NPCTag',
+    'AltarTag',
     'Particle',
     'ParticleEmitter'
 ]
