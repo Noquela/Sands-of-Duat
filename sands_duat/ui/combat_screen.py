@@ -8,9 +8,11 @@ card hand management, and real-time combat mechanics.
 import pygame
 import math
 import random
+import time
 from typing import List, Optional, Dict, Any, Tuple
 from .base import UIScreen, UIComponent
 from .theme import get_theme
+from .particle_system import ParticleSystem, ParticleEmitter, ParticleType
 from core.hourglass import HourGlass
 from core.cards import Card, CardType, EffectType
 from core.combat_manager import CombatManager
@@ -574,6 +576,7 @@ class CombatScreen(UIScreen):
         # Visual effects
         self.damage_numbers: List[Dict[str, Any]] = []
         self.effect_animations: List[Dict[str, Any]] = []
+        self.particle_system = ParticleSystem(max_particles=800)
         
         # UI state
         self.selected_card_index: Optional[int] = None
@@ -750,11 +753,20 @@ class CombatScreen(UIScreen):
         # Draw combat status
         self._draw_combat_status(surface)
         
+        # Render particle effects (behind other UI elements)
+        self.particle_system.render(surface)
+        
         # Draw visual effects
         self._draw_visual_effects(surface)
         
         # Draw enemy intent
         self._draw_enemy_intent(surface)
+        
+        # Draw game title and instructions
+        self._draw_game_title(surface)
+        
+        # Draw particle count debug info (if enabled)
+        self._draw_debug_info(surface)
     
     def _draw_health_bars(self, surface: pygame.Surface) -> None:
         """Draw player and enemy health bars using combat state."""
@@ -950,6 +962,9 @@ class CombatScreen(UIScreen):
         # Update combat manager
         self.combat_manager.update(delta_time)
         
+        # Update particle system
+        self.particle_system.update(delta_time)
+        
         # Update visual effects
         self._update_visual_effects(delta_time)
         
@@ -958,6 +973,9 @@ class CombatScreen(UIScreen):
         
         # Update UI state based on combat phase
         self._update_ui_state()
+        
+        # Update sand particle effects based on hourglass states
+        self._update_sand_particles(delta_time)
     
     def _update_visual_effects(self, delta_time: float) -> None:
         """Update visual effects like damage numbers."""
@@ -986,10 +1004,22 @@ class CombatScreen(UIScreen):
             
             if effect_type == 'damage':
                 self._show_damage_number(data['amount'], data['target'])
+                # Trigger damage particle effect
+                target_pos = self._get_entity_position(data['target'])
+                if target_pos:
+                    self.trigger_damage_effect(target_pos[0], target_pos[1], data['amount'])
             elif effect_type == 'heal':
                 self._show_heal_number(data['amount'], data['target'])
+                # Trigger heal particle effect
+                target_pos = self._get_entity_position(data['target'])
+                if target_pos:
+                    self.trigger_heal_effect(target_pos[0], target_pos[1], data['amount'])
             elif effect_type == 'block':
                 self._show_block_effect(data['amount'], data['target'])
+                # Trigger sand burst for block
+                target_pos = self._get_entity_position(data['target'])
+                if target_pos:
+                    self.trigger_sand_burst(target_pos[0], target_pos[1], data['amount'] // 2)
     
     def _update_ui_state(self) -> None:
         """Update UI components based on combat state."""
@@ -1081,3 +1111,158 @@ class CombatScreen(UIScreen):
         """Set the player's hand (legacy method - now handled by combat manager)."""
         if self.hand_display:
             self.hand_display.set_cards(cards)
+    
+    def _update_sand_particles(self, delta_time: float) -> None:
+        """Update sand particle effects based on hourglass states."""
+        theme = get_theme()
+        
+        # Get sand gauge positions for particle emission
+        try:
+            player_zone = theme.get_zone('player_sand')
+            enemy_zone = theme.get_zone('enemy_sand')
+        except:
+            # Fallback positioning
+            player_zone = type('Zone', (), {'x': 50, 'y': 400, 'width': 200, 'height': 200})()
+            enemy_zone = type('Zone', (), {'x': 750, 'y': 100, 'width': 200, 'height': 200})()
+        
+        # Create atmospheric sand particles
+        if random.random() < 0.1:  # 10% chance per frame (reduced for performance)
+            # Random atmospheric sand using proper Particle class
+            from .particle_system import Particle
+            
+            x = random.uniform(0, 3440)
+            y = random.uniform(-50, 0)
+            
+            particle = Particle(
+                x=x, y=y,
+                vel_x=random.uniform(-20, 20),
+                vel_y=random.uniform(10, 40),
+                size=random.uniform(0.5, 1.5),
+                life=random.uniform(3.0, 8.0),
+                max_life=5.0,
+                color=(255, 215, random.randint(0, 100)),
+                alpha=random.randint(50, 150),
+                gravity=random.uniform(5, 15),
+                fade_rate=0.5,
+                particle_type=ParticleType.ATMOSPHERIC
+            )
+            
+            self.particle_system.particles.append(particle)
+        
+        # Add sand flow effects between hourglasses during regeneration
+        if hasattr(self, 'player_hourglass') and self.player_hourglass:
+            if self.player_hourglass.current_sand < self.player_hourglass.max_sand:
+                # Sand flowing into player hourglass
+                flow_x = player_zone.x + player_zone.width // 2
+                flow_y = player_zone.y - 20
+                self.particle_system.create_sand_flow_effect(
+                    flow_x, flow_y - 50, flow_x, flow_y + 100, intensity=0.5
+                )
+    
+    
+    def _draw_debug_info(self, surface: pygame.Surface) -> None:
+        """Draw debug information including particle count."""
+        if hasattr(self, 'debug_mode') and self.debug_mode:
+            font = pygame.font.Font(None, 24)
+            particle_count = self.particle_system.get_particle_count()
+            debug_text = f"Particles: {particle_count}"
+            text_surface = font.render(debug_text, True, (255, 255, 255))
+            surface.blit(text_surface, (10, 10))
+    
+    def trigger_damage_effect(self, x: float, y: float, damage: int) -> None:
+        """Trigger visual damage effect at position."""
+        self.particle_system.create_combat_hit_effect(x, y, damage)
+        
+        # Add floating damage number
+        self.damage_numbers.append({
+            'text': str(damage),
+            'x': x,
+            'y': y,
+            'vel_y': -50,
+            'life': 2.0,
+            'color': (255, 100, 100)
+        })
+    
+    def trigger_heal_effect(self, x: float, y: float, healing: int) -> None:
+        """Trigger visual healing effect at position."""
+        self.particle_system.create_heal_effect(x, y, healing)
+        
+        # Add floating heal number
+        self.damage_numbers.append({
+            'text': f"+{healing}",
+            'x': x,
+            'y': y,
+            'vel_y': -30,
+            'life': 2.0,
+            'color': (100, 255, 100)
+        })
+    
+    def trigger_sand_burst(self, x: float, y: float, sand_amount: int) -> None:
+        """Trigger sand burst effect when sand is gained or spent."""
+        # Create sand emitter for burst effect
+        emitter = ParticleEmitter(x, y, ParticleType.SAND_GRAIN)
+        emitter.emission_rate = 0  # Don't emit continuously
+        emitter.color = (255, 215, 0)
+        emitter.velocity_range = (30, 100)
+        emitter.life_range = (1.0, 2.5)
+        
+        # Create burst particles
+        burst_particles = emitter.burst(sand_amount * 3)
+        self.particle_system.particles.extend(burst_particles)
+    
+    def _get_entity_position(self, entity) -> Optional[Tuple[float, float]]:
+        """Get screen position for an entity for particle effects."""
+        theme = get_theme()
+        
+        if entity and hasattr(entity, 'is_player'):
+            if entity.is_player:
+                # Player position
+                try:
+                    player_zone = theme.get_zone('player_area')
+                    return (player_zone.x + player_zone.width // 2, 
+                           player_zone.y + player_zone.height // 2)
+                except:
+                    return (400, 700)  # Fallback player position
+            else:
+                # Enemy position
+                try:
+                    enemy_zone = theme.get_zone('enemy_area')
+                    return (enemy_zone.x + enemy_zone.width // 2, 
+                           enemy_zone.y + enemy_zone.height // 2)
+                except:
+                    return (800, 300)  # Fallback enemy position
+        
+        return None
+    
+    def _draw_game_title(self, surface: pygame.Surface) -> None:
+        """Draw game title and instructions."""
+        theme = get_theme()
+        
+        # Draw main title
+        title_font = theme.fonts.get_font('large')
+        title_text = "SANDS OF DUAT"
+        title_surface = title_font.render(title_text, True, theme.colors.GOLD)
+        title_rect = title_surface.get_rect(centerx=surface.get_width() // 2, y=20)
+        surface.blit(title_surface, title_rect)
+        
+        # Draw subtitle
+        subtitle_font = theme.fonts.get_font('medium')
+        subtitle_text = "Hour-Glass Initiative Combat"
+        subtitle_surface = subtitle_font.render(subtitle_text, True, theme.colors.PAPYRUS)
+        subtitle_rect = subtitle_surface.get_rect(centerx=surface.get_width() // 2, y=title_rect.bottom + 5)
+        surface.blit(subtitle_surface, subtitle_rect)
+        
+        # Draw instructions
+        instruction_font = theme.fonts.get_font('small')
+        instructions = [
+            "Drag cards UP to play them",
+            "Watch your sand regenerate over time", 
+            "Defeat the enemy to win!",
+            "ESC to exit (dev mode)"
+        ]
+        
+        start_y = subtitle_rect.bottom + 20
+        for i, instruction in enumerate(instructions):
+            instruction_surface = instruction_font.render(instruction, True, theme.colors.PAPYRUS)
+            instruction_rect = instruction_surface.get_rect(centerx=surface.get_width() // 2, y=start_y + i * 25)
+            surface.blit(instruction_surface, instruction_rect)

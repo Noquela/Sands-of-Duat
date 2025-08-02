@@ -1,0 +1,6 @@
+@echo off
+echo Starting Sands of Duat...
+python main.py --dev-mode --windowed
+echo.
+echo Game ended. Press any key to close...
+pause >nul
