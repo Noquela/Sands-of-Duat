@@ -1,0 +1,863 @@
+# The Twelve Hours of Night Events
+# Events themed around the Egyptian journey through the Duat (underworld)
+# Each hour represents a different stage of the soul's journey
+
+# ═══ FIRST HOUR - SUNSET, ENTERING THE DUAT ═══
+
+sunset_gateway:
+  id: "sunset_gateway"
+  name: "Gateway of Sunset"
+  description: "The great doors of the underworld stand before you, carved with hieroglyphs that seem to shift in the dying light. A ferryman waits by a boat of reeds."
+  event_type: "choice"
+  hour_of_night: "first_hour"
+  requirements: []
+  options:
+    - text: "Pay the ferryman with gold"
+      cost:
+        gold: 25
+      effects:
+        - effect_type: "blessing"
+          value: 1
+          metadata:
+            blessing_type: "safe_passage"
+            duration: 3
+      consequences: "The ferryman nods approvingly and grants you protection for the journey ahead."
+    
+    - text: "Offer to help row the boat"
+      effects:
+        - effect_type: "max_health_increase"
+          value: 5
+        - effect_type: "damage"
+          value: 3
+      consequences: "Your labor earns respect but takes its toll on your mortal flesh."
+    
+    - text: "Attempt to cross by yourself"
+      effects:
+        - effect_type: "damage"
+          value: 8
+        - effect_type: "gain_card"
+          value: 1
+          metadata:
+            card_id: "desert_meditation"
+      consequences: "The dark waters punish your pride, but you learn valuable lessons."
+
+duat_threshold:
+  id: "duat_threshold"
+  name: "Threshold of the Duat"
+  description: "Ancient guardians challenge your right to enter the realm of the dead. They demand proof of your worthiness."
+  event_type: "challenge"
+  hour_of_night: "first_hour"
+  requirements: []
+  options:
+    - text: "Recite the ancient prayers"
+      requirements:
+        - type: "keyword_in_deck"
+          keyword: "divine"
+          minimum: 3
+      effects:
+        - effect_type: "blessing"
+          value: 2
+          metadata:
+            blessing_type: "divine_favor"
+            duration: 5
+      consequences: "Your knowledge of the sacred words impresses the guardians."
+    
+    - text: "Challenge them to combat"
+      effects:
+        - effect_type: "combat"
+          value: 1
+          metadata:
+            enemy_id: "shadow_jackal"
+      consequences: "You must prove your strength in battle."
+    
+    - text: "Offer a tribute from your deck"
+      cost:
+        card: 1
+      effects:
+        - effect_type: "upgrade_card"
+          value: 1
+        - effect_type: "gain_gold"
+          value: 15
+      consequences: "Your sacrifice is accepted and transformed into something greater."
+
+# ═══ SECOND HOUR - MEETING THE FERRYMAN ═══
+
+celestial_ferryman:
+  id: "celestial_ferryman"
+  name: "The Celestial Ferryman"
+  description: "A being of starlight pilots a boat across the river of souls. He speaks in riddles of time and memory."
+  event_type: "choice"
+  hour_of_night: "second_hour"
+  requirements: []
+  options:
+    - text: "Ask about the nature of time"
+      effects:
+        - effect_type: "permanent_sand_increase"
+          value: 1
+        - effect_type: "lose_gold"
+          value: 20
+      consequences: "The ferryman shares ancient secrets about the flow of time and sand."
+    
+    - text: "Request safe passage through dangerous waters"
+      cost:
+        gold: 30
+      effects:
+        - effect_type: "heal"
+          value: 20
+        - effect_type: "blessing"
+          value: 1
+          metadata:
+            blessing_type: "protection"
+            duration: 4
+      consequences: "The ferryman's blessing shields you from the perils ahead."
+    
+    - text: "Simply enjoy the peaceful journey"
+      effects:
+        - effect_type: "heal"
+          value: 12
+        - effect_type: "draw_cards"
+          value: 2
+      consequences: "Rest and contemplation restore both body and mind."
+
+river_of_souls:
+  id: "river_of_souls"
+  name: "River of Souls"
+  description: "Countless spirits drift in the dark waters below. Some reach out to you, seeking connection or warning."
+  event_type: "mystery"
+  hour_of_night: "second_hour"
+  requirements: []
+  options:
+    - text: "Listen to their whispers"
+      effects:
+        - effect_type: "discover_card"
+          value: 1
+          metadata:
+            pool: "spirit_cards"
+        - effect_type: "apply_vulnerable"
+          value: 1
+          target: "self"
+          metadata:
+            duration: 3
+      consequences: "The spirits' knowledge comes at the cost of spiritual vulnerability."
+    
+    - text: "Offer them peace with a prayer"
+      requirements:
+        - type: "card_in_deck"
+          card_id: "whisper_of_thoth"
+      effects:
+        - effect_type: "blessing"
+          value: 2
+          metadata:
+            blessing_type: "soul_peace"
+            duration: 6
+      consequences: "Your compassion earns the gratitude of the restless dead."
+    
+    - text: "Ignore them and look away"
+      effects: []
+      consequences: "You avoid their influence but gain nothing from the encounter."
+
+# ═══ THIRD HOUR - LAKE OF FIRE ═══
+
+lake_of_fire:
+  id: "lake_of_fire"
+  name: "Lake of Fire"
+  description: "A vast expanse of burning liquid stretches before you. The flames are said to purify the soul but consume the unworthy."
+  event_type: "challenge"
+  hour_of_night: "third_hour"
+  requirements: []
+  options:
+    - text: "Walk through the flames"
+      effects:
+        - effect_type: "damage"
+          value: 15
+        - effect_type: "upgrade_card"
+          value: 2
+        - effect_type: "blessing"
+          value: 1
+          metadata:
+            blessing_type: "purification"
+            duration: 999
+      consequences: "The purifying flames burn away your flaws, strengthening your remaining abilities."
+    
+    - text: "Seek an alternative path"
+      cost:
+        gold: 40
+      effects:
+        - effect_type: "gain_card"
+          value: 1
+          metadata:
+            card_id: "fire_immunity"
+      consequences: "A hidden route reveals ancient protections against flame."
+    
+    - text: "Use magic to part the flames"
+      requirements:
+        - type: "card_with_keyword"
+          keyword: "divine"
+          minimum: 1
+      effects:
+        - effect_type: "permanent_sand_increase"
+          value: 1
+        - effect_type: "lose_card"
+          value: 1
+      consequences: "Your divine magic opens a path but exhausts some of your power."
+
+salamander_trial:
+  id: "salamander_trial"
+  name: "Trial of the Fire Salamander"
+  description: "A magnificent salamander of living flame challenges you to prove your mastery over fire and passion."
+  event_type: "combat"
+  hour_of_night: "third_hour"
+  requirements: []
+  options:
+    - text: "Accept the trial of fire"
+      effects:
+        - effect_type: "combat"
+          value: 1
+          metadata:
+            enemy_id: "fire_salamander"
+      consequences: "Face the salamander in combat to prove your worth."
+    
+    - text: "Attempt to commune with the salamander"
+      requirements:
+        - type: "keyword_in_deck"
+          keyword: "fire"
+          minimum: 2
+      effects:
+        - effect_type: "gain_card"
+          value: 1
+          metadata:
+            card_id: "salamander_pact"
+        - effect_type: "blessing"
+          value: 1
+          metadata:
+            blessing_type: "fire_mastery"
+            duration: 8
+      consequences: "Your understanding of fire earns the salamander's respect."
+
+# ═══ FOURTH HOUR - SOKAR'S DOMAIN ═══
+
+sokar_underworld:
+  id: "sokar_underworld"
+  name: "Sokar's Hidden Realm"
+  description: "You enter the domain of Sokar, god of decay and regeneration. The air itself seems to pulse with the cycle of death and rebirth."
+  event_type: "shrine"
+  hour_of_night: "fourth_hour"
+  requirements: []
+  options:
+    - text: "Pray to Sokar for transformation"
+      cost:
+        gold: 35
+      effects:
+        - effect_type: "transform_card"
+          value: 1
+          metadata:
+            transform_type: "upgrade_or_change"
+      consequences: "Sokar transforms one of your abilities into something new."
+    
+    - text: "Meditate on the cycle of decay"
+      effects:
+        - effect_type: "remove_card"
+          value: 1
+        - effect_type: "gain_card"
+          value: 1
+          metadata:
+            card_id: "regeneration"
+      consequences: "Understanding decay allows you to let go of weakness and embrace renewal."
+    
+    - text: "Offer to serve as his herald"
+      effects:
+        - effect_type: "curse"
+          value: 1
+          metadata:
+            curse_type: "decay_touch"
+        - effect_type: "gain_card"
+          value: 2
+          metadata:
+            pool: "decay_cards"
+      consequences: "Sokar's blessing comes with the burden of his dark influence."
+
+mummification_chamber:
+  id: "mummification_chamber"
+  name: "Ancient Mummification Chamber"
+  description: "Sacred oils and bandages line the walls of this holy place where pharaohs were prepared for eternity."
+  event_type: "choice"
+  hour_of_night: "fourth_hour"
+  requirements: []
+  options:
+    - text: "Study the mummification process"
+      effects:
+        - effect_type: "max_health_increase"
+          value: 8
+        - effect_type: "gain_card"
+          value: 1
+          metadata:
+            card_id: "preservation_ritual"
+      consequences: "Knowledge of preservation strengthens your mortal form."
+    
+    - text: "Take sacred oils"
+      cost:
+        gold: 25
+      effects:
+        - effect_type: "heal"
+          value: 20
+        - effect_type: "blessing"
+          value: 1
+          metadata:
+            blessing_type: "preservation"
+            duration: 5
+      consequences: "The sacred oils provide lasting protection and healing."
+
+# ═══ FIFTH HOUR - HIDDEN CHAMBER ═══
+
+secret_knowledge:
+  id: "secret_knowledge"
+  name: "Chamber of Secret Knowledge"
+  description: "Hidden scrolls contain forbidden wisdom. Thoth's ibis perches nearby, as if guarding these ancient secrets."
+  event_type: "choice"
+  hour_of_night: "fifth_hour"
+  requirements: []
+  options:
+    - text: "Study the forbidden scrolls"
+      effects:
+        - effect_type: "discover_card"
+          value: 2
+          metadata:
+            pool: "forbidden_knowledge"
+        - effect_type: "curse"
+          value: 1
+          metadata:
+            curse_type: "forbidden_knowledge"
+      consequences: "Great power comes with dangerous consequences."
+    
+    - text: "Ask Thoth's blessing for wisdom"
+      requirements:
+        - type: "card_in_deck"
+          card_id: "whisper_of_thoth"
+      effects:
+        - effect_type: "upgrade_card"
+          value: 2
+        - effect_type: "permanent_sand_increase"
+          value: 1
+      consequences: "The god of wisdom rewards your devotion with enhanced abilities."
+    
+    - text: "Leave the chamber undisturbed"
+      effects:
+        - effect_type: "blessing"
+          value: 1
+          metadata:
+            blessing_type: "wisdom"
+            duration: 6
+      consequences: "Your restraint demonstrates true wisdom."
+
+hall_of_mirrors:
+  id: "hall_of_mirrors"
+  name: "Hall of Reflecting Mirrors"
+  description: "Countless mirrors show different versions of yourself - past, present, and potential futures."
+  event_type: "mystery"
+  hour_of_night: "fifth_hour"
+  requirements: []
+  options:
+    - text: "Gaze into your past"
+      effects:
+        - effect_type: "heal"
+          value: 15
+        - effect_type: "gain_card"
+          value: 1
+          metadata:
+            pool: "memory_cards"
+      consequences: "Painful memories teach valuable lessons."
+    
+    - text: "Look toward potential futures"
+      effects:
+        - effect_type: "discover_card"
+          value: 2
+          metadata:
+            pool: "any"
+        - effect_type: "damage"
+          value: 8
+      consequences: "Glimpses of destiny both inspire and burden you."
+    
+    - text: "Shatter the mirrors"
+      effects:
+        - effect_type: "remove_card"
+          value: 1
+        - effect_type: "blessing"
+          value: 1
+          metadata:
+            blessing_type: "freedom"
+            duration: 999
+      consequences: "Breaking free from reflection brings liberation."
+
+# ═══ SIXTH HOUR - APOPHIS APPEARS ═══
+
+apophis_confrontation:
+  id: "apophis_confrontation"
+  name: "The Great Serpent Rises"
+  description: "Apophis, the serpent of chaos, emerges from the depths. Its very presence threatens to unravel reality."
+  event_type: "boss"
+  hour_of_night: "sixth_hour"
+  requirements: []
+  options:
+    - text: "Face Apophis in direct combat"
+      effects:
+        - effect_type: "combat"
+          value: 1
+          metadata:
+            enemy_id: "serpent_of_apophis"
+      consequences: "Engage the great serpent in battle for the fate of order itself."
+    
+    - text: "Attempt to bind the serpent with magic"
+      requirements:
+        - type: "sand_capacity"
+          minimum: 5
+      effects:
+        - effect_type: "gain_card"
+          value: 1
+          metadata:
+            card_id: "serpent_binding"
+        - effect_type: "permanent_sand_increase"
+          value: 1
+      consequences: "Your magical prowess allows you to contain part of Apophis's power."
+
+chaos_vortex:
+  id: "chaos_vortex"
+  name: "Vortex of Primordial Chaos"
+  description: "Reality warps and twists around you as chaos itself seeks to unmake your existence."
+  event_type: "challenge"
+  hour_of_night: "sixth_hour"
+  requirements: []
+  options:
+    - text: "Embrace the chaos"
+      effects:
+        - effect_type: "transform_card"
+          value: 3
+          metadata:
+            transform_type: "chaotic_change"
+        - effect_type: "gain_card"
+          value: 1
+          metadata:
+            card_id: "chaos_mastery"
+      consequences: "Accepting chaos transforms your abilities in unpredictable ways."
+    
+    - text: "Maintain order through willpower"
+      effects:
+        - effect_type: "damage"
+          value: 12
+        - effect_type: "blessing"
+          value: 2
+          metadata:
+            blessing_type: "order"
+            duration: 8
+      consequences: "Your determination to maintain order comes at great personal cost."
+
+# ═══ SEVENTH HOUR - BATTLE PREPARATION ═══
+
+armory_of_gods:
+  id: "armory_of_gods"
+  name: "Armory of the Gods"
+  description: "Divine weapons and armor await those deemed worthy. Each piece pulses with celestial power."
+  event_type: "shop"
+  hour_of_night: "seventh_hour"
+  requirements: []
+  options:
+    - text: "Purchase divine armor"
+      cost:
+        gold: 50
+      effects:
+        - effect_type: "max_health_increase"
+          value: 12
+        - effect_type: "blessing"
+          value: 1
+          metadata:
+            blessing_type: "divine_protection"
+            duration: 999
+      consequences: "Divine armor provides lasting protection."
+    
+    - text: "Acquire a celestial weapon"
+      cost:
+        gold: 60
+      effects:
+        - effect_type: "gain_card"
+          value: 1
+          metadata:
+            card_id: "divine_weapon"
+        - effect_type: "upgrade_card"
+          value: 1
+      consequences: "A weapon blessed by the gods enhances your combat abilities."
+    
+    - text: "Request the gods' blessing instead"
+      cost:
+        gold: 30
+      effects:
+        - effect_type: "blessing"
+          value: 3
+          metadata:
+            blessing_type: "divine_favor"
+            duration: 10
+      consequences: "The gods' favor proves more valuable than material possessions."
+
+war_council:
+  id: "war_council"
+  name: "Council of War"
+  description: "Ancient generals and fallen heroes share their tactical wisdom for the battles ahead."
+  event_type: "choice"
+  hour_of_night: "seventh_hour"
+  requirements: []
+  options:
+    - text: "Learn advanced combat techniques"
+      effects:
+        - effect_type: "upgrade_card"
+          value: 2
+        - effect_type: "gain_card"
+          value: 1
+          metadata:
+            pool: "combat_techniques"
+      consequences: "Ancient wisdom enhances your fighting skills."
+    
+    - text: "Study enemy weaknesses"
+      effects:
+        - effect_type: "blessing"
+          value: 2
+          metadata:
+            blessing_type: "tactical_insight"
+            duration: 999
+      consequences: "Knowledge of your foes' weaknesses proves invaluable."
+
+# ═══ EIGHTH HOUR - OSIRIS CHAMBER ═══
+
+throne_of_osiris:
+  id: "throne_of_osiris"
+  name: "Throne of Osiris"
+  description: "The god of the underworld sits in judgment, weighing the worthiness of all souls who pass through his domain."
+  event_type: "shrine"
+  hour_of_night: "eighth_hour"
+  requirements: []
+  options:
+    - text: "Kneel before the lord of the dead"
+      effects:
+        - effect_type: "blessing"
+          value: 3
+          metadata:
+            blessing_type: "death_mastery"
+            duration: 999
+        - effect_type: "gain_card"
+          value: 1
+          metadata:
+            card_id: "osiris_blessing"
+      consequences: "Your humility earns Osiris's respect and power over death."
+    
+    - text: "Ask for resurrection power"
+      cost:
+        gold: 75
+      effects:
+        - effect_type: "gain_card"
+          value: 1
+          metadata:
+            card_id: "osiris_resurrection"
+        - effect_type: "max_health_increase"
+          value: 15
+      consequences: "Osiris grants you a fraction of his power over life and death."
+    
+    - text: "Request judgment of your enemies"
+      effects:
+        - effect_type: "blessing"
+          value: 2
+          metadata:
+            blessing_type: "divine_judgment"
+            duration: 999
+      consequences: "Osiris's judgment will weigh heavily on your foes."
+
+hall_of_truth:
+  id: "hall_of_truth"
+  name: "Hall of Two Truths"
+  description: "The great hall where hearts are weighed against the feather of Ma'at. Truth and justice reign supreme here."
+  event_type: "choice"
+  hour_of_night: "eighth_hour"
+  requirements: []
+  options:
+    - text: "Submit to the weighing of your heart"
+      effects:
+        - effect_type: "remove_card"
+          value: 2
+          metadata:
+            card_type: "curse"
+        - effect_type: "blessing"
+          value: 2
+          metadata:
+            blessing_type: "pure_heart"
+            duration: 999
+      consequences: "A pure heart is revealed, cleansed of all corruption."
+    
+    - text: "Offer to serve justice"
+      effects:
+        - effect_type: "gain_card"
+          value: 1
+          metadata:
+            card_id: "divine_justice"
+        - effect_type: "permanent_sand_increase"
+          value: 1
+      consequences: "Your commitment to justice enhances your divine power."
+
+# ═══ NINTH HOUR - JUDGMENT HALL ═══
+
+final_judgment:
+  id: "final_judgment"
+  name: "The Final Judgment"
+  description: "42 judges of the dead evaluate your worthiness to continue. Each represents a different aspect of divine law."
+  event_type: "challenge"
+  hour_of_night: "ninth_hour"
+  requirements: []
+  options:
+    - text: "Recite the negative confessions"
+      requirements:
+        - type: "max_health"
+          minimum: 60
+      effects:
+        - effect_type: "blessing"
+          value: 5
+          metadata:
+            blessing_type: "perfect_soul"
+            duration: 999
+      consequences: "Your pure soul is recognized by all the judges."
+    
+    - text: "Challenge the judgment system"
+      effects:
+        - effect_type: "combat"
+          value: 1
+          metadata:
+            enemy_id: "divine_judge"
+        - effect_type: "gain_card"
+          value: 1
+          metadata:
+            card_id: "rebellion"
+      consequences: "Your defiance must be proven through combat."
+    
+    - text: "Accept whatever judgment comes"
+      effects:
+        - effect_type: "blessing"
+          value: 3
+          metadata:
+            blessing_type: "acceptance"
+            duration: 999
+        - effect_type: "heal"
+          value: 999
+      consequences: "Your acceptance brings peace and full restoration."
+
+scales_of_maat:
+  id: "scales_of_maat"
+  name: "Scales of Ma'at"
+  description: "The sacred scales that weigh truth against falsehood. The feather of Ma'at glows with pure justice."
+  event_type: "mystery"
+  hour_of_night: "ninth_hour"
+  requirements: []
+  options:
+    - text: "Place your heart on the scales"
+      effects:
+        - effect_type: "remove_card"
+          value: 999
+          metadata:
+            card_type: "curse"
+        - effect_type: "upgrade_card"
+          value: 999
+      consequences: "A pure heart transforms all your abilities to their highest form."
+    
+    - text: "Ask Ma'at for guidance"
+      effects:
+        - effect_type: "discover_card"
+          value: 3
+          metadata:
+            pool: "truth_cards"
+        - effect_type: "blessing"
+          value: 2
+          metadata:
+            blessing_type: "truth"
+            duration: 999
+      consequences: "The goddess of truth shares her wisdom."
+
+# ═══ TENTH HOUR - PURIFICATION ═══
+
+purification_pools:
+  id: "purification_pools"
+  name: "Sacred Purification Pools"
+  description: "Crystal-clear waters blessed by Isis wash away all impurities of the soul."
+  event_type: "rest"
+  hour_of_night: "tenth_hour"
+  requirements: []
+  options:
+    - text: "Bathe in the sacred waters"
+      effects:
+        - effect_type: "heal"
+          value: 999
+        - effect_type: "remove_card"
+          value: 999
+          metadata:
+            card_type: "curse"
+        - effect_type: "blessing"
+          value: 2
+          metadata:
+            blessing_type: "purity"
+            duration: 999
+      consequences: "Complete purification cleanses both body and soul."
+    
+    - text: "Meditate by the poolside"
+      effects:
+        - effect_type: "heal"
+          value: 25
+        - effect_type: "permanent_sand_increase"
+          value: 2
+        - effect_type: "draw_cards"
+          value: 3
+      consequences: "Peaceful contemplation enhances your spiritual power."
+
+isis_blessing:
+  id: "isis_blessing"
+  name: "Blessing of Isis"
+  description: "The great mother goddess appears, radiating love and protection. Her presence brings comfort to all who suffer."
+  event_type: "shrine"
+  hour_of_night: "tenth_hour"
+  requirements: []
+  options:
+    - text: "Request the blessing of motherly love"
+      effects:
+        - effect_type: "max_health_increase"
+          value: 20
+        - effect_type: "blessing"
+          value: 3
+          metadata:
+            blessing_type: "maternal_protection"
+            duration: 999
+      consequences: "Isis's love provides lasting strength and protection."
+    
+    - text: "Ask for magical knowledge"
+      effects:
+        - effect_type: "gain_card"
+          value: 2
+          metadata:
+            pool: "isis_magic"
+        - effect_type: "permanent_sand_increase"
+          value: 1
+      consequences: "The goddess of magic shares her arcane secrets."
+
+# ═══ ELEVENTH HOUR - FINAL TRIALS ═══
+
+ultimate_trial:
+  id: "ultimate_trial"
+  name: "The Ultimate Trial"
+  description: "Your final test approaches. All the gods watch as you face the greatest challenge of your journey."
+  event_type: "boss"
+  hour_of_night: "eleventh_hour"
+  requirements: []
+  options:
+    - text: "Face the trial with courage"
+      effects:
+        - effect_type: "combat"
+          value: 1
+          metadata:
+            enemy_id: "pharaoh_lich"
+      consequences: "Prove your worth against the ultimate undead challenger."
+    
+    - text: "Attempt to transcend the trial through wisdom"
+      requirements:
+        - type: "blessing_count"
+          minimum: 5
+      effects:
+        - effect_type: "blessing"
+          value: 5
+          metadata:
+            blessing_type: "transcendence"
+            duration: 999
+        - effect_type: "permanent_sand_increase"
+          value: 3
+      consequences: "Wisdom allows you to transcend the need for combat."
+
+convergence_of_powers:
+  id: "convergence_of_powers"
+  name: "Convergence of All Powers"
+  description: "All the divine forces you've encountered converge. The accumulated power threatens to overwhelm you."
+  event_type: "challenge"
+  hour_of_night: "eleventh_hour"
+  requirements: []
+  options:
+    - text: "Channel all the power into yourself"
+      effects:
+        - effect_type: "permanent_sand_increase"
+          value: 4
+        - effect_type: "damage"
+          value: 20
+        - effect_type: "blessing"
+          value: 10
+          metadata:
+            blessing_type: "divine_ascension"
+            duration: 999
+      consequences: "Great power comes with great cost, but ultimate reward."
+    
+    - text: "Distribute the power among your abilities"
+      effects:
+        - effect_type: "upgrade_card"
+          value: 999
+        - effect_type: "max_health_increase"
+          value: 30
+      consequences: "Balanced growth strengthens all aspects of your being."
+
+# ═══ TWELFTH HOUR - REBIRTH/DAWN ═══
+
+rebirth_chamber:
+  id: "rebirth_chamber"
+  name: "Chamber of Rebirth"
+  description: "The final chamber where death becomes life, where the night gives way to eternal dawn."
+  event_type: "story"
+  hour_of_night: "twelfth_hour"
+  requirements: []
+  options:
+    - text: "Embrace your transformation"
+      effects:
+        - effect_type: "permanent_sand_increase"
+          value: 6
+        - effect_type: "max_health_increase"
+          value: 50
+        - effect_type: "blessing"
+          value: 999
+          metadata:
+            blessing_type: "divine_apotheosis"
+            duration: 999
+      consequences: "You emerge transformed, more than mortal, touched by divinity."
+    
+    - text: "Choose to remain human but enlightened"
+      effects:
+        - effect_type: "upgrade_card"
+          value: 999
+        - effect_type: "blessing"
+          value: 5
+          metadata:
+            blessing_type: "enlightenment"
+            duration: 999
+      consequences: "Wisdom and experience perfect your mortal abilities."
+
+eternal_dawn:
+  id: "eternal_dawn"
+  name: "The Eternal Dawn"
+  description: "As the twelfth hour ends, the sun rises on a new existence. You have successfully navigated the night of the soul."
+  event_type: "story"
+  hour_of_night: "twelfth_hour"
+  requirements: []
+  options:
+    - text: "Step into the light of the new day"
+      effects:
+        - effect_type: "blessing"
+          value: 999
+          metadata:
+            blessing_type: "eternal_life"
+            duration: 999
+        - effect_type: "heal"
+          value: 999
+      consequences: "You emerge into the light, forever changed by your journey through the Duat."
+    
+    - text: "Return to guide others through the night"
+      effects:
+        - effect_type: "gain_card"
+          value: 5
+          metadata:
+            pool: "guide_cards"
+        - effect_type: "permanent_sand_increase"
+          value: 2
+      consequences: "Your compassion for others grants you the power to help future travelers."

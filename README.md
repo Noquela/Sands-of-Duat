@@ -1,124 +1,247 @@
 # Sands of Duat
 
-A roguelike action hack-&-slash game inspired by *Hades*, set in Egyptian mythology. Built with Python and Pygame.
+An innovative roguelike deck-builder set in the ancient Egyptian underworld during the 12 hours of the night. Features the unique **Hour-Glass Initiative** combat system where timing and resource management create tactical depth beyond traditional turn-based mechanics.
 
-## 🏺 Game Overview
+## 🎮 Core Innovation: Hour-Glass Initiative System
 
-**Sands of Duat** is a roguelike action game where you play as a warrior navigating the Egyptian underworld. Features include:
+### Concept
+- Each combatant possesses an "Hour-Glass" containing 0-6 grains of sand
+- Playing cards costs sand (0-6 cost range)
+- Sand regenerates in real-time at 1 grain per second
+- Creates strategic tension between quick cheap plays vs powerful expensive cards with downtime
+- Enemy sand gauges are visible, enabling tactical timing predictions
 
-- **Egyptian Mythology Theme**: Anubis warriors, scarab enemies, mummy guardians
-- **Roguelike Mechanics**: Procedural arenas, divine boons, permanent progression
-- **Hub System**: Central lobby similar to Hades' Hall of Styx
-- **Combat System**: Light/heavy attacks, elemental effects (fire, ice, poison)
-- **Artifact Deck**: Collectible items that modify gameplay
+### Strategic Implications
+- **Stutter-stepping**: Chain cheap (0-1 cost) cards for rapid pressure
+- **Power spikes**: Save sand for expensive (4-6 cost) game-changing moves
+- **Tempo reading**: Watch enemy sand to predict their next major play
+- **Animation timing**: Sand regen pauses during animations to maintain sync
 
-## 🛠️ Development Setup
+## 🏛️ Project Structure
+
+```
+sands_duat/
+├── core/                    # Engine systems
+│   ├── hourglass.py        # Sand management & timing
+│   ├── combat.py           # Combat engine & queue
+│   ├── ecs.py              # Entity component system
+│   ├── cards.py            # Card system & effects
+│   └── engine.py           # Main game loop
+├── content/                # YAML definitions
+│   ├── cards/              # Card definitions
+│   ├── enemies/            # Enemy data
+│   ├── events/             # Map events
+│   └── decks/              # Starting decks
+├── assets/                 # Generated art & audio
+│   ├── art_raw/            # AI-generated base images
+│   ├── art_clean/          # Upscaled & processed
+│   ├── audio/              # Sound effects & music
+│   └── fonts/              # Egyptian-themed fonts
+├── tools/                  # Development utilities
+│   ├── gen_art.py          # ComfyUI batch driver
+│   ├── upscale.py          # Real-ESRGAN wrapper
+│   ├── lora_train.py       # Style consistency training
+│   └── content_validator.py # YAML validation
+├── ui/                     # Game interface
+│   ├── combat_screen.py    # Main battle UI
+│   ├── map_screen.py       # Node progression
+│   └── deck_builder.py     # Card collection management
+└── tests/                  # Automated testing
+```
+
+## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.13
-- CUDA 12.8 (for AI asset generation)
-- Git
+- Python 3.11+
+- CUDA-capable GPU (RTX 5070 or equivalent) for AI art generation
+- 16GB+ RAM recommended
 
 ### Installation
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/Noquela/Sands-of-Duat.git
-cd Sands-of-Duat
+git clone <repository-url>
+cd sand-of-duat
 ```
 
-2. **Set up virtual environment:**
+2. **Create virtual environment:**
 ```bash
-python -m venv .venv313
-# Windows:
-.venv313\Scripts\activate
-# Linux/Mac:
-source .venv313/bin/activate
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 3. **Install dependencies:**
 ```bash
-pip install --upgrade pip
 pip install -r requirements.txt
-
-# For PyTorch with CUDA 12.8 (Windows):
-pip install --index-url https://download.pytorch.org/whl/nightly/cu128 --extra-index-url https://pypi.org/simple torch torchvision torchaudio
 ```
 
-## 🎮 Running the Game
-
+4. **Run the game:**
 ```bash
-python src/game.py
+python main.py
 ```
 
-## 🏗️ Project Structure
-
-```
-SandsOfDuat/
-├── assets/
-│   ├── generated/        # AI-generated game assets
-│   └── raw/              # Original artwork
-├── src/
-│   ├── ecs/              # Entity-Component-System
-│   ├── scenes/           # Game scenes (Hub, Arena)
-│   ├── ui/               # User interface
-│   └── game.py           # Main entry point
-├── tools/
-│   ├── pygame_mcp.py     # Game execution MCP server
-│   └── sdxl_mcp.py       # Asset generation MCP server
-├── tests/                # Unit tests
-└── requirements.txt      # Python dependencies
-```
-
-## 🤖 MCP Tools
-
-This project includes custom MCP (Model Context Protocol) servers for development:
-
-- **pygame_mcp.py**: Game execution, FPS profiling, file operations
-- **sdxl_mcp.py**: AI asset generation using Stable Diffusion XL
-
-## 🎨 Art Generation Workflow
-
-1. **Generate sprites**: Use `sprite_sheet()` tool for character animations
-2. **Optimize colors**: Apply `palette_reduce()` for pixel art style
-3. **Egyptian themes**: Prompts focus on golden armor, hieroglyphs, desert aesthetics
-
-## 🔧 Development Commands
-
+### Development Mode
 ```bash
-# Code quality
-ruff src/                 # Linting
-black src/                # Formatting
-mypy --strict src/        # Type checking
-
-# Testing
-pytest tests/             # Run tests
+python main.py --dev-mode --debug --windowed
 ```
 
-## 📋 Development Phases
+## 🎨 Asset Generation Pipeline
 
-- **Sprint 0**: Project setup and tooling
-- **Sprint 1**: Basic character movement and rendering
-- **Sprint 2**: Combat system and enemy AI
-- **Sprint 3**: Item/artifact deck system
-- **Sprint 4**: Boss battles and progression
-- **Sprint 5**: Polish and optimization
+The game uses a local AI art generation pipeline optimized for RTX 5070:
 
-## 🎯 Technical Goals
+### AI Model Stack
+1. **Playground v2.5** (12GB VRAM): High-aesthetic concept art generation
+2. **Stable Cascade** (14GB VRAM): High-resolution decode and inpainting
+3. **Kandinsky 3.0** (Apache-2.0): Style variety and backup generation
+4. **Real-ESRGAN** (Minimal VRAM): 4x upscaling with edge enhancement
 
-- **Performance**: Maintain 60+ FPS on target hardware
-- **Code Quality**: Strict typing with mypy, consistent formatting
-- **Architecture**: Clean ECS pattern with modular systems
-- **Art Pipeline**: Automated asset generation with AI tools
+### Workflow Commands
+```bash
+# Generate card art from YAML prompts
+python tools/gen_art.py --content content/cards/ --output assets/art_raw/
 
-## 📄 License
+# Upscale and clean
+python tools/upscale.py assets/art_raw assets/art_clean --model real-esrgan
 
-This project is developed for educational and portfolio purposes.
+# Apply Egyptian papyrus overlay
+python tools/add_papyrus_overlay.py assets/art_clean --opacity 0.6
+
+# Train style consistency LoRA (after 30+ images)
+python tools/lora_train.py --model playground-v2.5 --images assets/art_clean --output loras/duat_style
+```
+
+## 🧪 Testing
+
+### Run All Tests
+```bash
+python -m pytest tests/ -v
+```
+
+### Run Specific Test Categories
+```bash
+# Core system tests
+python -m pytest tests/test_hourglass.py tests/test_combat.py tests/test_cards.py -v
+
+# Performance tests
+python -m pytest tests/test_performance.py -v
+
+# Content validation
+python tests/test_content.py
+```
+
+### Validate YAML Content
+```bash
+python tools/content_validator.py --content-dir content/
+```
+
+## 🎯 Card Categories by Sand Cost
+
+- **0-1 Sand**: Cantrips, weak attacks, utility (rapid fire potential)
+- **2-3 Sand**: Standard attacks, moderate effects (balanced tempo)
+- **4-5 Sand**: Powerful spells, game-changing effects (setup required)
+- **6 Sand**: Ultimate abilities, fight-ending moves (maximum commitment)
+
+### Sample Card Progression
+```yaml
+# Early game tempo card
+id: desert_strike
+cost: 1
+effects: [damage: 6, draw: 1]
+
+# Mid-game value card  
+id: solar_flare
+cost: 3
+effects: [damage: 12, ignite: 2]
+
+# Late game finisher
+id: judgment_of_anubis
+cost: 6
+effects: [damage: 25, execute_if_below: 15]
+```
+
+## 🏗️ Development Tools
+
+### Content Hot-Reload
+The game supports hot-reloading of YAML content files during development:
+```bash
+# Start with hot-reload enabled
+python main.py --dev-mode
+# Edit any YAML file in content/ and see changes immediately
+```
+
+### Performance Monitoring
+```bash
+# Run performance benchmarks
+python tests/test_performance.py
+
+# Profile specific systems
+python -m cProfile main.py --dev-mode > profile.txt
+```
+
+### Asset Processing
+```bash
+# Optimize images for game use
+python tools/asset_processor.py optimize assets/art_raw assets/art_clean
+
+# Create card frames
+python tools/asset_processor.py cards assets/art_clean assets/cards
+
+# Generate asset manifest
+python tools/asset_processor.py manifest assets/ assets/manifest.json
+```
+
+## 🎮 Controls
+
+### Global Controls
+- **F11**: Toggle fullscreen
+- **Alt+F4**: Exit game
+- **ESC**: Exit (dev mode only)
+
+### Combat Controls
+- **Mouse**: Select and play cards
+- **Spacebar**: End turn
+- **Tab**: View detailed card information
+
+## 📊 Performance Targets
+
+### Technical Goals
+- Sand regeneration accuracy within 50ms of target timing
+- Hot-reload system responds within 200ms of file changes
+- Combat engine handles 60fps with smooth animations
+- Asset generation produces consistent Egyptian aesthetic
+
+### Gameplay Goals
+- Combat decisions every 2-3 seconds maintain engagement
+- Sand cost distribution creates meaningful timing choices
+- Enemy AI demonstrates varied sand usage patterns
+- Player progression feels rewarding and strategic
 
 ## 🤝 Contributing
 
-This is a personal project, but feedback and suggestions are welcome!
+### Development Workflow
+1. Create feature branch from main
+2. Write tests for new functionality
+3. Implement feature with proper documentation
+4. Run full test suite: `python -m pytest tests/ -v`
+5. Validate content: `python tools/content_validator.py`
+6. Submit pull request
+
+### Code Style
+- Use Black for code formatting: `black sands_duat/`
+- Use flake8 for linting: `flake8 sands_duat/`
+- Use mypy for type checking: `mypy sands_duat/`
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Ancient Egyptian mythology and art for thematic inspiration
+- The deck-building and roguelike communities for gameplay inspiration
+- Open-source AI model creators for enabling local art generation
+- Python game development community for tools and libraries
 
 ---
 
-*May the gods favor your code!* 🏺⚡
+**🏺 "In the depths of the Duat, every grain of sand counts..." 🏺**

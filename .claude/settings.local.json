@@ -1,37 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git init:*)",
-      "Bash(git remote add:*)",
-      "Bash(mkdir:*)",
       "Bash(python:*)",
-      "Bash(.venv313Scriptsactivate)",
-      "Bash(pip install:*)",
-      "Bash(\".venv313\\Scripts\\activate\")",
-      "Bash(cmd /c:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
       "Bash(timeout:*)",
-      "Bash(taskkill:*)",
-      "Bash(pkill:*)",
-      "Bash(kill:*)",
-      "Bash(ls:*)",
-      "Bash(mv:*)",
-      "Bash(rm:*)",
-      "Bash(del assetsgeneratedtest_*)",
-      "Bash(del assetsgenerated*_fixed.png)",
-      "Bash(del toolsfixed_sdxl_generator.py)",
-      "Bash(move agentsadvanced_asset_generation_agent.py systemsadvanced_generation )",
-      "Bash(move agentsadvanced_scheduler_optimizer.py systemsschedulers )",
-      "Bash(move agentscontrolnet_integration_system.py systemscontrolnet )",
-      "Bash(move agentslora_training_system.py systemslora )",
-      "Bash(move agentspost_processing_system.py systemspost_processing )",
-      "Bash(move agentsrealesrgan_upscaling_system.py systemsupscaling)",
-      "Bash(del assetscharacters*.png)",
-      "Bash(del assetsenvironments*.png)",
-      "Bash(find:*)",
-      "Bash(cp:*)"
+      "Bash(git init:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }
