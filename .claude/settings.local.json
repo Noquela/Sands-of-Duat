@@ -9,7 +9,9 @@
       "Bash(pip install:*)",
       "Bash(\".venv313\\Scripts\\activate\")",
       "Bash(cmd /c:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }
