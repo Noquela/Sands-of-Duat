@@ -9,7 +9,8 @@ import sys
 from typing import Optional, List
 
 # Import scenes and ECS
-from scenes import SceneManager, HubScene, ArenaScene
+from scenes import SceneManager, ArenaScene
+from scenes.improved_hub_scene import ImprovedHubScene
 from assets import load_assets
 
 
@@ -54,7 +55,7 @@ class Game:
         self.scene_manager = SceneManager(self)
         
         # Register scenes
-        hub_scene = HubScene(self)
+        hub_scene = ImprovedHubScene(self)  # Use improved hub scene
         arena_scene = ArenaScene(self)
         
         self.scene_manager.register_scene("hub", hub_scene)

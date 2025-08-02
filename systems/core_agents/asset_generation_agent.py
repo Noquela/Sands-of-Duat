@@ -25,12 +25,12 @@ class AssetGenerationAgent:
         ]
         self.active_generations = {}
         
-        print(f"🎨 {self.name} initialized")
+        print(f"{self.name} initialized")
         print(f"   Capabilities: {', '.join(self.capabilities)}")
     
     async def generate_sprite_sheet(self, sprite_type: str, **parameters) -> Dict[str, Any]:
         """Generate animated sprite sheets for characters"""
-        print(f"🎭 Generating {sprite_type} sprite sheet...")
+        print(f"Generating {sprite_type} sprite sheet...")
         
         start_time = time.time()
         results = {}
@@ -47,11 +47,11 @@ class AssetGenerationAgent:
             results["generation_time"] = duration
             results["status"] = "success"
             
-            print(f"✅ {sprite_type} sprites generated in {duration:.2f}s")
+            print(f"SUCCESS: {sprite_type} sprites generated in {duration:.2f}s")
             return results
             
         except Exception as e:
-            print(f"❌ Failed to generate {sprite_type} sprites: {e}")
+            print(f"FAILED to generate {sprite_type} sprites: {e}")
             return {"status": "failed", "error": str(e)}
     
     async def _generate_player_sprites(self, character: str, animations: List[str], 
@@ -296,13 +296,53 @@ class AssetGenerationAgent:
     
     async def _call_sdxl_generation(self, prompt: str, asset_name: str, 
                                    width: int, height: int, steps: int) -> Dict[str, Any]:
-        """Call SDXL MCP server for asset generation"""
+        """Call advanced SDXL generation with Hades-quality techniques"""
         try:
-            # Import the SDXL generation function
+            # Try advanced generation first
+            try:
+                from ..advanced_generation.advanced_asset_generation_agent import AdvancedAssetGenerationAgent
+                
+                # Use advanced agent for high-quality generation
+                advanced_agent = AdvancedAssetGenerationAgent()
+                
+                # Setup if not already done
+                if not hasattr(advanced_agent, '_pipeline_ready'):
+                    await advanced_agent.setup_advanced_pipeline()
+                    advanced_agent._pipeline_ready = True
+                
+                # Generate with advanced techniques
+                result = await advanced_agent.generate_advanced_egyptian_asset(
+                    asset_name=asset_name,
+                    prompt=prompt,
+                    width=width,
+                    height=height,
+                    style="hades_egyptian",
+                    use_controlnet=True,
+                    use_lora=True,
+                    upscale=True
+                )
+                
+                if result["status"] == "success":
+                    return {
+                        "success": True,
+                        "path": result["output_path"],
+                        "prompt": prompt,
+                        "dimensions": result["dimensions"],
+                        "generation_time": result["generation_time"],
+                        "advanced_techniques": True
+                    }
+                else:
+                    print(f"⚠️ Advanced generation failed, falling back to standard: {result.get('error', '')}")
+                    
+            except Exception as advanced_error:
+                print(f"⚠️ Advanced agent failed: {advanced_error}")
+                print("🔄 Falling back to standard SDXL generation...")
+            
+            # Fallback to standard generation
             sys.path.append(str(Path(__file__).parent.parent / "tools"))
             from asset_gen_agent import generate_egyptian_asset
             
-            # Generate the asset
+            # Generate the asset with standard method
             result = await asyncio.to_thread(
                 generate_egyptian_asset,
                 asset_name, prompt, width, height, steps
@@ -314,10 +354,11 @@ class AssetGenerationAgent:
                     "success": True,
                     "path": str(asset_path),
                     "prompt": prompt,
-                    "dimensions": (width, height)
+                    "dimensions": (width, height),
+                    "advanced_techniques": False
                 }
             else:
-                return {"success": False, "error": "Generation failed"}
+                return {"success": False, "error": "Standard generation failed"}
                 
         except Exception as e:
             return {"success": False, "error": str(e)}

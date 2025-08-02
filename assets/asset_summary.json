@@ -1,0 +1,54 @@
+{
+  "generation_time": 1754112644.6016846,
+  "generator": "Egyptian Asset Generator",
+  "total_assets": 14,
+  "successful_assets": 14,
+  "failed_assets": 0,
+  "success_rate": 100.0,
+  "categories": {
+    "characters": {
+      "path": "C:\\Users\\Bruno\\Documents\\Sand of Duat\\assets\\characters",
+      "asset_count": 3,
+      "assets": [
+        "anubis_warrior_idle",
+        "anubis_warrior_walk",
+        "anubis_warrior_attack"
+      ]
+    },
+    "enemies": {
+      "path": "C:\\Users\\Bruno\\Documents\\Sand of Duat\\assets\\enemies",
+      "asset_count": 3,
+      "assets": [
+        "scarab_guardian_idle",
+        "mummy_warrior_idle",
+        "anubis_sentinel_idle"
+      ]
+    },
+    "environments": {
+      "path": "C:\\Users\\Bruno\\Documents\\Sand of Duat\\assets\\environments",
+      "asset_count": 4,
+      "assets": [
+        "altar_ra",
+        "altar_thoth",
+        "altar_isis",
+        "altar_ptah"
+      ]
+    },
+    "portals": {
+      "path": "C:\\Users\\Bruno\\Documents\\Sand of Duat\\assets\\portals",
+      "asset_count": 2,
+      "assets": [
+        "arena_portal",
+        "exit_portal"
+      ]
+    },
+    "ui": {
+      "path": "C:\\Users\\Bruno\\Documents\\Sand of Duat\\assets\\ui",
+      "asset_count": 2,
+      "assets": [
+        "health_bar_frame",
+        "artifact_slot_frame"
+      ]
+    }
+  }
+}

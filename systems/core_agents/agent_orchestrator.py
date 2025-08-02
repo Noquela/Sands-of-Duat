@@ -57,20 +57,34 @@ class AgentOrchestrator:
         self._initialize_agents()
     
     def _initialize_agents(self):
-        """Initialize all specialized sub-agents"""
+        """Initialize all specialized sub-agents with advanced capabilities"""
         from .asset_generation_agent import AssetGenerationAgent
+        from ..advanced_generation.advanced_asset_generation_agent import AdvancedAssetGenerationAgent
         from .game_development_agent import GameDevelopmentAgent
         from .quality_control_agent import QualityControlAgent
         
-        self.agents = {
-            "asset_generator": AssetGenerationAgent(),
-            "game_developer": GameDevelopmentAgent(), 
-            "quality_controller": QualityControlAgent()
-        }
+        # Initialize with advanced asset generation capabilities
+        try:
+            advanced_asset_agent = AdvancedAssetGenerationAgent()
+            self.agents = {
+                "asset_generator": AssetGenerationAgent(),
+                "advanced_asset_generator": advanced_asset_agent,
+                "game_developer": GameDevelopmentAgent(), 
+                "quality_controller": QualityControlAgent()
+            }
+            print("Advanced Asset Generation enabled with Hades-quality techniques!")
+        except Exception as e:
+            print(f"WARNING: Advanced asset generation unavailable: {e}")
+            self.agents = {
+                "asset_generator": AssetGenerationAgent(),
+                "game_developer": GameDevelopmentAgent(), 
+                "quality_controller": QualityControlAgent()
+            }
         
-        print("🤖 Agent Orchestrator initialized with specialized sub-agents:")
+        print("Agent Orchestrator initialized with specialized sub-agents:")
         for agent_name, agent in self.agents.items():
-            print(f"   - {agent_name}: {agent.__class__.__name__}")
+            capabilities = getattr(agent, 'capabilities', ['standard'])
+            print(f"   - {agent_name}: {agent.__class__.__name__} ({', '.join(capabilities[:3])})")
     
     def add_task(self, task: Task) -> str:
         """Add task to the workflow queue"""
@@ -83,17 +97,22 @@ class AgentOrchestrator:
         """Create complete workflow for Egyptian game development"""
         workflow_tasks = [
             Task(
-                task_id="asset_gen_player",
-                agent_type="asset_generator",
-                task_type="generate_sprite_sheet",
-                description="Generate Anubis player sprite sheets",
+                task_id="asset_gen_player_advanced",
+                agent_type="advanced_asset_generator",
+                task_type="generate_hades_quality_sprites",
+                description="Generate Hades-quality Anubis player sprites with LoRA + ControlNet",
                 priority=10,
                 parameters={
                     "sprite_type": "player",
                     "character": "anubis_warrior",
                     "animations": ["idle", "walk", "attack", "dash"],
                     "size": (1024, 256),
-                    "frames": 4
+                    "frames": 4,
+                    "style": "hades_egyptian",
+                    "use_lora": True,
+                    "use_controlnet": True,
+                    "upscale": True,
+                    "post_processing": ["cel_shading", "edge_enhancement", "bloom"]
                 }
             ),
             Task(
