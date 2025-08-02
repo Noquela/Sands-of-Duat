@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(mkdir:*)",
+      "Bash(python:*)",
+      "Bash(.venv313Scriptsactivate)",
+      "Bash(pip install:*)",
+      "Bash(\".venv313\\Scripts\\activate\")",
+      "Bash(cmd /c:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}

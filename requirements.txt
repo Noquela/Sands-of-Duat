@@ -1,0 +1,23 @@
+pygame==2.6.1
+mcp>=0.5
+
+# PyTorch + CUDA 12.8 (nightly cu128)
+torch==2.3.0.dev20250802+cu128 ; sys_platform=="win32"
+torchvision==0.18.0.dev20250802+cu128 ; sys_platform=="win32"
+torchaudio==2.3.0.dev20250802+cu128 ; sys_platform=="win32"
+
+# Image generation
+diffusers>=0.29.0
+transformers>=4.43.0
+accelerate>=0.30
+safetensors
+pillow
+opencv-python-headless
+numpy
+xformers ; extra=="cuda"
+
+# Development tools
+mypy
+ruff
+black
+pytest
