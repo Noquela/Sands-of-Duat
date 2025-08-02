@@ -594,6 +594,20 @@ class CombatScreen(UIScreen):
         self.logger.info("Exiting combat screen")
         self.clear_components()
     
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        """Handle combat screen events including button clicks."""
+        # Handle end turn button click
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if hasattr(self, 'end_turn_button_rect') and self.end_turn_button_rect.collidepoint(event.pos):
+                state = self.combat_manager.get_combat_state()
+                if state['phase'] == 'player_turn':
+                    self.combat_manager.end_player_turn()
+                    self.logger.info("Player ended turn via button click")
+                    return True
+        
+        # Let parent handle other events
+        return super().handle_event(event)
+    
     def _setup_ui_components(self) -> None:
         """Set up all UI components for combat using ultrawide-optimized layout."""
         # Get hourglasses from combat manager
@@ -762,6 +776,12 @@ class CombatScreen(UIScreen):
         # Draw enemy intent
         self._draw_enemy_intent(surface)
         
+        # Draw cards in hand
+        self._draw_cards_simple(surface)
+        
+        # Draw end turn button
+        self._draw_end_turn_button(surface)
+        
         # Draw game title and instructions
         self._draw_game_title(surface)
         
@@ -769,43 +789,76 @@ class CombatScreen(UIScreen):
         self._draw_debug_info(surface)
     
     def _draw_health_bars(self, surface: pygame.Surface) -> None:
-        """Draw player and enemy health bars using combat state."""
+        """Draw large, visible health bars and game status."""
         state = self.combat_manager.get_combat_state()
-        theme = get_theme()
         
-        # Get layout zones
-        try:
-            player_sand_zone = theme.get_zone('player_sand')
-            enemy_sand_zone = theme.get_zone('enemy_sand')
-        except:
-            # Fallback positioning
-            player_sand_zone = type('Zone', (), {'x': 50, 'y': 400, 'width': 200, 'height': 200})()
-            enemy_sand_zone = type('Zone', (), {'x': 750, 'y': 100, 'width': 200, 'height': 200})()
+        # Draw large, prominent health bars
+        screen_width = surface.get_width()
+        screen_height = surface.get_height()
         
-        bar_width = 200
-        bar_height = 24
+        # Player health bar (bottom left)
+        player_bar_width = 300
+        player_bar_height = 40
+        player_x = 50
+        player_y = screen_height - 200
         
-        # Player health bar
-        player_health_rect = pygame.Rect(
-            player_sand_zone.x,
-            player_sand_zone.y + player_sand_zone.height + 20,
-            bar_width,
-            bar_height
-        )
-        self._draw_health_bar(surface, player_health_rect, 
-                             state['player']['health'], state['player']['max_health'], 
-                             (0, 255, 0), "Player")
+        # Player health background
+        player_bg_rect = pygame.Rect(player_x, player_y, player_bar_width, player_bar_height)
+        pygame.draw.rect(surface, (100, 0, 0), player_bg_rect)
+        pygame.draw.rect(surface, (255, 255, 255), player_bg_rect, 3)
         
-        # Enemy health bar
-        enemy_health_rect = pygame.Rect(
-            enemy_sand_zone.x,
-            enemy_sand_zone.y - 50,
-            bar_width,
-            bar_height
-        )
-        self._draw_health_bar(surface, enemy_health_rect, 
-                             state['enemy']['health'], state['enemy']['max_health'],
-                             (255, 0, 0), state['enemy']['name'])
+        # Player health fill
+        health_percent = state['player']['health'] / max(1, state['player']['max_health'])
+        health_width = int(player_bar_width * health_percent)
+        health_rect = pygame.Rect(player_x, player_y, health_width, player_bar_height)
+        pygame.draw.rect(surface, (0, 255, 0), health_rect)
+        
+        # Player health text
+        font = pygame.font.Font(None, 36)
+        health_text = f"PLAYER: {state['player']['health']}/{state['player']['max_health']} HP"
+        text_surface = font.render(health_text, True, (255, 255, 255))
+        surface.blit(text_surface, (player_x, player_y - 35))
+        
+        # Player sand display
+        sand_text = f"SAND: {state['player']['sand']}/{state['player']['max_sand']}"
+        sand_surface = font.render(sand_text, True, (255, 215, 0))
+        surface.blit(sand_surface, (player_x, player_y + player_bar_height + 10))
+        
+        # Enemy health bar (top right)
+        enemy_bar_width = 300
+        enemy_bar_height = 40
+        enemy_x = screen_width - enemy_bar_width - 50
+        enemy_y = 200
+        
+        # Enemy health background
+        enemy_bg_rect = pygame.Rect(enemy_x, enemy_y, enemy_bar_width, enemy_bar_height)
+        pygame.draw.rect(surface, (100, 0, 0), enemy_bg_rect)
+        pygame.draw.rect(surface, (255, 255, 255), enemy_bg_rect, 3)
+        
+        # Enemy health fill
+        enemy_health_percent = state['enemy']['health'] / max(1, state['enemy']['max_health'])
+        enemy_health_width = int(enemy_bar_width * enemy_health_percent)
+        enemy_health_rect = pygame.Rect(enemy_x, enemy_y, enemy_health_width, enemy_bar_height)
+        pygame.draw.rect(surface, (255, 0, 0), enemy_health_rect)
+        
+        # Enemy health text
+        enemy_health_text = f"{state['enemy']['name']}: {state['enemy']['health']}/{state['enemy']['max_health']} HP"
+        enemy_text_surface = font.render(enemy_health_text, True, (255, 255, 255))
+        surface.blit(enemy_text_surface, (enemy_x, enemy_y - 35))
+        
+        # Combat status
+        status_font = pygame.font.Font(None, 48)
+        phase_text = f"PHASE: {state['phase'].upper()}"
+        if state['phase'] == 'player_turn':
+            phase_color = (0, 255, 0)
+            phase_text += " - YOUR TURN!"
+        else:
+            phase_color = (255, 0, 0)
+            phase_text += " - ENEMY TURN"
+        
+        phase_surface = status_font.render(phase_text, True, phase_color)
+        phase_rect = phase_surface.get_rect(centerx=screen_width//2, y=300)
+        surface.blit(phase_surface, phase_rect)
     
     def _draw_health_bar(self, surface: pygame.Surface, rect: pygame.Rect, 
                         current: int, maximum: int, color: Tuple[int, int, int], label: str) -> None:
@@ -1266,3 +1319,108 @@ class CombatScreen(UIScreen):
             instruction_surface = instruction_font.render(instruction, True, theme.colors.PAPYRUS)
             instruction_rect = instruction_surface.get_rect(centerx=surface.get_width() // 2, y=start_y + i * 25)
             surface.blit(instruction_surface, instruction_rect)
+    
+    def _draw_cards_simple(self, surface: pygame.Surface) -> None:
+        """Draw cards in hand with large, visible display."""
+        if not self.combat_manager.player_hand:
+            return
+        
+        screen_width = surface.get_width()
+        screen_height = surface.get_height()
+        
+        # Card dimensions
+        card_width = 120
+        card_height = 160
+        card_spacing = 20
+        
+        # Calculate starting position to center cards
+        total_width = len(self.combat_manager.player_hand) * (card_width + card_spacing) - card_spacing
+        start_x = (screen_width - total_width) // 2
+        card_y = screen_height - card_height - 50
+        
+        font = pygame.font.Font(None, 24)
+        small_font = pygame.font.Font(None, 18)
+        
+        for i, card in enumerate(self.combat_manager.player_hand):
+            if i >= 6:  # Limit displayed cards
+                break
+                
+            card_x = start_x + i * (card_width + card_spacing)
+            card_rect = pygame.Rect(card_x, card_y, card_width, card_height)
+            
+            # Determine if card is playable
+            can_play = self.combat_manager.player and self.combat_manager.player.hourglass.can_afford(card.sand_cost)
+            
+            # Card background
+            if can_play:
+                bg_color = (0, 100, 0)  # Green if playable
+                border_color = (0, 255, 0)
+            else:
+                bg_color = (100, 0, 0)  # Red if not playable
+                border_color = (255, 0, 0)
+            
+            pygame.draw.rect(surface, bg_color, card_rect)
+            pygame.draw.rect(surface, border_color, card_rect, 3)
+            
+            # Card name
+            name_surface = font.render(card.name[:10], True, (255, 255, 255))
+            name_rect = name_surface.get_rect(centerx=card_rect.centerx, y=card_rect.y + 10)
+            surface.blit(name_surface, name_rect)
+            
+            # Sand cost
+            cost_text = f"Cost: {card.sand_cost}"
+            cost_surface = small_font.render(cost_text, True, (255, 215, 0))
+            cost_rect = cost_surface.get_rect(centerx=card_rect.centerx, y=card_rect.y + 35)
+            surface.blit(cost_surface, cost_rect)
+            
+            # Card description (truncated)
+            desc_lines = card.description.split(' ')
+            desc_text = ' '.join(desc_lines[:4]) + "..."
+            desc_surface = small_font.render(desc_text[:15], True, (200, 200, 200))
+            desc_rect = desc_surface.get_rect(centerx=card_rect.centerx, y=card_rect.y + 55)
+            surface.blit(desc_surface, desc_rect)
+            
+            # Play instruction
+            if can_play:
+                play_text = "DRAG UP"
+                play_color = (255, 255, 0)
+            else:
+                play_text = "NO SAND"
+                play_color = (255, 100, 100)
+            
+            play_surface = small_font.render(play_text, True, play_color)
+            play_rect = play_surface.get_rect(centerx=card_rect.centerx, y=card_rect.bottom - 25)
+            surface.blit(play_surface, play_rect)
+    
+    def _draw_end_turn_button(self, surface: pygame.Surface) -> None:
+        """Draw a large, visible end turn button."""
+        state = self.combat_manager.get_combat_state()
+        
+        # Only show during player turn
+        if state['phase'] != 'player_turn':
+            return
+        
+        screen_width = surface.get_width()
+        screen_height = surface.get_height()
+        
+        # Button dimensions and position
+        button_width = 200
+        button_height = 60
+        button_x = screen_width - button_width - 50
+        button_y = screen_height - button_height - 50
+        
+        button_rect = pygame.Rect(button_x, button_y, button_width, button_height)
+        
+        # Button background
+        pygame.draw.rect(surface, (100, 100, 0), button_rect)
+        pygame.draw.rect(surface, (255, 255, 0), button_rect, 4)
+        
+        # Button text
+        font = pygame.font.Font(None, 36)
+        button_text = "END TURN"
+        text_surface = font.render(button_text, True, (255, 255, 255))
+        text_rect = text_surface.get_rect(center=button_rect.center)
+        surface.blit(text_surface, text_rect)
+        
+        # Store button rect for click detection
+        self.end_turn_button_rect = button_rect
