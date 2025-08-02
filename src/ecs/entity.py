@@ -142,7 +142,8 @@ class EntityBuilder:
 def create_player_entity(entity_manager: EntityManager, x: float = 0.0, y: float = 0.0) -> int:
     """Create a player entity with standard components."""
     from .components import (Transform, SpriteRenderer, InputController, 
-                           Movement, Animation, Health, Combat, PlayerTag)
+                           Movement, Animation, Health, Combat, PlayerTag,
+                           Hitbox, AttackHitbox)
     
     return (EntityBuilder(entity_manager)
             .with_component(Transform(x=x, y=y))
@@ -156,7 +157,9 @@ def create_player_entity(entity_manager: EntityManager, x: float = 0.0, y: float
             .with_component(Movement(max_speed=250.0))
             .with_component(Animation())
             .with_component(Health(current_hp=100, max_hp=100))
-            .with_component(Combat(attack_damage=30))
+            .with_component(Combat(attack_damage=30, attack_range=60.0))
+            .with_component(Hitbox(width=40.0, height=40.0))
+            .with_component(AttackHitbox(width=80.0, height=60.0, offset_y=30.0))
             .with_component(PlayerTag())
             .build())
 
@@ -164,7 +167,7 @@ def create_player_entity(entity_manager: EntityManager, x: float = 0.0, y: float
 def create_scarab_enemy(entity_manager: EntityManager, x: float = 0.0, y: float = 0.0) -> int:
     """Create a scarab enemy entity."""
     from .components import (Transform, SpriteRenderer, Movement, Animation, 
-                           Health, Combat, EnemyTag)
+                           Health, Combat, EnemyTag, Hitbox, AIController)
     
     return (EntityBuilder(entity_manager)
             .with_component(Transform(x=x, y=y))
@@ -178,5 +181,30 @@ def create_scarab_enemy(entity_manager: EntityManager, x: float = 0.0, y: float 
             .with_component(Animation())
             .with_component(Health(current_hp=50, max_hp=50))
             .with_component(Combat(attack_damage=15, attack_range=30.0))
-            .with_component(EnemyTag(enemy_type="scarab", aggro_range=200.0))
+            .with_component(Hitbox(width=30.0, height=30.0))
+            .with_component(AIController(
+                ai_type="scarab",
+                detection_range=150.0,
+                attack_range=35.0,
+                chase_speed=140.0,
+                patrol_speed=60.0
+            ))
+            .with_component(EnemyTag(enemy_type="scarab", aggro_range=150.0))
+            .build())
+
+
+def create_combat_dummy(entity_manager: EntityManager, x: float = 0.0, y: float = 0.0) -> int:
+    """Create a combat dummy for testing."""
+    from .components import (Transform, SpriteRenderer, Health, Hitbox)
+    
+    return (EntityBuilder(entity_manager)
+            .with_component(Transform(x=x, y=y))
+            .with_component(SpriteRenderer(
+                frame_width=48, 
+                frame_height=64, 
+                frames_per_row=1, 
+                total_frames=1
+            ))
+            .with_component(Health(current_hp=9999, max_hp=9999))
+            .with_component(Hitbox(width=40.0, height=60.0))
             .build())

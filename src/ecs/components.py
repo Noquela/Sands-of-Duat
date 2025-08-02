@@ -4,7 +4,7 @@ All game components using dataclass pattern for performance and clarity
 """
 
 from dataclasses import dataclass
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, Set
 import pygame
 
 
@@ -174,3 +174,99 @@ class Camera:
     bounds_right: Optional[float] = None
     bounds_top: Optional[float] = None
     bounds_bottom: Optional[float] = None
+
+
+@dataclass
+class Hitbox:
+    """Collision hitbox component."""
+    width: float = 32.0
+    height: float = 32.0
+    offset_x: float = 0.0
+    offset_y: float = 0.0
+    active: bool = True
+    
+    def get_rect(self, transform: Transform) -> pygame.Rect:
+        """Get the hitbox rectangle in world coordinates."""
+        return pygame.Rect(
+            transform.x + self.offset_x - self.width // 2,
+            transform.y + self.offset_y - self.height // 2,
+            self.width,
+            self.height
+        )
+
+
+@dataclass
+class AttackHitbox:
+    """Attack hitbox component for dealing damage."""
+    width: float = 60.0
+    height: float = 60.0
+    offset_x: float = 0.0
+    offset_y: float = 30.0  # In front of character
+    damage: int = 25
+    active: bool = False
+    duration: float = 0.0
+    max_duration: float = 0.2
+    hit_entities: Set[int] = None
+    
+    def __post_init__(self):
+        if self.hit_entities is None:
+            self.hit_entities = set()
+    
+    def get_rect(self, transform: Transform) -> pygame.Rect:
+        """Get the attack hitbox rectangle in world coordinates."""
+        return pygame.Rect(
+            transform.x + self.offset_x - self.width // 2,
+            transform.y + self.offset_y - self.height // 2,
+            self.width,
+            self.height
+        )
+
+
+@dataclass
+class AIController:
+    """AI controller component for enemies."""
+    ai_type: str = "scarab"
+    state: str = "idle"  # idle, patrol, chase, attack, dead
+    target_entity: Optional[int] = None
+    last_seen_x: float = 0.0
+    last_seen_y: float = 0.0
+    state_timer: float = 0.0
+    patrol_center_x: float = 0.0
+    patrol_center_y: float = 0.0
+    patrol_angle: float = 0.0
+    detection_range: float = 150.0
+    attack_range: float = 40.0
+    patrol_radius: float = 80.0
+    chase_speed: float = 120.0
+    patrol_speed: float = 60.0
+
+
+@dataclass
+class Particle:
+    """Single particle component."""
+    lifetime: float = 1.0
+    max_lifetime: float = 1.0
+    velocity_x: float = 0.0
+    velocity_y: float = 0.0
+    size: float = 4.0
+    color: Tuple[int, int, int] = (255, 255, 255)
+    alpha: float = 255.0
+    gravity: float = 0.0
+    fade_rate: float = 255.0
+
+
+@dataclass
+class ParticleEmitter:
+    """Particle emitter component."""
+    active: bool = True
+    particles_per_second: float = 10.0
+    spawn_timer: float = 0.0
+    particle_lifetime: float = 1.0
+    particle_speed_min: float = 50.0
+    particle_speed_max: float = 100.0
+    particle_size_min: float = 2.0
+    particle_size_max: float = 6.0
+    particle_color: Tuple[int, int, int] = (255, 255, 255)
+    spread_angle: float = 45.0  # degrees
+    direction: float = 0.0  # degrees
+    burst_count: int = 0  # 0 = continuous, >0 = burst mode

@@ -298,3 +298,287 @@ class CameraSystem(System):
                         camera.target_y = min(camera.target_y, camera.bounds_bottom)
                     
                     break
+
+
+class AttackSystem(System):
+    """Handles combat attacks and damage."""
+    
+    def update(self, dt: float) -> None:
+        if not self.enabled:
+            return
+        
+        current_time = pygame.time.get_ticks() / 1000.0
+        
+        # Handle attack input
+        for entity_id in self.entity_manager.get_entities_with_components(InputController, Combat):
+            input_comp = self.entity_manager.get_component(entity_id, InputController)
+            combat = self.entity_manager.get_component(entity_id, Combat)
+            animation = self.entity_manager.get_component(entity_id, Animation)
+            attack_hitbox = self.entity_manager.get_component(entity_id, AttackHitbox)
+            
+            if input_comp is None or combat is None:
+                continue
+            
+            # Check for attack input
+            can_attack = combat.can_attack(current_time)
+            attack_requested = input_comp.attack_light_pressed or input_comp.attack_heavy_pressed
+            
+            if attack_requested and can_attack:
+                # Start attack
+                combat.is_attacking = True
+                combat.last_attack_time = current_time
+                
+                # Set attack animation
+                if animation is not None:
+                    if input_comp.attack_heavy_pressed:
+                        animation.current_animation = "attack_heavy"
+                        if attack_hitbox is not None:
+                            attack_hitbox.damage = combat.attack_damage * 2
+                    else:
+                        animation.current_animation = "attack_light"
+                        if attack_hitbox is not None:
+                            attack_hitbox.damage = combat.attack_damage
+                    
+                    animation.animation_time = 0.0
+                    animation.playing = True
+                
+                # Activate attack hitbox
+                if attack_hitbox is not None:
+                    attack_hitbox.active = True
+                    attack_hitbox.duration = 0.0
+                    attack_hitbox.hit_entities.clear()
+        
+        # Update attack hitboxes
+        for entity_id in self.entity_manager.get_entities_with_component(AttackHitbox):
+            attack_hitbox = self.entity_manager.get_component(entity_id, AttackHitbox)
+            if attack_hitbox is None or not attack_hitbox.active:
+                continue
+            
+            attack_hitbox.duration += dt
+            
+            # Deactivate after duration
+            if attack_hitbox.duration >= attack_hitbox.max_duration:
+                attack_hitbox.active = False
+                
+                # Stop attacking
+                combat = self.entity_manager.get_component(entity_id, Combat)
+                if combat is not None:
+                    combat.is_attacking = False
+
+
+class CollisionSystem(System):
+    """Handles collision detection and damage."""
+    
+    def update(self, dt: float) -> None:
+        if not self.enabled:
+            return
+        
+        # Check attack hitbox vs enemy hitbox collisions
+        attackers = []
+        for entity_id in self.entity_manager.get_entities_with_components(Transform, AttackHitbox):
+            transform = self.entity_manager.get_component(entity_id, Transform)
+            attack_hitbox = self.entity_manager.get_component(entity_id, AttackHitbox)
+            
+            if transform is None or attack_hitbox is None or not attack_hitbox.active:
+                continue
+            
+            attackers.append((entity_id, transform, attack_hitbox))
+        
+        # Get all entities with hitboxes
+        targets = []
+        for entity_id in self.entity_manager.get_entities_with_components(Transform, Hitbox, Health):
+            transform = self.entity_manager.get_component(entity_id, Transform)
+            hitbox = self.entity_manager.get_component(entity_id, Hitbox)
+            health = self.entity_manager.get_component(entity_id, Health)
+            
+            if transform is None or hitbox is None or health is None or not hitbox.active:
+                continue
+            
+            targets.append((entity_id, transform, hitbox, health))
+        
+        # Check collisions
+        for attacker_id, attacker_transform, attack_hitbox in attackers:
+            attack_rect = attack_hitbox.get_rect(attacker_transform)
+            
+            for target_id, target_transform, target_hitbox, target_health in targets:
+                # Don't hit self
+                if attacker_id == target_id:
+                    continue
+                
+                # Skip if already hit this target
+                if target_id in attack_hitbox.hit_entities:
+                    continue
+                
+                # Check if invulnerable
+                if target_health.invulnerable:
+                    continue
+                
+                target_rect = target_hitbox.get_rect(target_transform)
+                
+                if attack_rect.colliderect(target_rect):
+                    # Deal damage
+                    self._deal_damage(target_id, target_health, attack_hitbox.damage)
+                    attack_hitbox.hit_entities.add(target_id)
+                    
+                    # Create hit particles
+                    self._create_hit_effect(target_transform.x, target_transform.y)
+    
+    def _deal_damage(self, entity_id: int, health: Health, damage: int) -> None:
+        """Deal damage to an entity."""
+        health.current_hp = max(0, health.current_hp - damage)
+        
+        # Set invulnerability frames
+        health.invulnerable = True
+        health.invulnerability_time = 0.5
+        
+        print(f"Entity {entity_id} took {damage} damage! HP: {health.current_hp}/{health.max_hp}")
+        
+        # Check if entity died
+        if health.current_hp <= 0:
+            print(f"Entity {entity_id} died!")
+            # TODO: Add death handling
+    
+    def _create_hit_effect(self, x: float, y: float) -> None:
+        """Create hit effect particles."""
+        # TODO: Implement particle creation
+        pass
+
+
+class AISystem(System):
+    """Handles enemy AI behavior."""
+    
+    def update(self, dt: float) -> None:
+        if not self.enabled:
+            return
+        
+        # Find player for targeting
+        player_entity = None
+        player_transform = None
+        for entity_id in self.entity_manager.get_entities_with_component(PlayerTag):
+            player_entity = entity_id
+            player_transform = self.entity_manager.get_component(entity_id, Transform)
+            break
+        
+        if player_entity is None or player_transform is None:
+            return
+        
+        # Update all AI entities
+        for entity_id in self.entity_manager.get_entities_with_components(Transform, AIController, Movement):
+            transform = self.entity_manager.get_component(entity_id, Transform)
+            ai = self.entity_manager.get_component(entity_id, AIController)
+            movement = self.entity_manager.get_component(entity_id, Movement)
+            health = self.entity_manager.get_component(entity_id, Health)
+            
+            if transform is None or ai is None or movement is None:
+                continue
+            
+            # Skip if dead
+            if health is not None and health.current_hp <= 0:
+                ai.state = "dead"
+                movement.velocity_x = 0
+                movement.velocity_y = 0
+                continue
+            
+            # Update state timer
+            ai.state_timer += dt
+            
+            # Calculate distance to player
+            dx = player_transform.x - transform.x
+            dy = player_transform.y - transform.y
+            distance_to_player = math.sqrt(dx * dx + dy * dy)
+            
+            # AI state machine
+            if ai.state == "idle" or ai.state == "patrol":
+                # Check if player is in detection range
+                if distance_to_player <= ai.detection_range:
+                    ai.state = "chase"
+                    ai.target_entity = player_entity
+                    ai.last_seen_x = player_transform.x
+                    ai.last_seen_y = player_transform.y
+                    ai.state_timer = 0.0
+                elif ai.state == "idle" and ai.state_timer > 2.0:
+                    # Start patrolling
+                    ai.state = "patrol"
+                    ai.patrol_center_x = transform.x
+                    ai.patrol_center_y = transform.y
+                    ai.state_timer = 0.0
+                
+                # Patrol movement
+                if ai.state == "patrol":
+                    ai.patrol_angle += dt * 0.5  # Slow rotation
+                    target_x = ai.patrol_center_x + math.cos(ai.patrol_angle) * ai.patrol_radius
+                    target_y = ai.patrol_center_y + math.sin(ai.patrol_angle) * ai.patrol_radius
+                    
+                    # Move towards patrol point
+                    patrol_dx = target_x - transform.x
+                    patrol_dy = target_y - transform.y
+                    patrol_distance = math.sqrt(patrol_dx * patrol_dx + patrol_dy * patrol_dy)
+                    
+                    if patrol_distance > 10.0:
+                        movement.velocity_x = (patrol_dx / patrol_distance) * ai.patrol_speed
+                        movement.velocity_y = (patrol_dy / patrol_distance) * ai.patrol_speed
+                    else:
+                        movement.velocity_x = 0
+                        movement.velocity_y = 0
+            
+            elif ai.state == "chase":
+                # Update last seen position
+                if distance_to_player <= ai.detection_range * 1.2:  # Slightly larger range to avoid flickering
+                    ai.last_seen_x = player_transform.x
+                    ai.last_seen_y = player_transform.y
+                
+                # Check if close enough to attack
+                if distance_to_player <= ai.attack_range:
+                    ai.state = "attack"
+                    ai.state_timer = 0.0
+                else:
+                    # Chase towards last seen position
+                    chase_dx = ai.last_seen_x - transform.x
+                    chase_dy = ai.last_seen_y - transform.y
+                    chase_distance = math.sqrt(chase_dx * chase_dx + chase_dy * chase_dy)
+                    
+                    if chase_distance > 5.0:
+                        movement.velocity_x = (chase_dx / chase_distance) * ai.chase_speed
+                        movement.velocity_y = (chase_dy / chase_distance) * ai.chase_speed
+                    else:
+                        # Lost player, return to patrol
+                        ai.state = "idle"
+                        ai.target_entity = None
+                        ai.state_timer = 0.0
+                        movement.velocity_x = 0
+                        movement.velocity_y = 0
+            
+            elif ai.state == "attack":
+                # Stop moving during attack
+                movement.velocity_x = 0
+                movement.velocity_y = 0
+                
+                # TODO: Trigger attack animation and damage
+                
+                if ai.state_timer > 1.0:  # Attack duration
+                    # Return to chase or idle
+                    if distance_to_player <= ai.detection_range:
+                        ai.state = "chase"
+                    else:
+                        ai.state = "idle"
+                    ai.state_timer = 0.0
+
+
+class HealthSystem(System):
+    """Handles health updates and invulnerability."""
+    
+    def update(self, dt: float) -> None:
+        if not self.enabled:
+            return
+        
+        for entity_id in self.entity_manager.get_entities_with_component(Health):
+            health = self.entity_manager.get_component(entity_id, Health)
+            if health is None:
+                continue
+            
+            # Update invulnerability
+            if health.invulnerable:
+                health.invulnerability_time -= dt
+                if health.invulnerability_time <= 0:
+                    health.invulnerable = False
+                    health.invulnerability_time = 0.0
