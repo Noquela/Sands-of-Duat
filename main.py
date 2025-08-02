@@ -17,7 +17,7 @@ sys.path.insert(0, str(project_root))
 
 from core.engine import GameEngine
 from ui.ui_manager import UIManager
-from ui.theme import init_theme
+from ui.theme import initialize_theme
 from content.starter_cards import create_starter_cards
 import pygame
 
@@ -135,7 +135,7 @@ def main() -> int:
         engine.initialize()
         
         # Initialize theme system for ultrawide support
-        theme = init_theme(screen.get_width(), screen.get_height())
+        theme = initialize_theme(screen.get_width(), screen.get_height())
         logger.info(f"Theme initialized for {theme.display.display_mode.value} mode")
         
         # Initialize card system

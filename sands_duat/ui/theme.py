@@ -43,6 +43,9 @@ class EgyptianColors:
     DEEP_BROWN = (40, 30, 20)           # Dark backgrounds
     VERY_DARK = (15, 10, 5)             # Screen backgrounds
     
+    # Alias for UI compatibility
+    background = VERY_DARK
+    
     # Status colors
     HEALTH_RED = (220, 20, 60)          # Health bars
     MANA_BLUE = (70, 130, 180)          # Mana/energy

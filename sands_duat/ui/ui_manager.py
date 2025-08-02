@@ -155,6 +155,9 @@ def get_map_screen():
         def on_enter(self):
             self.logger.info("Entering map screen (placeholder)")
         
+        def on_exit(self):
+            self.logger.info("Exiting map screen (placeholder)")
+        
         def render(self, surface: pygame.Surface):
             theme = get_theme()
             surface.fill(theme.colors.background)
@@ -176,6 +179,9 @@ def get_deck_builder_screen():
         
         def on_enter(self):
             self.logger.info("Entering deck builder screen (placeholder)")
+        
+        def on_exit(self):
+            self.logger.info("Exiting deck builder screen (placeholder)")
         
         def render(self, surface: pygame.Surface):
             theme = get_theme()
