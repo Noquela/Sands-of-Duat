@@ -13,6 +13,7 @@ from .base import UIScreen, UIComponent
 from .theme import get_theme
 from core.hourglass import HourGlass
 from core.cards import Card, CardType, EffectType
+from core.combat_manager import CombatManager
 
 
 class SandGauge(UIComponent):
@@ -563,26 +564,27 @@ class CombatScreen(UIScreen):
         self.enemy_sand_gauge: Optional[SandGauge] = None
         self.hand_display: Optional[HandDisplay] = None
         
-        # Game state references
-        self.player_hourglass: Optional[HourGlass] = None
-        self.enemy_hourglass: Optional[HourGlass] = None
-        
-        # Combat state
-        self.player_health = 100
-        self.player_max_health = 100
-        self.enemy_health = 50
-        self.enemy_max_health = 50
+        # Combat system
+        self.combat_manager = CombatManager()
         
         # Visual settings
         self.font = pygame.font.Font(None, 24)
         self.text_color = (255, 248, 220)  # Cornsilk
+        
+        # Visual effects
+        self.damage_numbers: List[Dict[str, Any]] = []
+        self.effect_animations: List[Dict[str, Any]] = []
+        
+        # UI state
+        self.selected_card_index: Optional[int] = None
+        self.end_turn_button: Optional[UIComponent] = None
     
     def on_enter(self) -> None:
         """Initialize combat screen."""
         self.logger.info("Entering combat screen")
         self._setup_ui_components()
-        # Temporarily disable demo setup due to content system conflicts
-        # self._setup_demo_combat()
+        self._setup_demo_combat_manager()
+        self._setup_event_handlers()
     
     def on_exit(self) -> None:
         """Clean up combat screen."""
@@ -591,11 +593,9 @@ class CombatScreen(UIScreen):
     
     def _setup_ui_components(self) -> None:
         """Set up all UI components for combat using ultrawide-optimized layout."""
-        # Create hourglasses if not provided
-        if not self.player_hourglass:
-            self.player_hourglass = HourGlass()
-        if not self.enemy_hourglass:
-            self.enemy_hourglass = HourGlass()
+        # Get hourglasses from combat manager
+        player_hourglass = self.combat_manager.player.hourglass if self.combat_manager.player else HourGlass()
+        enemy_hourglass = self.combat_manager.enemy.hourglass if self.combat_manager.enemy else HourGlass()
         
         # Get theme and layout zones for current resolution
         theme = get_theme()
@@ -609,14 +609,14 @@ class CombatScreen(UIScreen):
         gauge_x = player_sand_zone.x + (player_sand_zone.width - gauge_width) // 2
         gauge_y = player_sand_zone.y + (player_sand_zone.height - gauge_height) // 2
         
-        self.player_sand_gauge = SandGauge(gauge_x, gauge_y, gauge_width, gauge_height, self.player_hourglass)
+        self.player_sand_gauge = SandGauge(gauge_x, gauge_y, gauge_width, gauge_height, player_hourglass)
         self.add_component(self.player_sand_gauge)
         
         # Enemy sand gauge (right side for ultrawide)
         enemy_gauge_x = enemy_sand_zone.x + (enemy_sand_zone.width - gauge_width) // 2
         enemy_gauge_y = enemy_sand_zone.y + (enemy_sand_zone.height - gauge_height) // 2
         
-        self.enemy_sand_gauge = SandGauge(enemy_gauge_x, enemy_gauge_y, gauge_width, gauge_height, self.enemy_hourglass)
+        self.enemy_sand_gauge = SandGauge(enemy_gauge_x, enemy_gauge_y, gauge_width, gauge_height, enemy_hourglass)
         self.add_component(self.enemy_sand_gauge)
         
         # Hand display (bottom full width for ultrawide)
@@ -627,33 +627,118 @@ class CombatScreen(UIScreen):
         hand_height = hand_zone.height - (hand_margin * 2)
         
         self.hand_display = HandDisplay(hand_x, hand_y, hand_width, hand_height)
-        self.hand_display.set_hourglass(self.player_hourglass)
+        self.hand_display.set_hourglass(player_hourglass)
         # Add event handlers for enhanced card interactions
         self.hand_display.add_event_handler("card_played", self._on_card_played)
         self.hand_display.add_event_handler("card_drag_start", self._on_card_drag_start)
         self.hand_display.add_event_handler("card_drag_end", self._on_card_drag_end)
         self.add_component(self.hand_display)
+        
+        # End Turn Button
+        from .menu_screen import MenuButton  # Import to avoid circular dependency
+        theme = get_theme()
+        hand_zone = theme.get_zone('hand_display')
+        
+        button_width = 150
+        button_height = 40
+        button_x = hand_zone.x + hand_zone.width - button_width - 20
+        button_y = hand_zone.y + hand_zone.height - button_height - 10
+        
+        self.end_turn_button = MenuButton(
+            button_x, button_y, button_width, button_height,
+            "End Turn", self._on_end_turn
+        )
+        self.add_component(self.end_turn_button)
     
-    def _setup_demo_combat(self) -> None:
-        """Setup a demo combat scenario with starter cards."""
-        from content.starter_cards import get_starter_deck
+    def _setup_demo_combat_manager(self) -> None:
+        """Setup a demo combat scenario using the combat manager."""
+        from content.starter_cards import create_starter_cards, get_starter_deck
         
         try:
-            # Get starter deck and draw a hand
+            # Create cards and get starter deck
+            create_starter_cards()
             deck = get_starter_deck()
             hand_cards = deck.draw(7)  # Draw 7 cards for demo
             
-            # Set up the hand display
-            if self.hand_display:
-                self.hand_display.set_cards(hand_cards)
+            # Setup combat with demo values
+            self.combat_manager.setup_combat(
+                player_health=100,
+                player_max_health=100,
+                enemy_name="Desert Mummy",
+                enemy_health=60,
+                enemy_max_health=60,
+                player_cards=hand_cards
+            )
             
-            self.logger.info(f"Demo combat setup with {len(hand_cards)} cards")
+            # Update UI with combat state
+            self._update_ui_from_combat_state()
+            
+            self.logger.info("Demo combat setup complete")
             
         except Exception as e:
             self.logger.error(f"Failed to setup demo combat: {e}")
-            # Fallback to empty hand
-            if self.hand_display:
-                self.hand_display.set_cards([])
+            # Fallback to basic setup
+            self._setup_fallback_combat()
+    
+    def _setup_fallback_combat(self) -> None:
+        """Setup a basic combat without complex dependencies."""
+        from core.cards import Card, CardEffect, CardType, CardRarity, EffectType, TargetType
+        
+        # Create simple demo cards
+        demo_cards = [
+            Card(
+                name="Strike",
+                description="Deal 6 damage.",
+                sand_cost=1,
+                card_type=CardType.ATTACK,
+                rarity=CardRarity.COMMON,
+                effects=[CardEffect(effect_type=EffectType.DAMAGE, value=6, target=TargetType.ENEMY)]
+            ),
+            Card(
+                name="Heal",
+                description="Restore 8 health.",
+                sand_cost=2,
+                card_type=CardType.SKILL,
+                rarity=CardRarity.COMMON,
+                effects=[CardEffect(effect_type=EffectType.HEAL, value=8, target=TargetType.SELF)]
+            )
+        ]
+        
+        # Setup basic combat
+        self.combat_manager.setup_combat(
+            player_health=100,
+            player_max_health=100,
+            enemy_name="Test Enemy",
+            enemy_health=40,
+            enemy_max_health=40,
+            player_cards=demo_cards
+        )
+        
+        self._update_ui_from_combat_state()
+    
+    def _setup_event_handlers(self) -> None:
+        """Setup event handlers for combat events."""
+        self.combat_manager.add_event_handler("combat_started", self._on_combat_started)
+        self.combat_manager.add_event_handler("player_turn_started", self._on_player_turn_started)
+        self.combat_manager.add_event_handler("enemy_turn_started", self._on_enemy_turn_started)
+        self.combat_manager.add_event_handler("combat_ended", self._on_combat_ended)
+    
+    def _update_ui_from_combat_state(self) -> None:
+        """Update UI components based on current combat state."""
+        state = self.combat_manager.get_combat_state()
+        
+        # Update hand display
+        if self.hand_display:
+            self.hand_display.set_cards(self.combat_manager.player_hand)
+            if self.combat_manager.player:
+                self.hand_display.set_hourglass(self.combat_manager.player.hourglass)
+        
+        # Update sand gauges
+        if self.player_sand_gauge and self.combat_manager.player:
+            self.player_sand_gauge.hourglass = self.combat_manager.player.hourglass
+        
+        if self.enemy_sand_gauge and self.combat_manager.enemy:
+            self.enemy_sand_gauge.hourglass = self.combat_manager.enemy.hourglass
     
     def render(self, surface: pygame.Surface) -> None:
         """Render the combat screen."""
@@ -662,36 +747,53 @@ class CombatScreen(UIScreen):
         # Draw health bars
         self._draw_health_bars(surface)
         
-        # Draw combat log or status
+        # Draw combat status
         self._draw_combat_status(surface)
+        
+        # Draw visual effects
+        self._draw_visual_effects(surface)
+        
+        # Draw enemy intent
+        self._draw_enemy_intent(surface)
     
     def _draw_health_bars(self, surface: pygame.Surface) -> None:
-        """Draw player and enemy health bars using theme layout."""
+        """Draw player and enemy health bars using combat state."""
+        state = self.combat_manager.get_combat_state()
         theme = get_theme()
-        player_area_zone = theme.get_zone('player_area')
-        enemy_area_zone = theme.get_zone('enemy_area')
         
-        # Player health bar (bottom area)
-        bar_width = min(player_area_zone.width - 40, 300)
+        # Get layout zones
+        try:
+            player_sand_zone = theme.get_zone('player_sand')
+            enemy_sand_zone = theme.get_zone('enemy_sand')
+        except:
+            # Fallback positioning
+            player_sand_zone = type('Zone', (), {'x': 50, 'y': 400, 'width': 200, 'height': 200})()
+            enemy_sand_zone = type('Zone', (), {'x': 750, 'y': 100, 'width': 200, 'height': 200})()
+        
+        bar_width = 200
         bar_height = 24
+        
+        # Player health bar
         player_health_rect = pygame.Rect(
-            player_area_zone.x + (player_area_zone.width - bar_width) // 2,
-            player_area_zone.y + player_area_zone.height - bar_height - 10,
+            player_sand_zone.x,
+            player_sand_zone.y + player_sand_zone.height + 20,
             bar_width,
             bar_height
         )
-        self._draw_health_bar(surface, player_health_rect, self.player_health, self.player_max_health, 
+        self._draw_health_bar(surface, player_health_rect, 
+                             state['player']['health'], state['player']['max_health'], 
                              (0, 255, 0), "Player")
         
-        # Enemy health bar (top area)
+        # Enemy health bar
         enemy_health_rect = pygame.Rect(
-            enemy_area_zone.x + (enemy_area_zone.width - bar_width) // 2,
-            enemy_area_zone.y + 10,
+            enemy_sand_zone.x,
+            enemy_sand_zone.y - 50,
             bar_width,
             bar_height
         )
-        self._draw_health_bar(surface, enemy_health_rect, self.enemy_health, self.enemy_max_health,
-                             (255, 0, 0), "Enemy")
+        self._draw_health_bar(surface, enemy_health_rect, 
+                             state['enemy']['health'], state['enemy']['max_health'],
+                             (255, 0, 0), state['enemy']['name'])
     
     def _draw_health_bar(self, surface: pygame.Surface, rect: pygame.Rect, 
                         current: int, maximum: int, color: Tuple[int, int, int], label: str) -> None:
@@ -717,16 +819,57 @@ class CombatScreen(UIScreen):
         surface.blit(text_surface, text_rect)
     
     def _draw_combat_status(self, surface: pygame.Surface) -> None:
-        """Draw combat status information using theme layout."""
-        theme = get_theme()
-        combat_zone = theme.get_zone('battlefield')
+        """Draw combat status information."""
+        state = self.combat_manager.get_combat_state()
         
-        status_text = "Select a card to play"
-        text_surface = self.font.render(status_text, True, self.text_color)
-        text_rect = text_surface.get_rect()
-        text_rect.center = (combat_zone.x + combat_zone.width // 2, 
-                           combat_zone.y + combat_zone.height // 2)
-        surface.blit(text_surface, text_rect)
+        # Combat phase indicator
+        phase_text = f"Turn {state['turn_number']} - {state['phase'].replace('_', ' ').title()}"
+        text_surface = self.font.render(phase_text, True, self.text_color)
+        surface.blit(text_surface, (surface.get_width() // 2 - text_surface.get_width() // 2, 20))
+        
+        # Block indicators
+        if state['player']['block'] > 0:
+            block_text = f"Block: {state['player']['block']}"
+            block_surface = self.font.render(block_text, True, (100, 150, 255))
+            surface.blit(block_surface, (50, 500))
+        
+        if state['enemy']['block'] > 0:
+            enemy_block_text = f"Block: {state['enemy']['block']}"
+            enemy_block_surface = self.font.render(enemy_block_text, True, (100, 150, 255))
+            surface.blit(enemy_block_surface, (750, 150))
+    
+    def _draw_visual_effects(self, surface: pygame.Surface) -> None:
+        """Draw floating damage numbers and other effects."""
+        font = pygame.font.Font(None, 32)
+        
+        for effect in self.damage_numbers:
+            color = (*effect['color'], int(effect['alpha']))
+            text_surface = font.render(effect['text'], True, effect['color'])
+            
+            # Create alpha surface for fading
+            alpha_surface = pygame.Surface(text_surface.get_size(), pygame.SRCALPHA)
+            alpha_surface.fill(color)
+            alpha_surface.blit(text_surface, (0, 0), special_flags=pygame.BLEND_ALPHA_SDL2)
+            
+            surface.blit(alpha_surface, (effect['x'], effect['y']))
+    
+    def _draw_enemy_intent(self, surface: pygame.Surface) -> None:
+        """Draw enemy intent indicator."""
+        if not self.combat_manager.enemy_intent:
+            return
+        
+        intent = self.combat_manager.enemy_intent
+        font = pygame.font.Font(None, 20)
+        
+        # Draw intent above enemy
+        text = f"Intent: {intent.name}"
+        text_surface = font.render(text, True, (255, 255, 100))
+        
+        # Position above enemy area
+        x = 600  # Enemy area
+        y = 50
+        
+        surface.blit(text_surface, (x, y))
     
     def _on_card_played(self, component: UIComponent, event_data: Dict[str, Any]) -> None:
         """Handle enhanced card play with effects."""
@@ -800,17 +943,141 @@ class CombatScreen(UIScreen):
         # Log for now (in future could trigger particle systems)
         self.logger.debug(f"Triggered visual effects for {card.card_type.value} card")
     
+    def update(self, delta_time: float) -> None:
+        """Update combat screen and all systems."""
+        super().update(delta_time)
+        
+        # Update combat manager
+        self.combat_manager.update(delta_time)
+        
+        # Update visual effects
+        self._update_visual_effects(delta_time)
+        
+        # Process pending combat effects
+        self._process_combat_effects()
+        
+        # Update UI state based on combat phase
+        self._update_ui_state()
+    
+    def _update_visual_effects(self, delta_time: float) -> None:
+        """Update visual effects like damage numbers."""
+        # Update damage numbers
+        for effect in self.damage_numbers[:]:
+            effect['life'] -= delta_time
+            effect['y'] -= 50 * delta_time  # Float upward
+            effect['alpha'] = max(0, effect['alpha'] - 200 * delta_time)
+            
+            if effect['life'] <= 0 or effect['alpha'] <= 0:
+                self.damage_numbers.remove(effect)
+        
+        # Update other effect animations
+        for effect in self.effect_animations[:]:
+            effect['time'] += delta_time
+            if effect['time'] >= effect['duration']:
+                self.effect_animations.remove(effect)
+    
+    def _process_combat_effects(self) -> None:
+        """Process pending combat effects from combat manager."""
+        effects = self.combat_manager.get_pending_effects()
+        
+        for effect in effects:
+            effect_type = effect['type']
+            data = effect['data']
+            
+            if effect_type == 'damage':
+                self._show_damage_number(data['amount'], data['target'])
+            elif effect_type == 'heal':
+                self._show_heal_number(data['amount'], data['target'])
+            elif effect_type == 'block':
+                self._show_block_effect(data['amount'], data['target'])
+    
+    def _update_ui_state(self) -> None:
+        """Update UI components based on combat state."""
+        state = self.combat_manager.get_combat_state()
+        
+        # Update end turn button visibility
+        if self.end_turn_button:
+            is_player_turn = state['phase'] == 'player_turn' and state['turn_phase'] == 'main'
+            self.end_turn_button.visible = is_player_turn
+        
+        # Update hand display
+        if self.hand_display:
+            self.hand_display.set_cards(self.combat_manager.player_hand)
+    
+    def _on_end_turn(self) -> None:
+        """Handle end turn button click."""
+        self.combat_manager.end_player_turn()
+    
+    def _show_damage_number(self, amount: int, target) -> None:
+        """Show floating damage number."""
+        # Determine position based on target
+        if target == self.combat_manager.player:
+            x, y = 300, 400  # Player area
+        else:
+            x, y = 500, 200  # Enemy area
+        
+        self.damage_numbers.append({
+            'text': str(amount),
+            'x': x,
+            'y': y,
+            'alpha': 255,
+            'life': 2.0,
+            'color': (255, 100, 100)  # Red for damage
+        })
+    
+    def _show_heal_number(self, amount: int, target) -> None:
+        """Show floating heal number."""
+        if target == self.combat_manager.player:
+            x, y = 300, 400
+        else:
+            x, y = 500, 200
+        
+        self.damage_numbers.append({
+            'text': f"+{amount}",
+            'x': x,
+            'y': y,
+            'alpha': 255,
+            'life': 2.0,
+            'color': (100, 255, 100)  # Green for healing
+        })
+    
+    def _show_block_effect(self, amount: int, target) -> None:
+        """Show block effect."""
+        # Add visual effect for block gain
+        pass
+    
+    # Combat event handlers
+    def _on_combat_started(self, data: Dict[str, Any]) -> None:
+        """Handle combat start event."""
+        self.logger.info("Combat started!")
+        self._update_ui_from_combat_state()
+    
+    def _on_player_turn_started(self, data: Dict[str, Any]) -> None:
+        """Handle player turn start."""
+        turn = data['turn']
+        self.logger.info(f"Player turn {turn} started")
+    
+    def _on_enemy_turn_started(self, data: Dict[str, Any]) -> None:
+        """Handle enemy turn start."""
+        enemy = data['enemy']
+        intent = data.get('intent')
+        
+        if intent:
+            self.logger.info(f"{enemy.name} intends to use {intent.name}")
+        else:
+            self.logger.info(f"{enemy.name} is waiting...")
+    
+    def _on_combat_ended(self, data: Dict[str, Any]) -> None:
+        """Handle combat end event."""
+        victory = data['victory']
+        turns = data['turns']
+        
+        if victory:
+            self.logger.info(f"Victory! Combat lasted {turns} turns")
+        else:
+            self.logger.info(f"Defeat! Combat lasted {turns} turns")
+    
     def set_player_cards(self, cards: List[Card]) -> None:
-        """Set the player's hand."""
+        """Set the player's hand (legacy method - now handled by combat manager)."""
         if self.hand_display:
             self.hand_display.set_cards(cards)
-    
-    def set_player_health(self, current: int, maximum: int) -> None:
-        """Set player health."""
-        self.player_health = current
-        self.player_max_health = maximum
-    
-    def set_enemy_health(self, current: int, maximum: int) -> None:
-        """Set enemy health."""
-        self.enemy_health = current
-        self.enemy_max_health = maximum
