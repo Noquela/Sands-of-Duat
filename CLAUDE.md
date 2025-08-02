@@ -96,3 +96,10 @@ pytest tests/
 - **CodeRefactorAgent**: ECS optimization with FPS profiling  
 - **QAAgent**: pytest & mypy validation
 - **LevelGenAgent**: Procedural arena generation
+
+## File Management
+- Never create tessting scrpits outside the test folder
+- Always upload new features to the main game
+
+## Maing game 
+- The game always has to run in 3440x1440 well and 1920x1080.

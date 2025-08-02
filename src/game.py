@@ -8,18 +8,14 @@ import pygame
 import sys
 from typing import Optional, List
 
-# Import ECS components
-from ecs import (
-    EntityManager, create_player_entity, create_scarab_enemy, create_combat_dummy,
-    InputSystem, MovementSystem, AnimationSystem, RenderSystem,
-    AttackSystem, CollisionSystem, AISystem, HealthSystem,
-    Transform, SpriteRenderer, Health
-)
-from assets import load_assets, get_sprite
+# Import scenes and ECS
+from scenes import SceneManager, HubScene, ArenaScene
+from assets import load_assets
 
 
 class Game:
     def __init__(self):
+        # Support both ultrawide and standard resolutions as per CLAUDE.md
         self.screen_width = 1920
         self.screen_height = 1080
         self.fps = 60
@@ -27,12 +23,8 @@ class Game:
         self.screen: Optional[pygame.Surface] = None
         self.running = False
         
-        # ECS
-        self.entity_manager = EntityManager()
-        self.systems: List = []
-        self.player_id: Optional[int] = None
-        self.enemies: List[int] = []
-        self.dummy_id: Optional[int] = None
+        # Scene management (Hades-style)
+        self.scene_manager: Optional[SceneManager] = None
 
     def initialize(self) -> bool:
         """Initialize pygame and create game window."""
@@ -40,89 +32,38 @@ class Game:
             pygame.init()
             pygame.font.init()
             self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
-            pygame.display.set_caption("Sands of Duat")
+            pygame.display.set_caption("Sands of Duat - Egyptian Roguelike")
             self.clock = pygame.time.Clock()
             self.running = True
             
             # Load assets
             load_assets()
             
-            # Initialize ECS systems
-            self.setup_ecs()
-            
-            # Create entities
-            self.create_player()
-            self.create_test_enemies()
+            # Initialize scene system (Hades-style Hub/Arena)
+            self.setup_scenes()
             
             print(f"Game initialized: {self.screen_width}x{self.screen_height} @ {self.fps}fps")
-            print(f"Player entity created: {self.player_id}")
-            print(f"Test entities created: {len(self.enemies)} enemies, 1 dummy")
+            print("Starting in Hub (Hall of Anubis)...")
             return True
         except pygame.error as e:
             print(f"Failed to initialize pygame: {e}")
             return False
 
-    def setup_ecs(self) -> None:
-        """Initialize ECS systems."""
-        self.systems = [
-            InputSystem(self.entity_manager),
-            AISystem(self.entity_manager),
-            MovementSystem(self.entity_manager),
-            AttackSystem(self.entity_manager),
-            CollisionSystem(self.entity_manager),
-            HealthSystem(self.entity_manager),
-            AnimationSystem(self.entity_manager),
-            RenderSystem(self.entity_manager, self.screen)
-        ]
-        print(f"Initialized {len(self.systems)} ECS systems")
-
-    def create_player(self) -> None:
-        """Create the player entity."""
-        # Create player at center of screen
-        self.player_id = create_player_entity(
-            self.entity_manager, 
-            x=self.screen_width // 2, 
-            y=self.screen_height // 2
-        )
+    def setup_scenes(self) -> None:
+        """Initialize scene system with Hub and Arena."""
+        self.scene_manager = SceneManager(self)
         
-        # Set player sprite
-        player_sprite = self.entity_manager.get_component(self.player_id, SpriteRenderer)
-        if player_sprite is not None:
-            player_sprite.sprite_sheet = get_sprite("player_anubis")
-            print("Player sprite loaded")
-
-    def create_test_enemies(self) -> None:
-        """Create test enemies and combat dummy."""
-        # Create combat dummy for testing attacks
-        self.dummy_id = create_combat_dummy(
-            self.entity_manager,
-            x=self.screen_width // 2 + 200,
-            y=self.screen_height // 2
-        )
+        # Register scenes
+        hub_scene = HubScene(self)
+        arena_scene = ArenaScene(self)
         
-        # Set dummy sprite
-        dummy_sprite = self.entity_manager.get_component(self.dummy_id, SpriteRenderer)
-        if dummy_sprite is not None:
-            dummy_sprite.sprite_sheet = get_sprite("scarab_enemy")  # Reuse for now
-            dummy_sprite.color_tint = (128, 128, 128)  # Gray tint for dummy
+        self.scene_manager.register_scene("hub", hub_scene)
+        self.scene_manager.register_scene("arena", arena_scene)
         
-        # Create a few scarab enemies
-        enemy_positions = [
-            (self.screen_width // 2 - 300, self.screen_height // 2 - 200),
-            (self.screen_width // 2 + 300, self.screen_height // 2 + 200),
-            (self.screen_width // 2, self.screen_height // 2 - 300)
-        ]
+        # Start in Hub (like Hades starts in Hall of Styx)
+        self.scene_manager.transition_to("hub")
         
-        for x, y in enemy_positions:
-            enemy_id = create_scarab_enemy(self.entity_manager, x, y)
-            self.enemies.append(enemy_id)
-            
-            # Set enemy sprite
-            enemy_sprite = self.entity_manager.get_component(enemy_id, SpriteRenderer)
-            if enemy_sprite is not None:
-                enemy_sprite.sprite_sheet = get_sprite("scarab_enemy")
-        
-        print(f"Created {len(self.enemies)} scarab enemies and 1 combat dummy")
+        print("Scene system initialized: Hub and Arena ready")
 
     def handle_events(self) -> None:
         """Handle pygame events."""
@@ -131,88 +72,80 @@ class Game:
                 self.running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    self.running = False
+                    # Let scenes handle ESC first, then quit if needed
+                    if self.scene_manager and self.scene_manager.get_current_scene_name() == "arena":
+                        # In arena, ESC returns to hub (handled by arena scene)
+                        pass
+                    else:
+                        # In hub or no scene, quit game
+                        self.running = False
+            
+            # Forward event to current scene
+            if self.scene_manager:
+                self.scene_manager.handle_event(event)
 
     def update(self, dt: float) -> None:
         """Update game logic."""
-        # Update all ECS systems
-        for system in self.systems:
-            system.update(dt)
+        if self.scene_manager:
+            self.scene_manager.update(dt)
 
     def render(self) -> None:
         """Render game frame."""
         if self.screen is None:
             return
         
-        # Clear screen with dark sand color
+        # Clear screen
         self.screen.fill((42, 35, 28))
         
-        # Render systems handle drawing
+        # Render current scene
+        if self.scene_manager:
+            self.scene_manager.render(self.screen)
         
-        # Draw UI
-        self.draw_ui()
+        # Draw global UI
+        self.draw_global_ui()
         
         pygame.display.flip()
 
-    def draw_ui(self) -> None:
-        """Draw UI elements."""
-        if self.screen is None:
+    def draw_global_ui(self) -> None:
+        """Draw global UI elements (FPS, etc)."""
+        if self.screen is None or self.clock is None:
             return
         
-        # Draw FPS
+        # Draw FPS counter
         fps = self.clock.get_fps()
-        font = pygame.font.Font(None, 36)
+        font = pygame.font.Font(None, 24)
         fps_text = font.render(f"FPS: {fps:.1f}", True, (255, 215, 0))
-        self.screen.blit(fps_text, (10, 10))
+        fps_rect = fps_text.get_rect()
+        fps_rect.topright = (self.screen.get_width() - 10, 10)
         
-        # Draw player health
-        if self.player_id is not None:
-            player_health = self.entity_manager.get_component(self.player_id, Health)
-            if player_health is not None:
-                health_text = f"Health: {player_health.current_hp}/{player_health.max_hp}"
-                health_surface = font.render(health_text, True, (255, 0, 0) if player_health.current_hp < 30 else (255, 215, 0))
-                self.screen.blit(health_surface, (10, 50))
-                
-                # Health bar
-                bar_width = 200
-                bar_height = 20
-                bar_x = 10
-                bar_y = 85
-                
-                # Background
-                pygame.draw.rect(self.screen, (50, 50, 50), (bar_x, bar_y, bar_width, bar_height))
-                
-                # Health fill
-                if player_health.max_hp > 0:
-                    fill_width = int((player_health.current_hp / player_health.max_hp) * bar_width)
-                    health_color = (255, 0, 0) if player_health.current_hp < 30 else (0, 255, 0)
-                    pygame.draw.rect(self.screen, health_color, (bar_x, bar_y, fill_width, bar_height))
-                
-                # Border
-                pygame.draw.rect(self.screen, (255, 255, 255), (bar_x, bar_y, bar_width, bar_height), 2)
+        # Semi-transparent background
+        bg_rect = fps_rect.inflate(10, 4)
+        pygame.draw.rect(self.screen, (0, 0, 0), bg_rect)
+        pygame.draw.rect(self.screen, (255, 215, 0), bg_rect, 1)
         
-        # Draw controls
-        controls = [
-            "WASD: Move",
-            "J: Light Attack", 
-            "K: Heavy Attack",
-            "SPACE: Dash",
-            "ESC: Quit"
-        ]
+        self.screen.blit(fps_text, fps_rect)
         
-        y_offset = 120
-        for control in controls:
-            text = font.render(control, True, (255, 215, 0))
-            self.screen.blit(text, (10, y_offset))
-            y_offset += 30
+        # Current scene indicator
+        if self.scene_manager:
+            scene_name = self.scene_manager.get_current_scene_name()
+            if scene_name:
+                scene_text = font.render(f"Scene: {scene_name.title()}", True, (255, 215, 0))
+                scene_rect = scene_text.get_rect()
+                scene_rect.topright = (self.screen.get_width() - 10, 40)
+                
+                bg_rect = scene_rect.inflate(10, 4)
+                pygame.draw.rect(self.screen, (0, 0, 0), bg_rect)
+                pygame.draw.rect(self.screen, (255, 215, 0), bg_rect, 1)
+                
+                self.screen.blit(scene_text, scene_rect)
 
     def run(self) -> None:
         """Main game loop."""
         if not self.initialize():
             return
 
-        print("Starting Sands of Duat...")
-        print("Controls: WASD to move, J/K to attack, SPACE to dash, ESC to quit")
+        print("🏺 Starting Sands of Duat - Egyptian Roguelike...")
+        print("Welcome to the Hall of Anubis! Use WASD to explore, E to interact with portals.")
         
         while self.running:
             dt = self.clock.tick(self.fps) / 1000.0  # Delta time in seconds

@@ -143,7 +143,7 @@ def create_player_entity(entity_manager: EntityManager, x: float = 0.0, y: float
     """Create a player entity with standard components."""
     from .components import (Transform, SpriteRenderer, InputController, 
                            Movement, Animation, Health, Combat, PlayerTag,
-                           Hitbox, AttackHitbox)
+                           Hitbox, AttackHitbox, ArtifactInventory, Stats)
     
     return (EntityBuilder(entity_manager)
             .with_component(Transform(x=x, y=y))
@@ -160,6 +160,8 @@ def create_player_entity(entity_manager: EntityManager, x: float = 0.0, y: float
             .with_component(Combat(attack_damage=30, attack_range=60.0))
             .with_component(Hitbox(width=40.0, height=40.0))
             .with_component(AttackHitbox(width=80.0, height=60.0, offset_y=30.0))
+            .with_component(ArtifactInventory(max_artifacts=10))
+            .with_component(Stats(base_damage=30.0, base_speed=250.0, base_health=100.0))
             .with_component(PlayerTag())
             .build())
 

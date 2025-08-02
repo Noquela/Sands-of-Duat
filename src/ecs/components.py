@@ -4,7 +4,7 @@ All game components using dataclass pattern for performance and clarity
 """
 
 from dataclasses import dataclass
-from typing import Optional, Dict, Any, Tuple, Set
+from typing import Optional, Dict, Any, Tuple, Set, List
 import pygame
 
 
@@ -270,3 +270,114 @@ class ParticleEmitter:
     spread_angle: float = 45.0  # degrees
     direction: float = 0.0  # degrees
     burst_count: int = 0  # 0 = continuous, >0 = burst mode
+
+
+@dataclass
+class Artifact:
+    """Artifact/item component for boons and upgrades."""
+    name: str = "Unknown Artifact"
+    description: str = "A mysterious artifact"
+    rarity: str = "common"  # common, rare, epic, legendary
+    artifact_type: str = "passive"  # passive, active, weapon_mod
+    effects: Dict[str, float] = None
+    active_cooldown: float = 0.0
+    max_cooldown: float = 5.0
+    stack_count: int = 1
+    max_stacks: int = 1
+    god_source: str = "unknown"  # Ra, Thoth, Isis, Ptah, etc.
+    
+    def __post_init__(self):
+        if self.effects is None:
+            self.effects = {}
+
+
+@dataclass 
+class ArtifactInventory:
+    """Player's artifact collection component."""
+    artifacts: List[str] = None  # List of artifact names
+    max_artifacts: int = 10
+    equipped_artifacts: Dict[str, int] = None  # artifact_name -> stack_count
+    
+    def __post_init__(self):
+        if self.artifacts is None:
+            self.artifacts = []
+        if self.equipped_artifacts is None:
+            self.equipped_artifacts = {}
+    
+    def add_artifact(self, artifact_name: str) -> bool:
+        """Add artifact to inventory."""
+        if len(self.artifacts) >= self.max_artifacts:
+            return False
+        
+        if artifact_name in self.equipped_artifacts:
+            # Stack if possible
+            self.equipped_artifacts[artifact_name] += 1
+        else:
+            self.equipped_artifacts[artifact_name] = 1
+            
+        if artifact_name not in self.artifacts:
+            self.artifacts.append(artifact_name)
+        
+        return True
+    
+    def remove_artifact(self, artifact_name: str) -> bool:
+        """Remove artifact from inventory."""
+        if artifact_name not in self.equipped_artifacts:
+            return False
+        
+        self.equipped_artifacts[artifact_name] -= 1
+        if self.equipped_artifacts[artifact_name] <= 0:
+            del self.equipped_artifacts[artifact_name]
+            if artifact_name in self.artifacts:
+                self.artifacts.remove(artifact_name)
+        
+        return True
+
+
+@dataclass
+class Stats:
+    """Entity stats component affected by artifacts."""
+    base_damage: float = 25.0
+    damage_multiplier: float = 1.0
+    base_speed: float = 250.0
+    speed_multiplier: float = 1.0
+    base_health: float = 100.0
+    health_multiplier: float = 1.0
+    attack_speed_multiplier: float = 1.0
+    critical_chance: float = 0.0
+    critical_damage: float = 1.5
+    
+    # Resistances
+    fire_resistance: float = 0.0
+    ice_resistance: float = 0.0
+    poison_resistance: float = 0.0
+    
+    # Special effects
+    life_steal: float = 0.0
+    thorns_damage: float = 0.0
+    dodge_chance: float = 0.0
+    
+    def get_total_damage(self) -> float:
+        """Calculate total damage including modifiers."""
+        return self.base_damage * self.damage_multiplier
+    
+    def get_total_speed(self) -> float:
+        """Calculate total movement speed."""
+        return self.base_speed * self.speed_multiplier
+    
+    def get_total_health(self) -> float:
+        """Calculate total health.""" 
+        return self.base_health * self.health_multiplier
+
+
+@dataclass
+class Interactable:
+    """Component for objects player can interact with."""
+    interaction_type: str = "examine"  # examine, altar, npc, portal
+    interaction_range: float = 80.0
+    prompt_text: str = "Press E to interact"
+    data: Dict[str, Any] = None
+    
+    def __post_init__(self):
+        if self.data is None:
+            self.data = {}
