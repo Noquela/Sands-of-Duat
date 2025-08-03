@@ -19,8 +19,8 @@ from enum import Enum
 from typing import List, Dict, Optional, Any, Callable, Union
 from dataclasses import dataclass
 
-from core.hourglass import HourGlass
-from core.cards import Card, CardEffect, EffectType, TargetType
+from .hourglass import HourGlass
+from .cards import Card, CardEffect, EffectType, TargetType
 
 
 class CombatPhase(Enum):
@@ -62,11 +62,16 @@ class CombatEntity:
             self.debuffs = {}
     
     def take_damage(self, amount: int) -> int:
-        """Take damage, applying block. Returns actual damage taken."""
+        """Take damage, applying block and debuffs. Returns actual damage taken."""
+        # Apply vulnerable debuff (increases damage by 50%)
+        modified_damage = amount
+        if "vulnerable" in self.debuffs:
+            modified_damage = int(amount * 1.5)
+        
         # Apply block
-        blocked = min(self.block, amount)
-        actual_damage = amount - blocked
-        self.block = max(0, self.block - amount)
+        blocked = min(self.block, modified_damage)
+        actual_damage = modified_damage - blocked
+        self.block = max(0, self.block - modified_damage)
         
         # Apply damage
         old_health = self.health
@@ -94,14 +99,25 @@ class CombatEntity:
         
         # Update buff/debuff durations
         for effect in list(self.buffs.keys()):
-            self.buffs[effect] -= 1
-            if self.buffs[effect] <= 0:
-                del self.buffs[effect]
+            if effect == "blessings":
+                # Handle blessings specially (nested dict)
+                for blessing_name in list(self.buffs[effect].keys()):
+                    self.buffs[effect][blessing_name] -= 1
+                    if self.buffs[effect][blessing_name] <= 0:
+                        del self.buffs[effect][blessing_name]
+                # Remove blessings category if empty
+                if not self.buffs[effect]:
+                    del self.buffs[effect]
+            elif isinstance(self.buffs[effect], int):
+                self.buffs[effect] -= 1
+                if self.buffs[effect] <= 0:
+                    del self.buffs[effect]
         
         for effect in list(self.debuffs.keys()):
-            self.debuffs[effect] -= 1
-            if self.debuffs[effect] <= 0:
-                del self.debuffs[effect]
+            if isinstance(self.debuffs[effect], int):
+                self.debuffs[effect] -= 1
+                if self.debuffs[effect] <= 0:
+                    del self.debuffs[effect]
 
 
 @dataclass
@@ -279,12 +295,17 @@ class CombatManager:
             self.logger.warning("Cannot play card - not player's main phase")
             return False
         
-        if not self.player or not self.player.hourglass.can_afford(card.sand_cost):
-            self.logger.warning(f"Cannot afford card {card.name} (cost: {card.sand_cost})")
+        # Calculate effective cost (considering buffs like sand cost reduction)
+        effective_cost = card.sand_cost
+        if "sand_cost_reduction" in self.player.buffs:
+            effective_cost = max(0, effective_cost - self.player.buffs["sand_cost_reduction"])
+        
+        if not self.player or not self.player.hourglass.can_afford(effective_cost):
+            self.logger.warning(f"Cannot afford card {card.name} (cost: {effective_cost})")
             return False
         
         # Spend sand
-        self.player.hourglass.spend_sand(card.sand_cost)
+        self.player.hourglass.spend_sand(effective_cost)
         
         # Remove card from hand
         if card in self.player_hand:
@@ -451,7 +472,14 @@ class CombatManager:
         actual_target = source if effect.target == TargetType.SELF else target
         
         if effect.effect_type == EffectType.DAMAGE:
-            damage_dealt = actual_target.take_damage(effect.value)
+            # Apply strength buff (increases damage) and weak debuff (decreases damage)
+            modified_damage = effect.value
+            if "strength" in source.buffs:
+                modified_damage += source.buffs["strength"]
+            if "weak" in source.debuffs:
+                modified_damage = max(0, modified_damage - source.debuffs["weak"])
+            
+            damage_dealt = actual_target.take_damage(modified_damage)
             self._add_visual_effect("damage", {
                 "target": actual_target,
                 "amount": damage_dealt,
@@ -467,10 +495,15 @@ class CombatManager:
             })
             
         elif effect.effect_type == EffectType.BLOCK:
-            actual_target.add_block(effect.value)
+            # Apply dexterity buff (increases block)
+            modified_block = effect.value
+            if "dexterity" in source.buffs:
+                modified_block += source.buffs["dexterity"]
+            
+            actual_target.add_block(modified_block)
             self._add_visual_effect("block", {
                 "target": actual_target,
-                "amount": effect.value,
+                "amount": modified_block,
                 "position": "center"
             })
             
@@ -480,9 +513,157 @@ class CombatManager:
             new_sand = min(max_sand, current_sand + effect.value)
             source.hourglass.set_sand(new_sand)
             
+        elif effect.effect_type == EffectType.GAIN_ENERGY:
+            # GAIN_ENERGY is an alias for GAIN_SAND
+            current_sand = source.hourglass.current_sand
+            max_sand = source.hourglass.max_sand
+            new_sand = min(max_sand, current_sand + effect.value)
+            source.hourglass.set_sand(new_sand)
+            
         elif effect.effect_type == EffectType.DRAW_CARDS:
-            # Simplified card draw (would need full deck system)
-            self.logger.info(f"Draw {effect.value} cards effect applied")
+            # Draw cards from deck into hand
+            cards_to_draw = effect.value
+            cards_drawn = 0
+            max_hand_size = 10  # Standard hand size limit
+            
+            # Check if we can draw cards
+            if len(self.player_hand) >= max_hand_size:
+                self.logger.info(f"Cannot draw cards - hand is full ({len(self.player_hand)}/{max_hand_size})")
+                return
+            
+            # Draw from deck, reshuffling discard if needed
+            for _ in range(cards_to_draw):
+                if len(self.player_hand) >= max_hand_size:
+                    break
+                
+                # If deck is empty, shuffle discard pile into deck
+                if not self.player_deck and self.player_discard:
+                    self.player_deck = self.player_discard.copy()
+                    self.player_discard.clear()
+                    # Shuffle the deck
+                    import random
+                    random.shuffle(self.player_deck)
+                    self.logger.info("Reshuffled discard pile into deck")
+                
+                # Draw a card if deck has cards
+                if self.player_deck:
+                    drawn_card = self.player_deck.pop(0)
+                    self.player_hand.append(drawn_card)
+                    cards_drawn += 1
+                    self.logger.debug(f"Drew card: {drawn_card.name}")
+                else:
+                    # No more cards to draw
+                    break
+            
+            if cards_drawn > 0:
+                self.logger.info(f"Drew {cards_drawn} cards")
+                self._add_visual_effect("draw_cards", {
+                    "target": source,
+                    "amount": cards_drawn,
+                    "position": "center"
+                })
+            else:
+                self.logger.info("No cards were drawn")
+            
+        elif effect.effect_type == EffectType.APPLY_VULNERABLE:
+            # Apply vulnerable debuff
+            actual_target.debuffs["vulnerable"] = effect.value
+            self._add_visual_effect("debuff", {
+                "target": actual_target,
+                "type": "vulnerable",
+                "duration": effect.value,
+                "position": "center"
+            })
+            
+        elif effect.effect_type == EffectType.APPLY_WEAK:
+            # Apply weak debuff
+            actual_target.debuffs["weak"] = effect.value
+            self._add_visual_effect("debuff", {
+                "target": actual_target,
+                "type": "weak",
+                "duration": effect.value,
+                "position": "center"
+            })
+            
+        elif effect.effect_type == EffectType.APPLY_STRENGTH:
+            # Apply strength buff
+            actual_target.buffs["strength"] = effect.value
+            self._add_visual_effect("buff", {
+                "target": actual_target,
+                "type": "strength",
+                "amount": effect.value,
+                "position": "center"
+            })
+            
+        elif effect.effect_type == EffectType.APPLY_DEXTERITY:
+            # Apply dexterity buff
+            actual_target.buffs["dexterity"] = effect.value
+            self._add_visual_effect("buff", {
+                "target": actual_target,
+                "type": "dexterity",
+                "amount": effect.value,
+                "position": "center"
+            })
+            
+        elif effect.effect_type == EffectType.MAX_HEALTH_INCREASE:
+            # Increase max health
+            actual_target.max_health += effect.value
+            actual_target.health += effect.value  # Also heal for the amount
+            self._add_visual_effect("max_health_increase", {
+                "target": actual_target,
+                "amount": effect.value,
+                "position": "center"
+            })
+            
+        elif effect.effect_type == EffectType.PERMANENT_SAND_INCREASE:
+            # Permanently increase maximum sand capacity
+            if actual_target.hourglass.increase_max_sand(effect.value):
+                self.logger.info(f"Permanently increased max sand by {effect.value} for {actual_target.name}")
+                self._add_visual_effect("permanent_sand_increase", {
+                    "target": actual_target,
+                    "amount": effect.value,
+                    "position": "center"
+                })
+            else:
+                self.logger.warning(f"Could not increase max sand - would exceed limit")
+            
+        elif effect.effect_type == EffectType.BLESSING:
+            # Apply Egyptian-themed persistent blessing effects
+            blessing_type = effect.metadata.get("blessing_type", "divine_favor")
+            duration = effect.metadata.get("duration", 5)
+            
+            # Store blessing in a special buffs category
+            if "blessings" not in actual_target.buffs:
+                actual_target.buffs["blessings"] = {}
+            actual_target.buffs["blessings"][blessing_type] = duration
+            
+            self.logger.info(f"Applied {blessing_type} blessing for {duration} turns to {actual_target.name}")
+            self._add_visual_effect("blessing", {
+                "target": actual_target,
+                "type": blessing_type,
+                "duration": duration,
+                "position": "center"
+            })
+            
+        elif effect.effect_type == EffectType.CHANNEL_DIVINITY:
+            # Unique legendary effect for duat_master card
+            divinity_effect = effect.metadata.get("effect", "sand_mastery")
+            
+            if divinity_effect == "sand_mastery":
+                # Grant special sand-related powers
+                actual_target.buffs["divine_sand_mastery"] = 999  # Permanent for combat
+                # Reduce all sand costs by 1 (minimum 0) for rest of combat
+                actual_target.buffs["sand_cost_reduction"] = 1
+                
+                self.logger.info(f"Channeled divinity: {divinity_effect} for {actual_target.name}")
+                self._add_visual_effect("channel_divinity", {
+                    "target": actual_target,
+                    "effect": divinity_effect,
+                    "position": "center"
+                })
+            
+        else:
+            self.logger.warning(f"Unhandled effect type: {effect.effect_type}")
     
     def _add_visual_effect(self, effect_type: str, data: Dict[str, Any]) -> None:
         """Add a visual effect to the queue."""
@@ -551,6 +732,9 @@ class CombatManager:
                 "sand": self.player.hourglass.current_sand if self.player else 0,
                 "max_sand": self.player.hourglass.max_sand if self.player else 0,
                 "block": self.player.block if self.player else 0,
+                "buffs": self.player.buffs if self.player else {},
+                "debuffs": self.player.debuffs if self.player else {},
+                "blessings": self.player.buffs.get("blessings", {}) if self.player else {},
             },
             "enemy": {
                 "name": self.enemy.name if self.enemy else "",
@@ -559,6 +743,8 @@ class CombatManager:
                 "sand": self.enemy.hourglass.current_sand if self.enemy else 0,
                 "max_sand": self.enemy.hourglass.max_sand if self.enemy else 0,
                 "block": self.enemy.block if self.enemy else 0,
+                "buffs": self.enemy.buffs if self.enemy else {},
+                "debuffs": self.enemy.debuffs if self.enemy else {},
                 "intent": self.enemy_intent.name if self.enemy_intent else None,
             },
             "hand_size": len(self.player_hand)

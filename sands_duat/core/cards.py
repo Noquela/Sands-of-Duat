@@ -49,10 +49,22 @@ class EffectType(Enum):
     BLOCK = "block"
     DRAW_CARDS = "draw_cards"
     GAIN_SAND = "gain_sand"
+    GAIN_ENERGY = "gain_energy"  # Alternative name for sand
     BUFF = "buff"
     DEBUFF = "debuff"
     TRANSFORM = "transform"
     DISCOVER = "discover"
+    
+    # Egyptian-specific effects
+    APPLY_VULNERABLE = "apply_vulnerable"
+    APPLY_WEAK = "apply_weak"
+    APPLY_STRENGTH = "apply_strength"
+    APPLY_DEXTERITY = "apply_dexterity"
+    MAX_HEALTH_INCREASE = "max_health_increase"
+    PERMANENT_SAND_INCREASE = "permanent_sand_increase"  # Permanently increase max sand
+    BLESSING = "blessing"  # Egyptian-themed persistent effects
+    CHANNEL_DIVINITY = "channel_divinity"  # Legendary unique mechanic
+    SPECIAL = "special"  # For unique Egyptian effects
 
 
 class CardRarity(Enum):
@@ -60,6 +72,7 @@ class CardRarity(Enum):
     COMMON = "common"
     UNCOMMON = "uncommon"
     RARE = "rare"
+    EPIC = "epic"
     LEGENDARY = "legendary"
 
 

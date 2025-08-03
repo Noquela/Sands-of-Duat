@@ -9,7 +9,22 @@
       "Bash(git push:*)",
       "Bash(pip install:*)",
       "Bash(C:ProgramDataanaconda3python.exe -c \"from core.engine import GameEngine; print(''Engine import works!'')\")",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(move:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(rm:*)",
+      "Bash(del quick_screenshot.py)",
+      "Bash(ollama pull:*)",
+      "Bash(ollama list:*)",
+      "Bash(run_game.bat)",
+      "Bash(cmd:*)",
+      "Bash(C:ProgramDataanaconda3python.exe main.py --windowed --width 1920 --height 1080 --debug)",
+      "Bash(\"C:\\ProgramData\\anaconda3\\python.exe\":*)",
+      "Bash(del test_menu_click.py debug_menu_positions.py)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

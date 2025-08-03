@@ -1,0 +1,60 @@
+{
+  "timestamp": 1754162945.5914702,
+  "screen_resolution": "1920x1080",
+  "ui_elements": {
+    "health_bars": {
+      "player_health": {
+        "position": "bottom-left",
+        "visibility": "high",
+        "current_value": 100,
+        "max_value": 100,
+        "percentage": 100.0,
+        "color_coding": "green (good visibility)",
+        "size": "large (300x40px)",
+        "readability": "excellent"
+      },
+      "enemy_health": {
+        "position": "top-right",
+        "visibility": "high",
+        "current_value": 60,
+        "max_value": 60,
+        "percentage": 100.0,
+        "color_coding": "red (good contrast)",
+        "size": "large (300x40px)",
+        "readability": "excellent"
+      },
+      "overall_effectiveness": "high"
+    },
+    "cards": {
+      "hand_size": 7,
+      "card_dimensions": "120x160px each",
+      "positioning": "bottom center",
+      "visibility": "high",
+      "color_coding": "green/red for playability",
+      "information_density": "appropriate",
+      "interaction_clarity": "drag instructions visible",
+      "spacing": "20px between cards",
+      "overall_effectiveness": "high"
+    },
+    "buttons": {
+      "end_turn_button": {
+        "position": "bottom-right",
+        "size": "200x60px",
+        "visibility": "high",
+        "color": "yellow with white text",
+        "click_target_size": "appropriate",
+        "positioning": "accessible",
+        "contrast": "excellent"
+      },
+      "overall_accessibility": "high"
+    }
+  },
+  "visibility_score": 100,
+  "usability_score": 100,
+  "recommendations": [
+    "Consider adding visual feedback for hover states",
+    "Add sound effects for button clicks and card plays",
+    "Implement smooth animations for state transitions",
+    "Add accessibility options (color blind support, font scaling)"
+  ]
+}

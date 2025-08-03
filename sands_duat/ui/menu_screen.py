@@ -10,6 +10,8 @@ import random
 from typing import Dict, Any, Optional, List, Callable
 from .base import UIScreen, UIComponent
 from .theme import get_theme
+from .animation_system import EasingType
+from sands_duat.audio.sound_effects import play_button_sound
 
 
 class MenuButton(UIComponent):
@@ -90,13 +92,42 @@ class MenuButton(UIComponent):
         surface.blit(text_surface, text_rect)
     
     def handle_event(self, event: pygame.event.Event) -> bool:
-        """Handle button interaction."""
-        if super().handle_event(event):
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+        """Handle button interaction with audio feedback."""
+        if not self.visible or not self.enabled:
+            return False
+        
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                # Play click sound (with error handling)
+                try:
+                    play_button_sound("click")
+                except Exception as e:
+                    print(f"Audio error: {e}")
+                
+                print(f"Button clicked: {self.text}")
                 if self.callback:
+                    print(f"Executing callback for: {self.text}")
                     self.callback()
+                else:
+                    print(f"No callback set for button: {self.text}")
                 self._trigger_event("button_clicked", {"text": self.text})
-            return True
+                return True
+        
+        elif event.type == pygame.MOUSEMOTION:
+            # Handle hover with audio
+            mouse_over = self.rect.collidepoint(event.pos)
+            if mouse_over and not self.hovered:
+                self.hovered = True
+                # Play hover sound (with error handling)
+                try:
+                    play_button_sound("hover")
+                except Exception as e:
+                    print(f"Audio error: {e}")
+                self._trigger_event("hover_start", {"pos": event.pos})
+            elif not mouse_over and self.hovered:
+                self.hovered = False
+                self._trigger_event("hover_end", {"pos": event.pos})
+        
         return False
 
 
@@ -214,6 +245,10 @@ class VersionInfo(UIComponent):
         self.dev_text = "Sand of Duat Development Team"
         self.font = pygame.font.Font(None, 20)
     
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        """Version info should not consume mouse events."""
+        return False
+    
     def update(self, delta_time: float) -> None:
         """Update version info."""
         pass
@@ -251,10 +286,12 @@ class MenuScreen(UIScreen):
         self.title_display: Optional[TitleDisplay] = None
         self.buttons: List[MenuButton] = []
         self.version_info: Optional[VersionInfo] = None
+        self.ui_manager = None  # Will be set by the UI manager
         
         # Background animation
         self.background_time = 0.0
         self.sand_dunes = []
+    
         
     def on_enter(self) -> None:
         """Initialize main menu."""
@@ -289,6 +326,8 @@ class MenuScreen(UIScreen):
         screen_width = theme.display.base_width
         screen_height = theme.display.base_height
         
+# Debug removed
+        
         # Title display (top center, scaled for screen)
         title_width = min(screen_width - 200, 1000)
         title_height = max(120, int(screen_height * 0.15))
@@ -307,16 +346,18 @@ class MenuScreen(UIScreen):
         buttons_data = [
             ("New Game", self._start_new_game),
             ("Continue", self._continue_game),
+            ("Tutorial", self._open_tutorial),
             ("Deck Builder", self._open_deck_builder),
-            ("Settings", self._open_settings),
-            ("Credits", self._show_credits),
             ("Exit", self._exit_game)
         ]
         
         for i, (text, callback) in enumerate(buttons_data):
+            button_x = screen_width // 2 - button_width // 2
+            button_y = start_y + i * (button_height + button_spacing)
+            
             button = MenuButton(
-                screen_width // 2 - button_width // 2,
-                start_y + i * (button_height + button_spacing),
+                button_x,
+                button_y,
                 button_width,
                 button_height,
                 text,
@@ -392,34 +433,55 @@ class MenuScreen(UIScreen):
     
     # Button callback methods
     def _start_new_game(self) -> None:
-        """Start a new game."""
+        """Start a new game - begins with tutorial for new players."""
         self.logger.info("Starting new game")
-        # Switch directly to combat screen for demo
-        from ui.ui_manager import UIManager
-        # This would be handled by the UI manager in the actual implementation
-        self._trigger_event("switch_screen", {"screen": "combat"})
+        # For new players, start with tutorial which will then lead to progression
+        if self.ui_manager:
+            # Set tutorial context for new game flow
+            tutorial_screen = self.ui_manager.screens.get("tutorial")
+            if tutorial_screen and hasattr(tutorial_screen, 'set_game_flow_context'):
+                tutorial_screen.set_game_flow_context(is_new_game=True, return_screen="progression")
+            self.ui_manager.switch_to_screen_with_transition("tutorial", "slide_left")
+        else:
+            self._trigger_event("switch_screen", {"screen": "tutorial"})
     
     def _continue_game(self) -> None:
-        """Continue existing game."""
+        """Continue existing game - goes to progression hub."""
         self.logger.info("Continue game")
-        self._trigger_event("continue_game", {})
+        # For now, take players to progression screen where they can choose their path
+        if self.ui_manager:
+            self.ui_manager.switch_to_screen_with_transition("progression", "slide_left")
+        else:
+            self._trigger_event("switch_screen", {"screen": "progression"})
+    
+    
+    def _open_tutorial(self) -> None:
+        """Open tutorial system."""
+        self.logger.info("Opening tutorial system")
+        # Switch to tutorial with fade transition
+        if self.ui_manager:
+            # Set tutorial context for standalone tutorial access
+            tutorial_screen = self.ui_manager.screens.get("tutorial")
+            if tutorial_screen and hasattr(tutorial_screen, 'set_game_flow_context'):
+                tutorial_screen.set_game_flow_context(is_new_game=False, return_screen="menu")
+            self.ui_manager.switch_to_screen_with_transition("tutorial", "fade")
+        else:
+            self._trigger_event("switch_screen", {"screen": "tutorial"})
     
     def _open_deck_builder(self) -> None:
         """Open deck builder."""
         self.logger.info("Opening deck builder")
-        self._trigger_event("switch_screen", {"screen": "deck_builder"})
+        # Switch to deck builder with fade transition
+        if self.ui_manager:
+            self.ui_manager.switch_to_screen_with_transition("deck_builder", "fade")
+        else:
+            self._trigger_event("switch_screen", {"screen": "deck_builder"})
     
-    def _open_settings(self) -> None:
-        """Open settings menu."""
-        self.logger.info("Opening settings")
-        self._trigger_event("open_settings", {})
-    
-    def _show_credits(self) -> None:
-        """Show game credits."""
-        self.logger.info("Showing credits")
-        self._trigger_event("show_credits", {})
     
     def _exit_game(self) -> None:
         """Exit the game."""
         self.logger.info("Exiting game")
-        self._trigger_event("exit_game", {})
+        import pygame
+        pygame.quit()
+        import sys
+        sys.exit()

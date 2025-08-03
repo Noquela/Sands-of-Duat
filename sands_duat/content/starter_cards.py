@@ -8,11 +8,22 @@ Cards are balanced around the 6-sand maximum with meaningful
 tactical decisions at each cost level.
 """
 
-from core.cards import Card, CardEffect, CardType, CardRarity, EffectType, TargetType, card_library
+from sands_duat.core.cards import Card, CardEffect, CardType, CardRarity, EffectType, TargetType, card_library
+from .egyptian_card_loader import initialize_egyptian_cards
+import logging
 
 
 def create_starter_cards():
     """Create and register all starter cards in the card library."""
+    logger = logging.getLogger(__name__)
+    
+    # Load Egyptian cards first
+    try:
+        egyptian_cards = initialize_egyptian_cards()
+        logger.info(f"Loaded {len(egyptian_cards)} Egyptian cards")
+    except Exception as e:
+        logger.error(f"Failed to load Egyptian cards: {e}")
+        egyptian_cards = {}
     
     # === 0-Cost Cards (Free Actions) ===
     
@@ -228,33 +239,50 @@ def create_starter_cards():
 
 
 def get_starter_deck():
-    """Create a balanced starter deck for new players."""
-    from core.cards import Deck
+    """Create a balanced starter deck for new players with Egyptian cards."""
+    from sands_duat.core.cards import Deck
     
     # Ensure cards are created
     create_starter_cards()
     
     deck = Deck(name="Desert Wanderer Starter")
     
-    # Add multiple copies of basic cards (balanced curve)
-    deck_composition = [
-        ("Desert Whisper", 2),    # 0-cost utility
-        ("Sand Grain", 2),        # 0-cost sand generation
-        ("Tomb Strike", 4),       # 1-cost attacks
-        ("Ankh Blessing", 3),     # 1-cost heals
-        ("Scarab Swarm", 3),      # 2-cost attacks
-        ("Papyrus Scroll", 2),    # 2-cost draw
-        ("Mummy's Wrath", 2),     # 3-cost power
-        ("Isis's Grace", 1),      # 3-cost utility
-        ("Pyramid Power", 1),     # 4-cost finisher
+    # Add Egyptian cards from YAML to the deck
+    egyptian_deck_composition = [
+        # 0-cost cards
+        ("whisper_of_thoth", 2),      # 0-cost draw + sand
+        ("desert_meditation", 2),     # 0-cost draw
+        
+        # 1-cost cards
+        ("anubis_judgment", 3),       # 1-cost attack with vulnerable
+        ("isis_protection", 3),       # 1-cost block + heal
+        
+        # 2-cost cards
+        ("ra_solar_flare", 2),        # 2-cost attack with weak
+        ("mummification_ritual", 2),  # 2-cost heal + block
+        
+        # 3-cost cards
+        ("horus_divine_sight", 1),    # 3-cost utility
+        ("eye_of_horus", 2),          # 1-cost block + discover
+        
+        # Basic starter cards (fallback if Egyptian cards not found)
+        ("Desert Whisper", 1),        # 0-cost utility
+        ("Tomb Strike", 2),           # 1-cost attacks
+        ("Ankh Blessing", 2),         # 1-cost heals
     ]
     
-    for card_name, count in deck_composition:
-        card_template = card_library.get_card_by_name(card_name)
+    for card_id, count in egyptian_deck_composition:
+        # Try to get by ID first (for Egyptian cards), then by name (for starter cards)
+        card_template = card_library.get_card_by_id(card_id)
+        if not card_template:
+            card_template = card_library.get_card_by_name(card_id)
+        
         if card_template:
             for _ in range(count):
                 new_card = card_template.copy(deep=True)
                 deck.add_card(new_card)
+        else:
+            logger.warning(f"Card not found: {card_id}")
     
     return deck
 

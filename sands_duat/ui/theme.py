@@ -34,17 +34,22 @@ class LayoutZone(NamedTuple):
 
 
 class EgyptianColors:
-    """Egyptian-themed color palette."""
+    """Improved Egyptian-themed color palette for better UX."""
     
-    # Main colors
-    PAPYRUS = (255, 248, 220)           # Background/text
+    # Main colors - Warm sandstone theme
+    SANDSTONE = (212, 184, 150)         # Primary warm background
+    PAPYRUS = (200, 185, 156)           # Secondary background
     GOLD = (255, 215, 0)                # Accents/sand
     BRONZE = (139, 117, 93)             # Borders/frames
-    DEEP_BROWN = (40, 30, 20)           # Dark backgrounds
-    VERY_DARK = (15, 10, 5)             # Screen backgrounds
+    DEEP_BROWN = (47, 27, 20)           # Text and dark elements
+    VERY_DARK = (25, 15, 10)            # Minimal use dark backgrounds
     
-    # Alias for UI compatibility
-    background = VERY_DARK
+    # New improved backgrounds
+    PRIMARY_BG = SANDSTONE              # Main screen background
+    SECONDARY_BG = PAPYRUS              # Panel backgrounds
+    
+    # Alias for UI compatibility (updated to lighter theme)
+    background = PRIMARY_BG
     
     # Status colors
     HEALTH_RED = (220, 20, 60)          # Health bars
@@ -121,6 +126,13 @@ class DisplayManager:
             'player_area': LayoutZone(500, 800, 600, 260),
             'enemy_area': LayoutZone(2340, 200, 600, 260),
             'battlefield': LayoutZone(1100, 300, 1240, 500),
+            
+            # Deck Builder zones - Redesigned with upper/lower layout
+            'deck_filter_panel': LayoutZone(50, 80, 300, 600),         # Left side filters (upper half)
+            'deck_collection': LayoutZone(380, 80, 2600, 600),         # Upper area for card collection
+            'deck_view': LayoutZone(380, 720, 2600, 660),              # Lower area for current deck
+            'deck_controls': LayoutZone(3020, 80, 370, 600),           # Right side deck management
+            'deck_back_button': LayoutZone(50, 20, 200, 50),           # Top left back button
         }
     
     def _get_widescreen_layout(self) -> Dict[str, LayoutZone]:
@@ -136,6 +148,13 @@ class DisplayManager:
             'player_area': LayoutZone(400, 650, 480, 200),
             'enemy_area': LayoutZone(1680, 150, 480, 200),
             'battlefield': LayoutZone(880, 250, 800, 400),
+            
+            # Deck Builder zones - Widescreen upper/lower layout
+            'deck_filter_panel': LayoutZone(40, 70, 250, 500),
+            'deck_collection': LayoutZone(310, 70, 1900, 500),
+            'deck_view': LayoutZone(310, 590, 1900, 550),
+            'deck_controls': LayoutZone(2230, 70, 280, 500),
+            'deck_back_button': LayoutZone(40, 20, 180, 40),
         }
     
     def _get_standard_layout(self) -> Dict[str, LayoutZone]:
@@ -151,6 +170,13 @@ class DisplayManager:
             'player_area': LayoutZone(300, 490, 360, 150),
             'enemy_area': LayoutZone(1260, 120, 360, 150),
             'battlefield': LayoutZone(660, 200, 600, 300),
+            
+            # Deck Builder zones - Standard upper/lower layout
+            'deck_filter_panel': LayoutZone(20, 60, 200, 400),
+            'deck_collection': LayoutZone(240, 60, 1440, 400),
+            'deck_view': LayoutZone(240, 480, 1440, 400),
+            'deck_controls': LayoutZone(1700, 60, 200, 400),
+            'deck_back_button': LayoutZone(20, 20, 150, 30),
         }
     
     def _get_compact_layout(self) -> Dict[str, LayoutZone]:
@@ -166,6 +192,13 @@ class DisplayManager:
             'player_area': LayoutZone(200, 330, 240, 100),
             'enemy_area': LayoutZone(584, 80, 240, 100),
             'battlefield': LayoutZone(340, 130, 344, 200),
+            
+            # Deck Builder zones - Compact upper/lower layout
+            'deck_filter_panel': LayoutZone(10, 40, 150, 250),
+            'deck_collection': LayoutZone(170, 40, 680, 250),
+            'deck_view': LayoutZone(170, 300, 680, 250),
+            'deck_controls': LayoutZone(860, 40, 150, 250),
+            'deck_back_button': LayoutZone(10, 10, 120, 25),
         }
     
     def scale_rect(self, rect: pygame.Rect) -> pygame.Rect:
@@ -203,19 +236,24 @@ class FontManager:
     
     def _load_fonts(self):
         """Load and scale fonts for current display."""
+        # Ensure pygame font module is initialized
+        if not pygame.font.get_init():
+            pygame.font.init()
+        
         try:
-            # Try to load Egyptian-themed fonts if available
-            egyptian_font_path = "sands_duat/assets/fonts/egyptian.ttf"
+            # Always use default fonts for now since egyptian.ttf doesn't exist
             for name, base_size in self.base_sizes.items():
                 size = self.display_manager.scale_font_size(base_size)
                 try:
-                    self.fonts[name] = pygame.font.Font(egyptian_font_path, size)
-                except FileNotFoundError:
-                    # Fallback to default font
+                    # Use pygame's default font which is guaranteed to work
                     self.fonts[name] = pygame.font.Font(None, size)
+                except Exception as font_error:
+                    logging.warning(f"Failed to create font {name} with size {size}: {font_error}")
+                    # Last resort fallback - use minimum viable font
+                    self.fonts[name] = pygame.font.Font(None, 16)
         except Exception as e:
-            logging.warning(f"Font loading error: {e}, using default fonts")
-            self._load_default_fonts()
+            logging.error(f"Critical font loading error: {e}, using emergency fallback")
+            self._load_emergency_fonts()
     
     def _load_default_fonts(self):
         """Load default pygame fonts as fallback."""
@@ -223,9 +261,33 @@ class FontManager:
             size = self.display_manager.scale_font_size(base_size)
             self.fonts[name] = pygame.font.Font(None, size)
     
+    def _load_emergency_fonts(self):
+        """Emergency font loading - absolute minimum viable fonts."""
+        emergency_size = 16
+        for name in self.base_sizes.keys():
+            try:
+                self.fonts[name] = pygame.font.Font(None, emergency_size)
+            except Exception:
+                # If even this fails, create a minimal font dict
+                self.fonts[name] = None
+        logging.error("Emergency font fallback activated - some text may not display")
+    
     def get_font(self, size_name: str) -> pygame.font.Font:
         """Get a font by size name."""
-        return self.fonts.get(size_name, self.fonts['medium'])
+        font = self.fonts.get(size_name, self.fonts.get('medium'))
+        if font is None:
+            # Ultimate fallback - create a font on demand
+            try:
+                font = pygame.font.Font(None, 16)
+                self.fonts[size_name] = font
+            except Exception:
+                # If pygame font creation still fails, return the first available font
+                for f in self.fonts.values():
+                    if f is not None:
+                        return f
+                # If no fonts exist at all, create one last attempt
+                return pygame.font.Font(None, 16)
+        return font
     
     def render_text(self, text: str, size_name: str, 
                    color: Tuple[int, int, int] = EgyptianColors.PAPYRUS,

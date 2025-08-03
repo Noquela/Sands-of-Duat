@@ -16,50 +16,38 @@ import logging
 from typing import Dict, Optional, Any
 from abc import ABC, abstractmethod
 
-from .base import UIScreen
+from .base import UIScreen, UIManager as BaseUIManager
 from .theme import get_theme
 
 
-class UIManager:
+class UIManager(BaseUIManager):
     """
-    Central manager for all UI screens and interactions.
+    Enhanced UI manager with animation support.
     
-    Handles screen transitions, event routing, and rendering
-    coordination for the entire UI system.
+    Extends the base UI manager with smooth transitions and enhanced effects.
     """
     
     def __init__(self, display_surface: pygame.Surface):
-        self.display_surface = display_surface
-        self.screens: Dict[str, UIScreen] = {}
-        self.current_screen: Optional[UIScreen] = None
+        super().__init__(display_surface)
         self.previous_screen: Optional[UIScreen] = None
         
         self.logger = logging.getLogger(__name__)
-        self.logger.info(f"UI Manager initialized for {display_surface.get_size()}")
+        self.logger.info(f"Enhanced UI Manager initialized for {display_surface.get_size()}")
     
     def add_screen(self, screen: UIScreen) -> None:
-        """Add a screen to the manager."""
-        if screen.name in self.screens:
-            self.logger.warning(f"Screen '{screen.name}' already exists, replacing")
-        
-        self.screens[screen.name] = screen
-        self.logger.debug(f"Added screen: {screen.name}")
+        """Add a screen to the manager and set UI manager reference."""
+        super().add_screen(screen)
+        # Always set self-reference for navigation and transitions
+        screen.ui_manager = self
     
-    def remove_screen(self, screen_name: str) -> None:
-        """Remove a screen from the manager."""
-        if screen_name in self.screens:
-            screen = self.screens[screen_name]
-            if self.current_screen == screen:
-                self.current_screen = None
-            del self.screens[screen_name]
-            self.logger.debug(f"Removed screen: {screen_name}")
-    
-    def switch_to_screen(self, screen_name: str) -> bool:
+    def switch_to_screen_with_transition(self, screen_name: str, 
+                                       transition_type: str = "slide_left") -> bool:
         """
-        Switch to a different screen.
+        Switch to a different screen with enhanced animated transition.
         
         Args:
             screen_name: Name of the screen to switch to
+            transition_type: Type of transition effect
             
         Returns:
             True if switch was successful
@@ -68,68 +56,24 @@ class UIManager:
             self.logger.error(f"Screen '{screen_name}' not found")
             return False
         
-        new_screen = self.screens[screen_name]
+        # Store previous screen for context-aware animations
+        self.previous_screen = self.current_screen
         
-        # Exit current screen
-        if self.current_screen:
-            self.current_screen.on_exit()
-            self.previous_screen = self.current_screen
-        
-        # Enter new screen
-        self.current_screen = new_screen
-        self.current_screen.on_enter()
-        
-        self.logger.info(f"Switched to screen: {screen_name}")
-        return True
+        # Use enhanced transition from base class
+        return super().switch_to_screen(screen_name, transition_type, 0.6)
     
-    def get_current_screen(self) -> Optional[UIScreen]:
-        """Get the currently active screen."""
-        return self.current_screen
-    
-    def handle_event(self, event: pygame.event.Event) -> bool:
-        """
-        Route events to the current screen.
+    def get_context_appropriate_transition(self, from_screen: str, to_screen: str) -> str:
+        """Get appropriate transition based on screen context."""
+        transitions = {
+            ("menu", "combat"): "slide_left",
+            ("combat", "menu"): "slide_right", 
+            ("menu", "map"): "slide_up",
+            ("map", "menu"): "slide_down",
+            ("menu", "deck_builder"): "fade",
+            ("deck_builder", "menu"): "fade"
+        }
         
-        Args:
-            event: Pygame event to handle
-            
-        Returns:
-            True if event was handled
-        """
-        if self.current_screen:
-            return self.current_screen.handle_event(event)
-        return False
-    
-    def update(self, delta_time: float) -> None:
-        """Update the current screen."""
-        if self.current_screen:
-            self.current_screen.update(delta_time)
-    
-    def render(self) -> None:
-        """Render the current screen."""
-        # Clear the display
-        theme = get_theme()
-        self.display_surface.fill(theme.colors.background)
-        
-        # Render current screen
-        if self.current_screen:
-            self.current_screen.render(self.display_surface)
-    
-    def shutdown(self) -> None:
-        """Shutdown the UI manager and cleanup resources."""
-        self.logger.info("Shutting down UI Manager")
-        
-        # Exit current screen
-        if self.current_screen:
-            self.current_screen.on_exit()
-        
-        # Clear all screens
-        for screen in self.screens.values():
-            screen.clear_components()
-        
-        self.screens.clear()
-        self.current_screen = None
-        self.previous_screen = None
+        return transitions.get((from_screen, to_screen), "fade")
 
 
 # Screen factory functions for delayed imports
@@ -172,24 +116,17 @@ def get_map_screen():
 
 def get_deck_builder_screen():
     """Get deck builder screen class (delayed import)."""
-    # Placeholder - create a simple deck builder screen
-    class DeckBuilderScreen(UIScreen):
-        def __init__(self):
-            super().__init__("deck_builder")
-        
-        def on_enter(self):
-            self.logger.info("Entering deck builder screen (placeholder)")
-        
-        def on_exit(self):
-            self.logger.info("Exiting deck builder screen (placeholder)")
-        
-        def render(self, surface: pygame.Surface):
-            theme = get_theme()
-            surface.fill(theme.colors.background)
-            
-            font = pygame.font.Font(None, 48)
-            text = font.render("DECK BUILDER - COMING SOON", True, (255, 255, 255))
-            text_rect = text.get_rect(center=(surface.get_width()//2, surface.get_height()//2))
-            surface.blit(text, text_rect)
-    
+    from .deck_builder import DeckBuilderScreen
     return DeckBuilderScreen
+
+
+def get_tutorial_screen():
+    """Get tutorial screen class (delayed import)."""
+    from .tutorial_screen import TutorialScreen
+    return TutorialScreen
+
+
+def get_progression_screen():
+    """Get progression screen class (delayed import)."""
+    from .progression_screen import ProgressionScreen
+    return ProgressionScreen

@@ -15,10 +15,11 @@ from pathlib import Path
 project_root = Path(__file__).parent / "sands_duat"
 sys.path.insert(0, str(project_root))
 
-from core.engine import GameEngine
-from ui.ui_manager import UIManager
-from ui.theme import initialize_theme
-from content.starter_cards import create_starter_cards
+from sands_duat.core.engine import GameEngine
+from sands_duat.ui.ui_manager import UIManager
+from sands_duat.ui.theme import initialize_theme
+from sands_duat.content.starter_cards import create_starter_cards
+from sands_duat.audio.audio_manager import initialize_audio_manager
 import pygame
 
 
@@ -142,22 +143,28 @@ def main() -> int:
         create_starter_cards()
         logger.info("Card system initialized")
         
+        # Initialize audio system
+        audio_manager = initialize_audio_manager()
+        logger.info("Audio system initialized")
+        
         # Set up UI manager
         ui_manager = UIManager(screen)
         
         # Import and add screens using delayed imports
-        from ui.ui_manager import get_menu_screen, get_combat_screen, get_map_screen, get_deck_builder_screen
+        from sands_duat.ui.ui_manager import get_menu_screen, get_combat_screen, get_map_screen, get_deck_builder_screen, get_tutorial_screen, get_progression_screen
         
         ui_manager.add_screen(get_menu_screen()())
         ui_manager.add_screen(get_combat_screen()())
         ui_manager.add_screen(get_map_screen()())
         ui_manager.add_screen(get_deck_builder_screen()())
+        ui_manager.add_screen(get_tutorial_screen()())
+        ui_manager.add_screen(get_progression_screen()())
         
         # Start with menu screen (or skip to combat if in dev mode)
         if args.dev_mode:
-            ui_manager.switch_to_screen("combat")
+            ui_manager.switch_to_screen_with_transition("combat", "slide_left")
         else:
-            ui_manager.switch_to_screen("menu")
+            ui_manager.switch_to_screen("menu")  # No transition on startup
         
         # Main game loop
         clock = pygame.time.Clock()
@@ -213,6 +220,8 @@ def main() -> int:
                 engine.shutdown()
             if 'ui_manager' in locals():
                 ui_manager.shutdown()
+            if 'audio_manager' in locals():
+                audio_manager.cleanup()
             pygame.quit()
             logger.info("Clean shutdown completed")
         except Exception as e:

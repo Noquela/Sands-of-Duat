@@ -13,9 +13,58 @@ from typing import List, Optional, Dict, Any, Tuple
 from .base import UIScreen, UIComponent
 from .theme import get_theme
 from .particle_system import ParticleSystem, ParticleEmitter, ParticleType
-from core.hourglass import HourGlass
-from core.cards import Card, CardType, EffectType
-from core.combat_manager import CombatManager
+from ..core.hourglass import HourGlass
+from ..core.cards import Card, CardType, EffectType
+from ..core.combat_manager import CombatManager
+from ..audio.sound_effects import play_card_interaction_sound, play_combat_feedback_sound, play_sand_feedback_sound
+
+
+class AccessibilitySettings:
+    """Accessibility settings for improved usability."""
+    
+    def __init__(self):
+        self.colorblind_mode = "none"  # none, protanopia, deuteranopia, tritanopia
+        self.font_scale = 1.0  # 0.8 to 1.5
+        self.high_contrast = False
+        self.reduced_motion = False
+    
+    def get_color(self, base_color: Tuple[int, int, int]) -> Tuple[int, int, int]:
+        """Convert color for colorblind accessibility."""
+        if self.colorblind_mode == "none":
+            return base_color
+        
+        r, g, b = base_color
+        
+        if self.colorblind_mode == "protanopia":
+            # Red-blind: enhance green/blue contrast
+            new_r = int(r * 0.567 + g * 0.433)
+            new_g = int(g * 0.558 + b * 0.442)
+            new_b = int(b * 0.242 + g * 0.758)
+            return (new_r, new_g, new_b)
+        
+        elif self.colorblind_mode == "deuteranopia":
+            # Green-blind: enhance red/blue contrast
+            new_r = int(r * 0.625 + g * 0.375)
+            new_g = int(g * 0.7 + r * 0.3)
+            new_b = int(b * 0.3 + g * 0.7)
+            return (new_r, new_g, new_b)
+        
+        elif self.colorblind_mode == "tritanopia":
+            # Blue-blind: enhance red/green contrast
+            new_r = int(r * 0.95 + g * 0.05)
+            new_g = int(g * 0.433 + r * 0.567)
+            new_b = int(b * 0.475 + g * 0.525)
+            return (new_r, new_g, new_b)
+        
+        return base_color
+    
+    def get_font_size(self, base_size: int) -> int:
+        """Get scaled font size."""
+        return int(base_size * self.font_scale)
+
+
+# Global accessibility settings instance
+accessibility_settings = AccessibilitySettings()
 
 
 class SandGauge(UIComponent):
@@ -204,7 +253,7 @@ class SandGauge(UIComponent):
 
 class CardDisplay(UIComponent):
     """
-    Displays a single card with hover effects and interaction.
+    Displays a single card with enhanced hover effects and interaction.
     """
     
     def __init__(self, x: int, y: int, width: int, height: int, card: Optional[Card] = None):
@@ -213,79 +262,251 @@ class CardDisplay(UIComponent):
         self.scale = 1.0
         self.target_scale = 1.0
         self.playable = True
+        self.hover_glow_alpha = 0
+        self.target_glow_alpha = 0
+        self.pulse_time = 0.0
+        self.shimmer_offset = 0.0
+        
+        # Drag and drop state
+        self.being_dragged = False
+        self.drag_offset_x = 0
+        self.drag_offset_y = 0
+        self.drag_start_pos = (0, 0)
+        self.original_pos = (x, y)
+        self.in_play_zone = False
+        self.play_zone_alpha = 0
+        self.target_play_zone_alpha = 0
         
         # Visual settings
         self.card_bg_color = (40, 30, 20)
         self.card_border_color = (139, 117, 93)
         self.highlight_color = (255, 215, 0)
+        self.glow_color = (255, 215, 0, 80)
+        self.shimmer_color = (255, 255, 255, 60)
+        
+        # Enable Egyptian feedback effects for combat cards
+        self.enable_egyptian_feedback('all')
+        
+        # Enhanced effects for special cards
+        if card and hasattr(card, 'type'):
+            if card.type in ['LEGENDARY', 'ARTIFACT']:
+                self.egyptian_feedback['mystical_particles'] = True
     
     def update(self, delta_time: float) -> None:
-        """Update card display animations."""
+        """Update card display animations with enhanced hover effects."""
+        # Update pulse time for animation effects
+        self.pulse_time += delta_time * 3.0
+        self.shimmer_offset += delta_time * 200.0
+        
         # Smooth scale animation
         if abs(self.scale - self.target_scale) > 0.01:
             self.scale += (self.target_scale - self.scale) * delta_time * 10
         
-        # Update target scale based on hover
-        if self.hovered and self.playable:
-            self.target_scale = 1.1
+        # Smooth glow animation
+        if abs(self.hover_glow_alpha - self.target_glow_alpha) > 1:
+            self.hover_glow_alpha += (self.target_glow_alpha - self.hover_glow_alpha) * delta_time * 8
+        
+        # Smooth play zone alpha animation
+        if abs(self.play_zone_alpha - self.target_play_zone_alpha) > 1:
+            self.play_zone_alpha += (self.target_play_zone_alpha - self.play_zone_alpha) * delta_time * 10
+        
+        # Update target effects based on hover, drag, and playability
+        if self.being_dragged:
+            self.target_scale = 1.2
+            self.target_glow_alpha = 255
+            # Check if in play zone (dragged up significantly)
+            if self.drag_offset_y < -80:
+                self.in_play_zone = True
+                self.target_play_zone_alpha = 150
+            else:
+                self.in_play_zone = False
+                self.target_play_zone_alpha = 0
+        elif self.hovered and self.playable:
+            self.target_scale = 1.15
+            self.target_glow_alpha = 255
+            self.target_play_zone_alpha = 0
+        elif self.hovered:
+            self.target_scale = 1.05
+            self.target_glow_alpha = 100
+            self.target_play_zone_alpha = 0
         else:
             self.target_scale = 1.0
+            self.target_glow_alpha = 0
+            self.target_play_zone_alpha = 0
     
     def render(self, surface: pygame.Surface) -> None:
-        """Render the card."""
+        """Render the card with enhanced visual effects."""
         if not self.visible or not self.card:
             return
         
-        # Calculate scaled rect
+        # Calculate scaled rect with drag offset
         scaled_width = int(self.rect.width * self.scale)
         scaled_height = int(self.rect.height * self.scale)
+        
+        # Apply drag offset if being dragged
+        if self.being_dragged:
+            center_x = self.rect.centerx + self.drag_offset_x
+            center_y = self.rect.centery + self.drag_offset_y
+        else:
+            center_x = self.rect.centerx
+            center_y = self.rect.centery
+        
         scaled_rect = pygame.Rect(
-            self.rect.centerx - scaled_width // 2,
-            self.rect.centery - scaled_height // 2,
+            center_x - scaled_width // 2,
+            center_y - scaled_height // 2,
             scaled_width,
             scaled_height
         )
         
-        # Draw card background
-        pygame.draw.rect(surface, self.card_bg_color, scaled_rect)
+        # Draw hover glow effect
+        if self.hover_glow_alpha > 0:
+            self._draw_glow_effect(surface, scaled_rect)
         
-        # Draw border (highlight if hovered)
-        border_color = self.highlight_color if self.hovered else self.card_border_color
-        pygame.draw.rect(surface, border_color, scaled_rect, 2)
+        # Draw card background with depth
+        self._draw_card_background(surface, scaled_rect)
+        
+        # Draw border with enhanced effects
+        self._draw_card_border(surface, scaled_rect)
+        
+        # Draw shimmer effect for playable cards
+        if self.playable and self.hovered:
+            self._draw_shimmer_effect(surface, scaled_rect)
         
         # Draw card content
         self._draw_card_content(surface, scaled_rect)
         
         # Draw unplayable overlay
         if not self.playable:
-            overlay = pygame.Surface(scaled_rect.size, pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 100))
-            surface.blit(overlay, scaled_rect.topleft)
+            self._draw_unplayable_overlay(surface, scaled_rect)
+        
+        # Draw pulse effect for very playable cards
+        if self.playable and self.hovered:
+            self._draw_pulse_effect(surface, scaled_rect)
+        
+        # Draw play zone indicator when dragging
+        if self.being_dragged and self.play_zone_alpha > 0:
+            self._draw_play_zone_indicator(surface, scaled_rect)
+    
+    def _draw_glow_effect(self, surface: pygame.Surface, rect: pygame.Rect) -> None:
+        """Draw a glow effect around the card."""
+        glow_size = 8
+        glow_rect = rect.inflate(glow_size * 2, glow_size * 2)
+        
+        # Create glow surface with alpha
+        glow_surface = pygame.Surface(glow_rect.size, pygame.SRCALPHA)
+        
+        # Draw multiple glow layers for softer effect
+        for i in range(glow_size):
+            alpha = int(self.hover_glow_alpha * (1.0 - i / glow_size) * 0.3)
+            if alpha > 0:
+                glow_color = (*self.glow_color[:3], alpha)
+                inner_rect = pygame.Rect(i, i, glow_rect.width - i*2, glow_rect.height - i*2)
+                pygame.draw.rect(glow_surface, glow_color, inner_rect, 1)
+        
+        surface.blit(glow_surface, glow_rect.topleft)
+    
+    def _draw_card_background(self, surface: pygame.Surface, rect: pygame.Rect) -> None:
+        """Draw card background with depth effect."""
+        # Main background
+        pygame.draw.rect(surface, self.card_bg_color, rect)
+        
+        # Add subtle gradient effect
+        if self.hovered:
+            gradient_surface = pygame.Surface(rect.size, pygame.SRCALPHA)
+            for y in range(rect.height):
+                alpha = int(20 * (1.0 - y / rect.height))
+                color = (*self.highlight_color[:3], alpha)
+                pygame.draw.line(gradient_surface, color, (0, y), (rect.width, y))
+            surface.blit(gradient_surface, rect.topleft)
+    
+    def _draw_card_border(self, surface: pygame.Surface, rect: pygame.Rect) -> None:
+        """Draw enhanced card border."""
+        if self.hovered and self.playable:
+            # Animated border thickness
+            thickness = 3 + int(2 * abs(math.sin(self.pulse_time)))
+            border_color = self.highlight_color
+        elif self.hovered:
+            thickness = 2
+            border_color = (150, 150, 150)
+        else:
+            thickness = 2
+            border_color = self.card_border_color
+        
+        pygame.draw.rect(surface, border_color, rect, thickness)
+    
+    def _draw_shimmer_effect(self, surface: pygame.Surface, rect: pygame.Rect) -> None:
+        """Draw shimmer effect across the card."""
+        shimmer_surface = pygame.Surface(rect.size, pygame.SRCALPHA)
+        
+        # Moving shimmer line
+        shimmer_x = (self.shimmer_offset % (rect.width + 40)) - 20
+        
+        for i in range(-10, 11):
+            x = int(shimmer_x + i)
+            if 0 <= x < rect.width:
+                alpha = int(self.shimmer_color[3] * (1.0 - abs(i) / 10.0))
+                color = (*self.shimmer_color[:3], alpha)
+                pygame.draw.line(shimmer_surface, color, (x, 0), (x, rect.height))
+        
+        surface.blit(shimmer_surface, rect.topleft)
+    
+    def _draw_pulse_effect(self, surface: pygame.Surface, rect: pygame.Rect) -> None:
+        """Draw subtle pulse effect for playable cards."""
+        pulse_alpha = int(30 + 20 * math.sin(self.pulse_time * 2))
+        pulse_surface = pygame.Surface(rect.size, pygame.SRCALPHA)
+        pulse_color = (*self.highlight_color[:3], pulse_alpha)
+        pygame.draw.rect(pulse_surface, pulse_color, (0, 0, rect.width, rect.height))
+        surface.blit(pulse_surface, rect.topleft)
+    
+    def _draw_unplayable_overlay(self, surface: pygame.Surface, rect: pygame.Rect) -> None:
+        """Draw overlay for unplayable cards."""
+        overlay = pygame.Surface(rect.size, pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 120))
+        surface.blit(overlay, rect.topleft)
+        
+        # Add "X" pattern for very clear feedback
+        pygame.draw.line(overlay, (255, 0, 0), (0, 0), (rect.width, rect.height), 3)
+        pygame.draw.line(overlay, (255, 0, 0), (rect.width, 0), (0, rect.height), 3)
+        surface.blit(overlay, rect.topleft)
     
     def _draw_card_content(self, surface: pygame.Surface, rect: pygame.Rect) -> None:
-        """Draw the card's content (name, cost, description)."""
-        # Sand cost
-        cost_font = pygame.font.Font(None, 24)
-        cost_text = cost_font.render(str(self.card.sand_cost), True, self.highlight_color)
-        cost_rect = cost_text.get_rect()
-        cost_rect.topright = (rect.right - 5, rect.top + 5)
-        surface.blit(cost_text, cost_rect)
+        """Draw the card's content with enhanced visibility."""
+        # Sand cost with background
+        cost_font = pygame.font.Font(None, 28)
+        cost_text = str(self.card.sand_cost)
+        cost_surface = cost_font.render(cost_text, True, (255, 255, 255))
         
-        # Card name
-        name_font = pygame.font.Font(None, 20)
-        name_text = name_font.render(self.card.name, True, self.text_color)
-        name_rect = name_text.get_rect()
-        name_rect.centerx = rect.centerx
-        name_rect.top = rect.top + 30
+        # Cost background circle
+        cost_bg_radius = 15
+        cost_center = (rect.right - 20, rect.top + 20)
+        pygame.draw.circle(surface, self.highlight_color, cost_center, cost_bg_radius)
+        pygame.draw.circle(surface, (0, 0, 0), cost_center, cost_bg_radius, 2)
+        
+        cost_rect = cost_surface.get_rect(center=cost_center)
+        surface.blit(cost_surface, cost_rect)
+        
+        # Card name with shadow
+        name_font = pygame.font.Font(None, 22)
+        # Shadow
+        name_shadow = name_font.render(self.card.name, True, (0, 0, 0))
+        name_shadow_rect = name_shadow.get_rect(centerx=rect.centerx + 1, top=rect.top + 36)
+        surface.blit(name_shadow, name_shadow_rect)
+        # Main text
+        name_text = name_font.render(self.card.name, True, (255, 255, 255))
+        name_rect = name_text.get_rect(centerx=rect.centerx, top=rect.top + 35)
         surface.blit(name_text, name_rect)
         
-        # Card type
+        # Card type with background
         type_font = pygame.font.Font(None, 16)
-        type_text = type_font.render(self.card.card_type.value.title(), True, (180, 180, 180))
-        type_rect = type_text.get_rect()
-        type_rect.centerx = rect.centerx
-        type_rect.top = name_rect.bottom + 5
-        surface.blit(type_text, type_rect)
+        type_text = self.card.card_type.value.title()
+        type_surface = type_font.render(type_text, True, (255, 255, 255))
+        type_rect = type_surface.get_rect(centerx=rect.centerx, top=name_rect.bottom + 8)
+        
+        # Type background
+        type_bg_rect = type_rect.inflate(10, 4)
+        pygame.draw.rect(surface, (60, 60, 60), type_bg_rect)
+        pygame.draw.rect(surface, (120, 120, 120), type_bg_rect, 1)
+        surface.blit(type_surface, type_rect)
     
     def set_card(self, card: Optional[Card]) -> None:
         """Set the card to display."""
@@ -294,6 +515,40 @@ class CardDisplay(UIComponent):
     def set_playable(self, playable: bool) -> None:
         """Set whether the card can be played."""
         self.playable = playable
+    
+    def _draw_play_zone_indicator(self, surface: pygame.Surface, rect: pygame.Rect) -> None:
+        """Draw indicator when card is in play zone."""
+        if self.in_play_zone:
+            # Draw green glow when in play zone
+            indicator_color = (0, 255, 100, int(self.play_zone_alpha))
+            indicator_rect = rect.inflate(20, 20)
+            
+            # Create indicator surface
+            indicator_surface = pygame.Surface(indicator_rect.size, pygame.SRCALPHA)
+            pygame.draw.rect(indicator_surface, indicator_color, indicator_surface.get_rect(), 5)
+            surface.blit(indicator_surface, indicator_rect.topleft)
+            
+            # Draw "PLAY" text
+            font = pygame.font.Font(None, 24)
+            play_text = font.render("JOGAR", True, (255, 255, 255))
+            play_rect = play_text.get_rect(center=(rect.centerx, rect.bottom + 30))
+            surface.blit(play_text, play_rect)
+        else:
+            # Draw red indication when dragging but not in play zone
+            if self.being_dragged:
+                indicator_color = (255, 100, 100, int(self.play_zone_alpha))
+                indicator_rect = rect.inflate(10, 10)
+                
+                indicator_surface = pygame.Surface(indicator_rect.size, pygame.SRCALPHA)
+                pygame.draw.rect(indicator_surface, indicator_color, indicator_surface.get_rect(), 3)
+                surface.blit(indicator_surface, indicator_rect.topleft)
+    
+    def start_play_animation(self) -> None:
+        """Start the card play animation."""
+        # Quick scale animation when card is played
+        self.target_scale = 1.3
+        # Reset to normal after a short delay
+        # (In a real implementation, this would be handled by the animation system)
     
     def handle_event(self, event: pygame.event.Event) -> bool:
         """Handle enhanced card interaction including drag and drop."""
@@ -316,10 +571,11 @@ class CardDisplay(UIComponent):
                 self.drag_offset_y = 0
                 
                 # Check if card was dropped in a valid play area
-                if abs(self.drag_offset_y) > 50:  # Dragged up significantly
+                if self.in_play_zone and self.drag_offset_y < -80:  # Dragged up significantly into play zone
                     self.start_play_animation()
                     self._trigger_event("card_played", {"card": self.card})
                 else:
+                    # Card was released but not in play zone - return to hand
                     self._trigger_event("card_drag_end", {"card": self.card})
                 return True
         
@@ -376,13 +632,18 @@ class HandDisplay(UIComponent):
                     playable = self.hourglass.can_afford(card_display.card.sand_cost)
                     card_display.set_playable(playable)
         
-        # Update hover detection
+        # Update hover detection with improved accuracy and audio feedback
         mouse_pos = pygame.mouse.get_pos()
         new_hovered_card = None
         for i, card_display in enumerate(self.card_displays):
             if card_display.rect.collidepoint(mouse_pos):
                 new_hovered_card = i
-                break
+                if not card_display.hovered:
+                    # Play hover sound when card is first hovered
+                    play_card_interaction_sound("hover")
+                card_display.hovered = True
+            else:
+                card_display.hovered = False
         
         # Update hovered card and recalculate positions if needed
         if new_hovered_card != self.hovered_card:
@@ -527,9 +788,12 @@ class HandDisplay(UIComponent):
                 card_display.rect.centery = int(new_y)
     
     def _on_card_played(self, component: UIComponent, event_data: Dict[str, Any]) -> None:
-        """Handle card being played."""
+        """Handle card being played with audio feedback."""
         card = event_data.get("card")
         if card:
+            # Play card sound effect
+            play_card_interaction_sound("play")
+            
             # Remove card from hand with animation
             for i, display in enumerate(self.card_displays):
                 if display.card and display.card.id == card.id:
@@ -595,7 +859,52 @@ class CombatScreen(UIScreen):
         self.clear_components()
     
     def handle_event(self, event: pygame.event.Event) -> bool:
-        """Handle combat screen events including button clicks."""
+        """Handle combat screen events including button clicks and accessibility shortcuts."""
+        # Handle accessibility keyboard shortcuts
+        if event.type == pygame.KEYDOWN:
+            # Toggle colorblind mode (Ctrl+C)
+            if event.key == pygame.K_c and pygame.key.get_pressed()[pygame.K_LCTRL]:
+                modes = ["none", "protanopia", "deuteranopia", "tritanopia"]
+                current_index = modes.index(accessibility_settings.colorblind_mode)
+                accessibility_settings.colorblind_mode = modes[(current_index + 1) % len(modes)]
+                self.logger.info(f"Colorblind mode changed to: {accessibility_settings.colorblind_mode}")
+                return True
+            
+            # Font size adjustment (Ctrl++ / Ctrl+-)
+            elif event.key == pygame.K_EQUALS and pygame.key.get_pressed()[pygame.K_LCTRL]:
+                accessibility_settings.font_scale = min(1.5, accessibility_settings.font_scale + 0.1)
+                self.logger.info(f"Font scale increased to: {accessibility_settings.font_scale:.1f}")
+                return True
+            elif event.key == pygame.K_MINUS and pygame.key.get_pressed()[pygame.K_LCTRL]:
+                accessibility_settings.font_scale = max(0.8, accessibility_settings.font_scale - 0.1)
+                self.logger.info(f"Font scale decreased to: {accessibility_settings.font_scale:.1f}")
+                return True
+            
+            # High contrast toggle (Ctrl+H)
+            elif event.key == pygame.K_h and pygame.key.get_pressed()[pygame.K_LCTRL]:
+                accessibility_settings.high_contrast = not accessibility_settings.high_contrast
+                self.logger.info(f"High contrast mode: {accessibility_settings.high_contrast}")
+                return True
+            
+            # Reduced motion toggle (Ctrl+M)
+            elif event.key == pygame.K_m and pygame.key.get_pressed()[pygame.K_LCTRL]:
+                accessibility_settings.reduced_motion = not accessibility_settings.reduced_motion
+                self.logger.info(f"Reduced motion mode: {accessibility_settings.reduced_motion}")
+                return True
+            
+            # End turn shortcut (Space or Enter)
+            elif event.key in [pygame.K_SPACE, pygame.K_RETURN]:
+                state = self.combat_manager.get_combat_state()
+                if state['phase'] == 'player_turn':
+                    self.combat_manager.end_player_turn()
+                    self.logger.info("Player ended turn via keyboard shortcut")
+                    return True
+            
+            # Show accessibility help (F1)
+            elif event.key == pygame.K_F1:
+                self._show_accessibility_help()
+                return True
+        
         # Handle end turn button click
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if hasattr(self, 'end_turn_button_rect') and self.end_turn_button_rect.collidepoint(event.pos):
@@ -609,67 +918,114 @@ class CombatScreen(UIScreen):
         return super().handle_event(event)
     
     def _setup_ui_components(self) -> None:
-        """Set up all UI components for combat using ultrawide-optimized layout."""
-        # Get hourglasses from combat manager
+        """Set up Egyptian temple chamber layout with organized information architecture."""
+        # Get combat data for information organization
         player_hourglass = self.combat_manager.player.hourglass if self.combat_manager.player else HourGlass()
         enemy_hourglass = self.combat_manager.enemy.hourglass if self.combat_manager.enemy else HourGlass()
         
-        # Get theme and layout zones for current resolution
-        theme = get_theme()
-        player_sand_zone = theme.get_zone('player_sand')
-        enemy_sand_zone = theme.get_zone('enemy_sand')
-        hand_zone = theme.get_zone('hand_display')
+        # Get screen dimensions for temple chamber layout
+        screen_width = pygame.display.get_surface().get_width()
+        screen_height = pygame.display.get_surface().get_height()
         
-        # Player sand gauge (left side for ultrawide)
-        gauge_width = min(player_sand_zone.width - 20, 120)
-        gauge_height = min(player_sand_zone.height - 20, 200)
-        gauge_x = player_sand_zone.x + (player_sand_zone.width - gauge_width) // 2
-        gauge_y = player_sand_zone.y + (player_sand_zone.height - gauge_height) // 2
+        # Egyptian Temple Chamber Layout Implementation
+        # Based on information architecture reorganization analysis
         
-        self.player_sand_gauge = SandGauge(gauge_x, gauge_y, gauge_width, gauge_height, player_hourglass)
-        self.add_component(self.player_sand_gauge)
+        # Zone 1: Sacred Antechamber (Top Status Bar) - 15% of screen height
+        antechamber_height = int(screen_height * 0.15)
         
-        # Enemy sand gauge (right side for ultrawide)
-        enemy_gauge_x = enemy_sand_zone.x + (enemy_sand_zone.width - gauge_width) // 2
-        enemy_gauge_y = enemy_sand_zone.y + (enemy_sand_zone.height - gauge_height) // 2
+        # Zone 2: Canopic Chambers (Left/Right) - 25% each of screen width
+        chamber_width = int(screen_width * 0.25)
+        chamber_height = int(screen_height * 0.65)  # Exclude top and bottom zones
+        chamber_y = antechamber_height
         
-        self.enemy_sand_gauge = SandGauge(enemy_gauge_x, enemy_gauge_y, gauge_width, gauge_height, enemy_hourglass)
-        self.add_component(self.enemy_sand_gauge)
+        # Zone 3: Central Sanctuary (Battlefield) - 50% of screen width
+        sanctuary_width = screen_width - (chamber_width * 2)
+        sanctuary_x = chamber_width
         
-        # Hand display (bottom full width for ultrawide)
+        # Zone 4: Hall of Offerings (Bottom) - 20% of screen height
+        hall_height = int(screen_height * 0.20)
+        hall_y = screen_height - hall_height
+        
+        # Create Western Canopic Chamber (Player Information)
+        from .components.canopic_chamber import CanoplicChamber
+        self.player_chamber = CanoplicChamber(
+            10, chamber_y + 10, chamber_width - 20, chamber_height - 20, "player"
+        )
+        
+        # Populate player chamber with organized information
+        if self.combat_manager.player:
+            self.player_chamber.set_information_slot('vital_status', self.combat_manager.player.health)
+            self.player_chamber.set_information_slot('resource_level', player_hourglass)
+            self.player_chamber.set_information_slot('active_effects', getattr(self.combat_manager.player, 'effects', []))
+        
+        self.add_component(self.player_chamber)
+        
+        # Create Eastern Canopic Chamber (Enemy Information)
+        enemy_chamber_x = screen_width - chamber_width + 10
+        self.enemy_chamber = CanoplicChamber(
+            enemy_chamber_x, chamber_y + 10, chamber_width - 20, chamber_height - 20, "enemy"
+        )
+        
+        # Populate enemy chamber with organized information
+        if self.combat_manager.enemy:
+            self.enemy_chamber.set_information_slot('vital_status', self.combat_manager.enemy.health)
+            self.enemy_chamber.set_information_slot('resource_level', enemy_hourglass)
+            self.enemy_chamber.set_information_slot('intent_preview', getattr(self.combat_manager, 'enemy_intent', None))
+            self.enemy_chamber.set_information_slot('active_effects', getattr(self.combat_manager.enemy, 'effects', []))
+        
+        self.add_component(self.enemy_chamber)
+        
+        # Hall of Offerings (Enhanced Hand Display)
         hand_margin = 20
-        hand_x = hand_zone.x + hand_margin
-        hand_y = hand_zone.y + hand_margin
-        hand_width = hand_zone.width - (hand_margin * 2)
-        hand_height = hand_zone.height - (hand_margin * 2)
+        hand_x = hand_margin
+        hand_y = hall_y + 10
+        hand_width = screen_width - (hand_margin * 2)
+        hand_height = hall_height - 20
         
         self.hand_display = HandDisplay(hand_x, hand_y, hand_width, hand_height)
         self.hand_display.set_hourglass(player_hourglass)
-        # Add event handlers for enhanced card interactions
+        
+        # Enhanced card interactions with Egyptian feedback
         self.hand_display.add_event_handler("card_played", self._on_card_played)
         self.hand_display.add_event_handler("card_drag_start", self._on_card_drag_start)
         self.hand_display.add_event_handler("card_drag_end", self._on_card_drag_end)
         self.add_component(self.hand_display)
         
-        # End Turn Button
-        from .menu_screen import MenuButton  # Import to avoid circular dependency
-        theme = get_theme()
-        hand_zone = theme.get_zone('hand_display')
-        
+        # Navigation and Action Buttons - Positioned within Hall of Offerings
+        from .menu_screen import MenuButton
         button_width = 150
         button_height = 40
-        button_x = hand_zone.x + hand_zone.width - button_width - 20
-        button_y = hand_zone.y + hand_zone.height - button_height - 10
+        
+        # Back button (left side of Hall of Offerings)
+        back_button_x = 30
+        back_button_y = hall_y + hall_height - button_height - 15
+        
+        self.back_button = MenuButton(
+            back_button_x, back_button_y, button_width, button_height,
+            "⬅ Back to Progression", self._back_to_progression
+        )
+        self.back_button.enable_egyptian_feedback('all')  # Enable Egyptian feedback
+        self.add_component(self.back_button)
+        
+        # End Turn Button (right side of Hall of Offerings)
+        button_x = screen_width - button_width - 30
+        button_y = hall_y + hall_height - button_height - 15
         
         self.end_turn_button = MenuButton(
             button_x, button_y, button_width, button_height,
             "End Turn", self._on_end_turn
         )
+        self.end_turn_button.enable_egyptian_feedback('all')  # Enable Egyptian feedback
         self.add_component(self.end_turn_button)
+        
+        # Legacy sand gauges for backward compatibility
+        # These will be phased out as information moves into canopic chambers
+        self.player_sand_gauge = None
+        self.enemy_sand_gauge = None
     
     def _setup_demo_combat_manager(self) -> None:
         """Setup a demo combat scenario using the combat manager."""
-        from content.starter_cards import create_starter_cards, get_starter_deck
+        from sands_duat.content.starter_cards import create_starter_cards, get_starter_deck
         
         try:
             # Create cards and get starter deck
@@ -758,35 +1114,334 @@ class CombatScreen(UIScreen):
             self.enemy_sand_gauge.hourglass = self.combat_manager.enemy.hourglass
     
     def render(self, surface: pygame.Surface) -> None:
-        """Render the combat screen."""
-        super().render(surface)
-        
-        # Draw health bars
-        self._draw_health_bars(surface)
-        
-        # Draw combat status
-        self._draw_combat_status(surface)
+        """Render the combat screen with enhanced theming."""
+        # Draw themed background instead of basic clear
+        self._draw_themed_background(surface)
         
         # Render particle effects (behind other UI elements)
         self.particle_system.render(surface)
         
+        # Draw main UI components
+        super().render(surface)
+        
+        # Draw Egyptian battlefield atmosphere
+        self._draw_battlefield_elements(surface)
+        
+        # Draw themed health bars
+        self._draw_themed_health_bars(surface)
+        
+        # Draw enemy visualization
+        self._draw_enemy_character(surface)
+        
+        # Draw combat status with better styling
+        self._draw_enhanced_combat_status(surface)
+        
         # Draw visual effects
         self._draw_visual_effects(surface)
         
-        # Draw enemy intent
-        self._draw_enemy_intent(surface)
+        # Draw enemy intent with better styling
+        self._draw_enhanced_enemy_intent(surface)
         
-        # Draw cards in hand
-        self._draw_cards_simple(surface)
+        # NOTE: Cards and end turn button are now rendered by base components
+        # Removed duplicate enhanced drawing to fix double rendering bug on ultrawide displays
         
-        # Draw end turn button
-        self._draw_end_turn_button(surface)
-        
-        # Draw game title and instructions
-        self._draw_game_title(surface)
+        # Draw atmospheric UI elements
+        self._draw_atmospheric_elements(surface)
         
         # Draw particle count debug info (if enabled)
         self._draw_debug_info(surface)
+    
+    def _draw_battlefield_elements(self, surface: pygame.Surface) -> None:
+        """Draw Egyptian battlefield atmospheric elements in the central sanctuary."""
+        screen_width = surface.get_width()
+        screen_height = surface.get_height()
+        
+        # Define central sanctuary zone (50% width, positioned between canopic chambers)
+        antechamber_height = int(screen_height * 0.15)
+        hall_height = int(screen_height * 0.20)
+        chamber_width = int(screen_width * 0.25)
+        
+        # Central sanctuary positioning
+        battlefield_x = chamber_width
+        battlefield_y = antechamber_height
+        battlefield_width = screen_width - (chamber_width * 2)
+        battlefield_height = screen_height - antechamber_height - hall_height
+        
+        # Draw background sand dunes
+        self._draw_sand_dunes(surface, battlefield_x, battlefield_y, battlefield_width, battlefield_height)
+        
+        # Draw temple columns flanking the battlefield
+        self._draw_temple_columns(surface, battlefield_x, battlefield_y, battlefield_width, battlefield_height)
+        
+        # Draw central obelisk
+        self._draw_central_obelisk(surface, battlefield_x, battlefield_y, battlefield_width, battlefield_height)
+        
+        # Draw hieroglyphic panels
+        self._draw_hieroglyphic_panels(surface, battlefield_x, battlefield_y, battlefield_width, battlefield_height)
+        
+        # Draw atmospheric torch flames
+        self._draw_torch_flames(surface, battlefield_x, battlefield_y, battlefield_width, battlefield_height)
+    
+    def _draw_sand_dunes(self, surface: pygame.Surface, x: int, y: int, width: int, height: int) -> None:
+        """Draw subtle sand dune silhouettes in background."""
+        # Create gentle dune shapes
+        dune_points = [
+            (x, y + height - 50),
+            (x + width // 4, y + height - 70),
+            (x + width // 2, y + height - 60),
+            (x + 3 * width // 4, y + height - 75),
+            (x + width, y + height - 55),
+            (x + width, y + height),
+            (x, y + height)
+        ]
+        
+        # Draw with warm sandstone gradient
+        for i in range(len(dune_points) - 1):
+            start_point = dune_points[i]
+            end_point = dune_points[i + 1]
+            
+            # Subtle dune color (slightly darker than background)
+            dune_color = (190, 160, 130, 80)
+            dune_surface = pygame.Surface((abs(end_point[0] - start_point[0]), 20), pygame.SRCALPHA)
+            dune_surface.fill(dune_color)
+            surface.blit(dune_surface, (min(start_point[0], end_point[0]), start_point[1]))
+    
+    def _draw_temple_columns(self, surface: pygame.Surface, x: int, y: int, width: int, height: int) -> None:
+        """Draw Egyptian temple columns flanking the battlefield."""
+        column_width = 60
+        column_height = 180
+        
+        # Left column
+        left_x = x + 40
+        left_y = y + 60
+        self._draw_single_column(surface, left_x, left_y, column_width, column_height)
+        
+        # Right column  
+        right_x = x + width - column_width - 40
+        right_y = y + 60
+        self._draw_single_column(surface, right_x, right_y, column_width, column_height)
+    
+    def _draw_single_column(self, surface: pygame.Surface, x: int, y: int, width: int, height: int) -> None:
+        """Draw a single Egyptian papyrus-style column."""
+        # Column base
+        base_height = 20
+        base_rect = pygame.Rect(x - 5, y + height - base_height, width + 10, base_height)
+        pygame.draw.rect(surface, (160, 140, 110), base_rect)
+        pygame.draw.rect(surface, (139, 117, 93), base_rect, 2)
+        
+        # Column shaft with vertical lines (fluted effect)
+        shaft_rect = pygame.Rect(x, y + 30, width, height - 50)
+        pygame.draw.rect(surface, (180, 155, 130), shaft_rect)
+        pygame.draw.rect(surface, (139, 117, 93), shaft_rect, 2)
+        
+        # Add fluted lines
+        for i in range(5):
+            line_x = x + (i + 1) * width // 6
+            pygame.draw.line(surface, (160, 140, 110), 
+                           (line_x, y + 30), (line_x, y + height - 20), 1)
+        
+        # Papyrus capital (top)
+        capital_height = 30
+        capital_rect = pygame.Rect(x - 8, y, width + 16, capital_height)
+        pygame.draw.ellipse(surface, (200, 180, 150), capital_rect)
+        pygame.draw.ellipse(surface, (139, 117, 93), capital_rect, 2)
+        
+        # Papyrus bundle details on capital
+        for i in range(3):
+            bundle_x = x + i * width // 3 + width // 6
+            pygame.draw.circle(surface, (180, 160, 130), (bundle_x, y + 15), 8)
+            pygame.draw.circle(surface, (139, 117, 93), (bundle_x, y + 15), 8, 1)
+    
+    def _draw_central_obelisk(self, surface: pygame.Surface, x: int, y: int, width: int, height: int) -> None:
+        """Draw Egyptian obelisk serving as turn indicator and battlefield centerpiece."""
+        # Get combat state for turn information
+        state = self.combat_manager.get_combat_state()
+        
+        obelisk_width = 35
+        obelisk_height = 140
+        obelisk_x = x + width // 2 - obelisk_width // 2
+        obelisk_y = y + height // 2 - obelisk_height // 2
+        
+        # Phase-based coloring for mystical significance
+        if state['phase'] == 'player_turn':
+            base_color = (200, 180, 150)  # Warm sandstone
+            accent_color = (255, 215, 0)  # Gold
+            glow_color = (255, 215, 0, 60)  # Golden glow
+        else:
+            base_color = (180, 150, 130)  # Cooler stone
+            accent_color = (200, 100, 100)  # Muted red
+            glow_color = (200, 100, 100, 60)  # Red glow
+        
+        # Enhanced obelisk body with traditional proportions
+        obelisk_points = [
+            (obelisk_x + obelisk_width // 2, obelisk_y),  # Pyramidion apex
+            (obelisk_x + obelisk_width - 4, obelisk_y + 25),  # Pyramidion base
+            (obelisk_x + obelisk_width - 2, obelisk_y + 30),  # Shaft top
+            (obelisk_x + obelisk_width, obelisk_y + obelisk_height),  # Base corner
+            (obelisk_x, obelisk_y + obelisk_height),  # Base corner
+            (obelisk_x + 2, obelisk_y + 30),  # Shaft top
+            (obelisk_x + 4, obelisk_y + 25)  # Pyramidion base
+        ]
+        
+        pygame.draw.polygon(surface, base_color, obelisk_points)
+        pygame.draw.polygon(surface, (139, 117, 93), obelisk_points, 2)
+        
+        # Pyramidion (turn indicator section)
+        pyramidion_points = [
+            (obelisk_x + obelisk_width // 2, obelisk_y),
+            (obelisk_x + obelisk_width - 4, obelisk_y + 25),
+            (obelisk_x + 4, obelisk_y + 25)
+        ]
+        pygame.draw.polygon(surface, accent_color, pyramidion_points)
+        pygame.draw.polygon(surface, (139, 117, 93), pyramidion_points, 2)
+        
+        # Turn number hieroglyph in pyramidion
+        turn_font = pygame.font.Font(None, 16)
+        turn_text = str(state['turn_number'])
+        turn_surface = turn_font.render(turn_text, True, (47, 27, 20))
+        turn_rect = turn_surface.get_rect(center=(obelisk_x + obelisk_width // 2, obelisk_y + 15))
+        surface.blit(turn_surface, turn_rect)
+        
+        # Phase indicator hieroglyphic symbols in shaft
+        symbol_y_start = obelisk_y + 35
+        phase_symbols = {
+            'player_turn': [(0, "PLAYER"), (1, "◉"), (2, "♦")],  # Sun, diamond, dot
+            'enemy_turn': [(0, "ENEMY"), (1, "▲"), (2, "●")],  # Triangle, circle
+            'preparation': [(0, "PREP"), (1, "○"), (2, "◇")]  # Open circle, diamond
+        }
+        
+        current_symbols = phase_symbols.get(state['phase'], phase_symbols['preparation'])
+        
+        for i, (symbol_index, symbol) in enumerate(current_symbols):
+            symbol_y = symbol_y_start + i * 28
+            
+            if i == 0:  # Phase name in top section
+                phase_font = pygame.font.Font(None, 12)
+                phase_surface = phase_font.render(symbol, True, (120, 100, 80))
+                phase_rect = phase_surface.get_rect(center=(obelisk_x + obelisk_width // 2, symbol_y))
+                surface.blit(phase_surface, phase_rect)
+            else:  # Symbolic hieroglyphs
+                symbol_font = pygame.font.Font(None, 18)
+                symbol_surface = symbol_font.render(symbol, True, (120, 100, 80))
+                symbol_rect = symbol_surface.get_rect(center=(obelisk_x + obelisk_width // 2, symbol_y))
+                surface.blit(symbol_surface, symbol_rect)
+        
+        # Enhanced mystical glow effect with phase-appropriate color
+        import time
+        glow_intensity = 0.4 + 0.15 * math.sin(time.time() * 2)
+        glow_surface = pygame.Surface((obelisk_width + 25, obelisk_height + 25), pygame.SRCALPHA)
+        
+        # Create layered glow effect
+        for layer in range(3):
+            layer_alpha = int((glow_color[3] * glow_intensity) / (layer + 1))
+            layer_size = (obelisk_width + 25 - layer * 5, obelisk_height + 25 - layer * 5)
+            layer_surface = pygame.Surface(layer_size, pygame.SRCALPHA)
+            layer_surface.fill((*glow_color[:3], layer_alpha))
+            layer_x = obelisk_x - 12 + layer * 2
+            layer_y = obelisk_y - 12 + layer * 2
+            surface.blit(layer_surface, (layer_x, layer_y))
+        
+        # Base foundation stones
+        base_y = obelisk_y + obelisk_height
+        for i in range(3):
+            stone_width = obelisk_width + (2 - i) * 4
+            stone_x = obelisk_x - (2 - i) * 2
+            stone_rect = pygame.Rect(stone_x, base_y + i * 3, stone_width, 4)
+            pygame.draw.rect(surface, (160, 140, 110), stone_rect)
+            pygame.draw.rect(surface, (139, 117, 93), stone_rect, 1)
+    
+    def _draw_hieroglyphic_panels(self, surface: pygame.Surface, x: int, y: int, width: int, height: int) -> None:
+        """Draw hieroglyphic panels at top and bottom of battlefield."""
+        panel_height = 40
+        
+        # Top panel
+        top_panel = pygame.Rect(x, y, width, panel_height)
+        panel_surface = pygame.Surface((width, panel_height), pygame.SRCALPHA)
+        panel_surface.fill((180, 155, 130, 60))
+        surface.blit(panel_surface, (x, y))
+        
+        # Bottom panel
+        bottom_panel = pygame.Rect(x, y + height - panel_height, width, panel_height)
+        panel_surface = pygame.Surface((width, panel_height), pygame.SRCALPHA)
+        panel_surface.fill((180, 155, 130, 60))
+        surface.blit(panel_surface, (x, y + height - panel_height))
+        
+        # Add simple hieroglyphic symbols
+        symbol_color = (120, 100, 80, 120)
+        for i in range(width // 60):
+            symbol_x = x + 30 + i * 60
+            
+            # Top panel symbols
+            self._draw_simple_hieroglyph(surface, symbol_x, y + 10, symbol_color, i % 4)
+            
+            # Bottom panel symbols  
+            self._draw_simple_hieroglyph(surface, symbol_x, y + height - 30, symbol_color, (i + 2) % 4)
+    
+    def _draw_simple_hieroglyph(self, surface: pygame.Surface, x: int, y: int, color: tuple, symbol_type: int) -> None:
+        """Draw simple hieroglyphic symbols."""
+        size = 20
+        
+        if symbol_type == 0:  # Ankh
+            pygame.draw.line(surface, color[:3], (x + size//2, y), (x + size//2, y + size), 2)
+            pygame.draw.line(surface, color[:3], (x + size//4, y + size//3), (x + 3*size//4, y + size//3), 2)
+            pygame.draw.circle(surface, color[:3], (x + size//2, y + size//4), size//4, 1)
+        elif symbol_type == 1:  # Eye
+            pygame.draw.ellipse(surface, color[:3], (x + 2, y + size//3, size - 4, size//3), 1)
+            pygame.draw.circle(surface, color[:3], (x + size//2, y + size//2), 3)
+        elif symbol_type == 2:  # Scarab
+            pygame.draw.ellipse(surface, color[:3], (x + 4, y + 4, size - 8, size - 8), 1)
+            pygame.draw.line(surface, color[:3], (x + size//2, y + 4), (x + size//2, y + size - 4), 1)
+        else:  # Cartouche
+            pygame.draw.ellipse(surface, color[:3], (x + 2, y + 2, size - 4, size - 4), 1)
+            pygame.draw.line(surface, color[:3], (x + size//4, y + size//2), (x + 3*size//4, y + size//2), 1)
+    
+    def _draw_torch_flames(self, surface: pygame.Surface, x: int, y: int, width: int, height: int) -> None:
+        """Draw animated torch flames flanking the battlefield."""
+        import time
+        current_time = time.time()
+        
+        # Torch positions
+        torch_positions = [
+            (x + 70, y + 80),
+            (x + width - 90, y + 80)
+        ]
+        
+        for i, (torch_x, torch_y) in enumerate(torch_positions):
+            # Torch base
+            base_width = 12
+            base_height = 30
+            pygame.draw.rect(surface, (101, 67, 33), 
+                           (torch_x - base_width//2, torch_y, base_width, base_height))
+            
+            # Animated flame
+            flame_offset = 5 * math.sin(current_time * 3 + i)
+            flame_intensity = 0.8 + 0.2 * math.sin(current_time * 4 + i)
+            
+            # Flame colors (orange to yellow)
+            flame_colors = [
+                (255, int(140 * flame_intensity), 0),
+                (255, int(200 * flame_intensity), 50),
+                (255, 255, int(100 * flame_intensity))
+            ]
+            
+            # Draw flame layers for depth
+            for layer, color in enumerate(flame_colors):
+                flame_height = 25 - layer * 5
+                flame_width = 8 - layer * 2
+                flame_y = torch_y - flame_height + flame_offset
+                
+                # Create flame shape (triangle with some variation)
+                flame_points = [
+                    (torch_x, flame_y),
+                    (torch_x - flame_width//2, torch_y),
+                    (torch_x + flame_width//2, torch_y)
+                ]
+                
+                # Draw flame with transparency
+                flame_surface = pygame.Surface((flame_width, flame_height), pygame.SRCALPHA)
+                pygame.draw.polygon(flame_surface, (*color, 180), 
+                                  [(p[0] - torch_x + flame_width//2, p[1] - flame_y) for p in flame_points])
+                surface.blit(flame_surface, (torch_x - flame_width//2, flame_y))
     
     def _draw_health_bars(self, surface: pygame.Surface) -> None:
         """Draw large, visible health bars and game status."""
@@ -939,20 +1594,20 @@ class CombatScreen(UIScreen):
     def _on_card_played(self, component: UIComponent, event_data: Dict[str, Any]) -> None:
         """Handle enhanced card play with effects."""
         card = event_data.get("card")
-        if card and self.player_hourglass:
-            if self.player_hourglass.can_afford(card.sand_cost):
-                # Play the card with sand cost
-                self.player_hourglass.spend_sand(card.sand_cost)
-                self.logger.info(f"Played card: {card.name} (cost: {card.sand_cost})")
+        if card:
+            # Use CombatManager to handle card playing (includes sand cost validation and spending)
+            if self.combat_manager.play_card(card):
+                self.logger.info(f"Successfully played card: {card.name} (cost: {card.sand_cost})")
                 
-                # Apply card effects
-                self._apply_card_effects(card)
+                # Sync the display hourglass with combat manager
+                if self.player_hourglass and self.combat_manager.player:
+                    self.player_hourglass.set_sand(self.combat_manager.player.hourglass.current_sand)
                 
                 # Trigger visual effects
                 self._trigger_card_play_effects(card)
                 
             else:
-                self.logger.info(f"Cannot afford card: {card.name} (cost: {card.sand_cost})")
+                self.logger.info(f"Cannot play card: {card.name} (cost: {card.sand_cost})")
     
     def _on_card_drag_start(self, component: UIComponent, event_data: Dict[str, Any]) -> None:
         """Handle card drag start."""
@@ -965,35 +1620,6 @@ class CombatScreen(UIScreen):
         card = event_data.get("card")
         if card:
             self.logger.debug(f"Stopped dragging card: {card.name}")
-    
-    def _apply_card_effects(self, card: Card) -> None:
-        """Apply the effects of a played card."""
-        for effect in card.effects:
-            if effect.effect_type == EffectType.DAMAGE:
-                # Deal damage to enemy
-                damage = effect.value
-                self.enemy_health = max(0, self.enemy_health - damage)
-                self.logger.info(f"Dealt {damage} damage to enemy (Health: {self.enemy_health})")
-                
-            elif effect.effect_type == EffectType.HEAL:
-                # Heal player
-                heal = effect.value
-                self.player_health = min(self.player_max_health, self.player_health + heal)
-                self.logger.info(f"Healed {heal} health (Health: {self.player_health})")
-                
-            elif effect.effect_type == EffectType.GAIN_SAND:
-                # Add sand to hourglass
-                sand_gain = effect.value
-                current_sand = self.player_hourglass.current_sand
-                max_sand = self.player_hourglass.max_sand
-                new_sand = min(max_sand, current_sand + sand_gain)
-                self.player_hourglass.set_sand(new_sand)
-                self.logger.info(f"Gained {sand_gain} sand (Sand: {new_sand})")
-                
-            elif effect.effect_type == EffectType.DRAW_CARDS:
-                # Draw cards (placeholder - would need deck integration)
-                cards_to_draw = effect.value
-                self.logger.info(f"Draw {cards_to_draw} cards effect applied")
     
     def _trigger_card_play_effects(self, card: Card) -> None:
         """Trigger visual/audio effects for card play."""
@@ -1090,6 +1716,14 @@ class CombatScreen(UIScreen):
     def _on_end_turn(self) -> None:
         """Handle end turn button click."""
         self.combat_manager.end_player_turn()
+    
+    def _back_to_progression(self) -> None:
+        """Return to progression screen."""
+        self.logger.info("Returning to progression screen from combat")
+        if hasattr(self, 'ui_manager') and self.ui_manager:
+            self.ui_manager.switch_to_screen_with_transition("progression", "slide_right")
+        else:
+            self._trigger_event("switch_screen", {"screen": "progression"})
     
     def _show_damage_number(self, amount: int, target) -> None:
         """Show floating damage number."""
@@ -1214,13 +1848,73 @@ class CombatScreen(UIScreen):
     
     
     def _draw_debug_info(self, surface: pygame.Surface) -> None:
-        """Draw debug information including particle count."""
+        """Draw debug information including particle count and accessibility status."""
         if hasattr(self, 'debug_mode') and self.debug_mode:
             font = pygame.font.Font(None, 24)
             particle_count = self.particle_system.get_particle_count()
             debug_text = f"Particles: {particle_count}"
             text_surface = font.render(debug_text, True, (255, 255, 255))
             surface.blit(text_surface, (10, 10))
+        
+        # Always show accessibility status if any features are active
+        if (accessibility_settings.colorblind_mode != "none" or 
+            accessibility_settings.font_scale != 1.0 or 
+            accessibility_settings.high_contrast or 
+            accessibility_settings.reduced_motion):
+            
+            font = pygame.font.Font(None, 20)
+            y_offset = 40
+            
+            # Show active accessibility features
+            if accessibility_settings.colorblind_mode != "none":
+                mode_text = f"Colorblind: {accessibility_settings.colorblind_mode}"
+                text_surface = font.render(mode_text, True, (200, 255, 200))
+                surface.blit(text_surface, (10, y_offset))
+                y_offset += 25
+            
+            if accessibility_settings.font_scale != 1.0:
+                scale_text = f"Font Scale: {accessibility_settings.font_scale:.1f}x"
+                text_surface = font.render(scale_text, True, (200, 255, 200))
+                surface.blit(text_surface, (10, y_offset))
+                y_offset += 25
+            
+            if accessibility_settings.high_contrast:
+                contrast_text = "High Contrast: ON"
+                text_surface = font.render(contrast_text, True, (200, 255, 200))
+                surface.blit(text_surface, (10, y_offset))
+                y_offset += 25
+            
+            if accessibility_settings.reduced_motion:
+                motion_text = "Reduced Motion: ON"
+                text_surface = font.render(motion_text, True, (200, 255, 200))
+                surface.blit(text_surface, (10, y_offset))
+    
+    def _show_accessibility_help(self) -> None:
+        """Log accessibility help information to console."""
+        help_text = """
+=== ACCESSIBILITY CONTROLS ===
+Ctrl+C: Toggle colorblind mode (none/protanopia/deuteranopia/tritanopia)
+Ctrl++: Increase font size
+Ctrl+-: Decrease font size  
+Ctrl+H: Toggle high contrast mode
+Ctrl+M: Toggle reduced motion mode
+Space/Enter: End turn
+F1: Show this help
+
+Current Settings:
+- Colorblind Mode: {colorblind}
+- Font Scale: {scale:.1f}x
+- High Contrast: {contrast}
+- Reduced Motion: {motion}
+        """.format(
+            colorblind=accessibility_settings.colorblind_mode,
+            scale=accessibility_settings.font_scale,
+            contrast="ON" if accessibility_settings.high_contrast else "OFF",
+            motion="ON" if accessibility_settings.reduced_motion else "OFF"
+        )
+        
+        self.logger.info(help_text)
+        print(help_text)  # Also print to console for immediate visibility
     
     def trigger_damage_effect(self, x: float, y: float, damage: int) -> None:
         """Trigger visual damage effect at position."""
@@ -1233,6 +1927,7 @@ class CombatScreen(UIScreen):
             'y': y,
             'vel_y': -50,
             'life': 2.0,
+            'alpha': 255,
             'color': (255, 100, 100)
         })
     
@@ -1247,6 +1942,7 @@ class CombatScreen(UIScreen):
             'y': y,
             'vel_y': -30,
             'life': 2.0,
+            'alpha': 255,
             'color': (100, 255, 100)
         })
     
@@ -1424,3 +2120,499 @@ class CombatScreen(UIScreen):
         
         # Store button rect for click detection
         self.end_turn_button_rect = button_rect
+    
+    def _draw_themed_background(self, surface: pygame.Surface) -> None:
+        """Draw improved Egyptian-themed background with warm sandstone palette."""
+        screen_width = surface.get_width()
+        screen_height = surface.get_height()
+        
+        # Create warm gradient from sandstone to deeper papyrus
+        for y in range(screen_height):
+            ratio = y / screen_height
+            # Top: Warm sandstone, Bottom: Deeper papyrus
+            r = int(212 - ratio * 12)  # 212 to 200 (sandstone to papyrus)
+            g = int(184 - ratio * 5)   # 184 to 179
+            b = int(150 - ratio * 6)   # 150 to 144
+            pygame.draw.line(surface, (r, g, b), (0, y), (screen_width, y))
+        
+        # Add subtle sandstone texture lines
+        for i in range(0, screen_height, 50):
+            alpha = 40 if i % 100 == 0 else 20
+            # Warmer texture color
+            color = (180, 155, 120, alpha)
+            texture_surface = pygame.Surface((screen_width, 2), pygame.SRCALPHA)
+            texture_surface.fill(color)
+            surface.blit(texture_surface, (0, i))
+        
+        # Add subtle papyrus fiber texture
+        import random
+        random.seed(42)  # Consistent pattern
+        for _ in range(15):
+            x = random.randint(0, screen_width)
+            y = random.randint(0, screen_height)
+            length = random.randint(20, 60)
+            thickness = random.randint(1, 2)
+            alpha = random.randint(15, 35)
+            
+            # Papyrus fiber color
+            fiber_color = (190, 170, 130, alpha)
+            fiber_surface = pygame.Surface((length, thickness), pygame.SRCALPHA)
+            fiber_surface.fill(fiber_color)
+            surface.blit(fiber_surface, (x, y))
+        
+        # Add some atmospheric sand particles in background
+        import random
+        random.seed(42)  # Consistent pattern
+        for _ in range(20):
+            x = random.randint(0, screen_width)
+            y = random.randint(0, screen_height)
+            size = random.randint(1, 3)
+            alpha = random.randint(20, 60)
+            particle_color = (139, 117, 93, alpha)
+            particle_surface = pygame.Surface((size*2, size*2), pygame.SRCALPHA)
+            pygame.draw.circle(particle_surface, particle_color, (size, size), size)
+            surface.blit(particle_surface, (x, y))
+    
+    def _draw_themed_health_bars(self, surface: pygame.Surface) -> None:
+        """Draw health bars with Egyptian theming and accessibility support."""
+        state = self.combat_manager.get_combat_state()
+        screen_width = surface.get_width()
+        screen_height = surface.get_height()
+        
+        # Player health area (left side with ornate frame)
+        player_x = 30
+        player_y = screen_height - 180
+        player_width = 320
+        player_height = 80
+        
+        # Draw ornate frame background with accessible colors
+        frame_color = accessibility_settings.get_color((139, 117, 93))
+        inner_color = accessibility_settings.get_color((60, 45, 30))
+        
+        # Outer frame
+        player_frame = pygame.Rect(player_x, player_y, player_width, player_height)
+        pygame.draw.rect(surface, frame_color, player_frame, border_radius=8)
+        
+        # Inner area
+        inner_frame = player_frame.inflate(-8, -8)
+        pygame.draw.rect(surface, inner_color, inner_frame, border_radius=5)
+        
+        # Health bar with accessible colors
+        health_bar_rect = pygame.Rect(player_x + 15, player_y + 25, player_width - 30, 20)
+        bg_color = accessibility_settings.get_color((40, 20, 20))
+        pygame.draw.rect(surface, bg_color, health_bar_rect, border_radius=3)
+        
+        health_percent = state['player']['health'] / max(1, state['player']['max_health'])
+        health_width = int((player_width - 30) * health_percent)
+        if health_width > 0:
+            health_fill = pygame.Rect(player_x + 15, player_y + 25, health_width, 20)
+            # Accessible gradient health bar
+            for i in range(health_width):
+                ratio = i / max(1, health_width)
+                base_r = int(80 + ratio * 100)  # Red gradient
+                base_g = int(200 - ratio * 150)  # Green gradient 
+                base_b = 20
+                accessible_color = accessibility_settings.get_color((base_r, base_g, base_b))
+                pygame.draw.line(surface, accessible_color, 
+                               (health_fill.x + i, health_fill.y), 
+                               (health_fill.x + i, health_fill.bottom))
+        
+        # Player health text with accessible font size
+        font_size = accessibility_settings.get_font_size(28)
+        font = pygame.font.Font(None, font_size)
+        health_text = f"PLAYER: {state['player']['health']}/{state['player']['max_health']}"
+        text_color = accessibility_settings.get_color((255, 215, 0))
+        text_surface = font.render(health_text, True, text_color)
+        surface.blit(text_surface, (player_x + 15, player_y + 5))
+        
+        # Sand display with accessible styling
+        sand_text = f"SAND: {state['player']['sand']}/{state['player']['max_sand']}"
+        sand_font_size = accessibility_settings.get_font_size(24)
+        sand_color = accessibility_settings.get_color((255, 215, 0))
+        sand_surface = pygame.font.Font(None, sand_font_size).render(sand_text, True, sand_color)
+        surface.blit(sand_surface, (player_x + 15, player_y + 50))
+        
+        # Enemy health area (right side)
+        enemy_x = screen_width - 350
+        enemy_y = 100
+        enemy_width = 320
+        enemy_height = 80
+        
+        # Enemy frame (darker, more menacing) with accessible colors
+        enemy_frame_color = accessibility_settings.get_color((80, 60, 40))
+        enemy_inner_color = accessibility_settings.get_color((40, 25, 15))
+        
+        enemy_frame = pygame.Rect(enemy_x, enemy_y, enemy_width, enemy_height)
+        pygame.draw.rect(surface, enemy_frame_color, enemy_frame, border_radius=8)
+        
+        enemy_inner = enemy_frame.inflate(-8, -8)
+        pygame.draw.rect(surface, enemy_inner_color, enemy_inner, border_radius=5)
+        
+        # Enemy health bar with accessible colors
+        enemy_health_rect = pygame.Rect(enemy_x + 15, enemy_y + 25, enemy_width - 30, 20)
+        enemy_bg_color = accessibility_settings.get_color((40, 20, 20))
+        pygame.draw.rect(surface, enemy_bg_color, enemy_health_rect, border_radius=3)
+        
+        enemy_health_percent = state['enemy']['health'] / max(1, state['enemy']['max_health'])
+        enemy_health_width = int((enemy_width - 30) * enemy_health_percent)
+        if enemy_health_width > 0:
+            enemy_health_fill = pygame.Rect(enemy_x + 15, enemy_y + 25, enemy_health_width, 20)
+            # Accessible red health bar for enemy
+            for i in range(enemy_health_width):
+                ratio = i / max(1, enemy_health_width)
+                base_r = int(150 + ratio * 80)
+                base_g = int(50 - ratio * 30)
+                base_b = int(50 - ratio * 30)
+                accessible_color = accessibility_settings.get_color((base_r, base_g, base_b))
+                pygame.draw.line(surface, accessible_color,
+                               (enemy_health_fill.x + i, enemy_health_fill.y),
+                               (enemy_health_fill.x + i, enemy_health_fill.bottom))
+        
+        # Enemy health text with accessible styling
+        enemy_health_text = f"{state['enemy']['name']}: {state['enemy']['health']}/{state['enemy']['max_health']}"
+        enemy_text_color = accessibility_settings.get_color((255, 100, 100))
+        enemy_text_surface = font.render(enemy_health_text, True, enemy_text_color)
+        surface.blit(enemy_text_surface, (enemy_x + 15, enemy_y + 5))
+        
+        # Enemy type/description
+        if hasattr(state['enemy'], 'description'):
+            desc_font_size = accessibility_settings.get_font_size(16)
+            desc_font = pygame.font.Font(None, desc_font_size)
+            desc_color = accessibility_settings.get_color((180, 180, 180))
+            desc_text = state['enemy']['description'][:40]  # Limit length
+            desc_surface = desc_font.render(desc_text, True, desc_color)
+            surface.blit(desc_surface, (enemy_x + 15, enemy_y + 50))
+        
+        # Draw enemy status effects (if any)
+        if hasattr(state['enemy'], 'status_effects') and state['enemy']['status_effects']:
+            status_y = enemy_y + enemy_height + 10
+            self._draw_enemy_status_effects(surface, enemy_x, status_y, state['enemy']['status_effects'])
+    
+    def _draw_enemy_character(self, surface: pygame.Surface) -> None:
+        """Draw a visual representation of the enemy."""
+        screen_width = surface.get_width()
+        screen_height = surface.get_height()
+        
+        # Enemy position (center-right)
+        enemy_center_x = screen_width - 200
+        enemy_center_y = screen_height // 2 - 50
+        
+        # Draw Desert Mummy representation
+        state = self.combat_manager.get_combat_state()
+        enemy_name = state['enemy']['name']
+        
+        if "Mummy" in enemy_name:
+            self._draw_mummy_character(surface, enemy_center_x, enemy_center_y)
+        else:
+            self._draw_generic_enemy(surface, enemy_center_x, enemy_center_y)
+    
+    def _draw_mummy_character(self, surface: pygame.Surface, x: int, y: int) -> None:
+        """Draw a stylized mummy character."""
+        # Mummy body (wrapped figure)
+        body_width = 60
+        body_height = 120
+        body_rect = pygame.Rect(x - body_width//2, y - body_height//2, body_width, body_height)
+        
+        # Base body
+        pygame.draw.ellipse(surface, (139, 117, 93), body_rect)
+        pygame.draw.ellipse(surface, (160, 140, 110), body_rect.inflate(-4, -4))
+        
+        # Wrapping lines
+        for i in range(5):
+            wrap_y = body_rect.top + 15 + i * 20
+            pygame.draw.line(surface, (100, 80, 60), 
+                           (body_rect.left, wrap_y), 
+                           (body_rect.right, wrap_y), 3)
+        
+        # Head
+        head_radius = 25
+        head_center = (x, y - body_height//2 - 15)
+        pygame.draw.circle(surface, (139, 117, 93), head_center, head_radius)
+        pygame.draw.circle(surface, (160, 140, 110), head_center, head_radius - 2)
+        
+        # Eyes (glowing)
+        eye_color = (255, 100, 100) if random.random() > 0.8 else (200, 80, 80)
+        left_eye = (head_center[0] - 8, head_center[1] - 3)
+        right_eye = (head_center[0] + 8, head_center[1] - 3)
+        pygame.draw.circle(surface, eye_color, left_eye, 4)
+        pygame.draw.circle(surface, eye_color, right_eye, 4)
+        
+        # Arms
+        arm_length = 40
+        left_arm_end = (x - body_width//2 - 20, y)
+        right_arm_end = (x + body_width//2 + 20, y)
+        
+        pygame.draw.line(surface, (139, 117, 93), 
+                        (x - body_width//2, y - 10), left_arm_end, 8)
+        pygame.draw.line(surface, (139, 117, 93), 
+                        (x + body_width//2, y - 10), right_arm_end, 8)
+        
+        # Add floating sand particles around the mummy
+        for i in range(8):
+            angle = i * (math.pi * 2 / 8) + time.time() * 2
+            orbit_x = x + math.cos(angle) * 80
+            orbit_y = y + math.sin(angle) * 40
+            particle_size = 2 + int(math.sin(time.time() * 3 + i) * 1)
+            pygame.draw.circle(surface, (255, 215, 0, 100), 
+                             (int(orbit_x), int(orbit_y)), particle_size)
+    
+    def _draw_generic_enemy(self, surface: pygame.Surface, x: int, y: int) -> None:
+        """Draw a generic enemy placeholder."""
+        # Simple shadowy figure
+        pygame.draw.circle(surface, (80, 60, 40), (x, y), 50)
+        pygame.draw.circle(surface, (60, 40, 20), (x, y), 45)
+        
+        # Glowing eyes
+        pygame.draw.circle(surface, (255, 100, 100), (x - 15, y - 10), 5)
+        pygame.draw.circle(surface, (255, 100, 100), (x + 15, y - 10), 5)
+    
+    def _draw_enhanced_combat_status(self, surface: pygame.Surface) -> None:
+        """Combat status is now integrated into the central obelisk turn indicator."""
+        # Turn indicator functionality moved to _draw_central_obelisk()
+        # This method preserved for backward compatibility but no longer renders separate status
+        pass
+    
+    def _draw_enhanced_enemy_intent(self, surface: pygame.Surface) -> None:
+        """Draw enhanced enemy intent with detailed information and accessibility support."""
+        if not self.combat_manager.enemy_intent:
+            return
+        
+        intent = self.combat_manager.enemy_intent
+        screen_width = surface.get_width()
+        
+        # Intent display area (larger for more information)
+        intent_x = screen_width - 350
+        intent_y = 200
+        intent_width = 320
+        intent_height = 120
+        
+        # Background with accessible colors
+        bg_color = accessibility_settings.get_color((60, 20, 20))
+        border_color = accessibility_settings.get_color((255, 100, 100))
+        
+        intent_rect = pygame.Rect(intent_x, intent_y, intent_width, intent_height)
+        bg_surface = pygame.Surface((intent_width, intent_height), pygame.SRCALPHA)
+        bg_surface.fill((*bg_color, 200))
+        surface.blit(bg_surface, (intent_x, intent_y))
+        pygame.draw.rect(surface, border_color, intent_rect, 2, border_radius=8)
+        
+        # Title
+        title_font_size = accessibility_settings.get_font_size(20)
+        title_font = pygame.font.Font(None, title_font_size)
+        title_text = "ENEMY INTENT"
+        title_color = accessibility_settings.get_color((255, 215, 0))
+        title_surface = title_font.render(title_text, True, title_color)
+        surface.blit(title_surface, (intent_x + 10, intent_y + 5))
+        
+        # Intent name with accessible styling
+        name_font_size = accessibility_settings.get_font_size(24)
+        name_font = pygame.font.Font(None, name_font_size)
+        name_text = intent.name.upper()
+        name_color = accessibility_settings.get_color((255, 255, 100))
+        name_surface = name_font.render(name_text, True, name_color)
+        surface.blit(name_surface, (intent_x + 10, intent_y + 30))
+        
+        # Intent details
+        detail_font_size = accessibility_settings.get_font_size(18)
+        detail_font = pygame.font.Font(None, detail_font_size)
+        detail_color = accessibility_settings.get_color((200, 200, 200))
+        
+        # Show damage/effect amount if available
+        if hasattr(intent, 'damage') and intent.damage:
+            damage_text = f"Damage: {intent.damage}"
+            damage_surface = detail_font.render(damage_text, True, accessibility_settings.get_color((255, 150, 150)))
+            surface.blit(damage_surface, (intent_x + 10, intent_y + 55))
+        
+        if hasattr(intent, 'effect') and intent.effect:
+            effect_text = f"Effect: {intent.effect}"
+            effect_surface = detail_font.render(effect_text, True, accessibility_settings.get_color((150, 255, 150)))
+            surface.blit(effect_surface, (intent_x + 10, intent_y + 75))
+        
+        # Intent icon/symbol (simple visual indicator)
+        icon_size = 30
+        icon_x = intent_x + intent_width - icon_size - 10
+        icon_y = intent_y + 10
+        icon_color = accessibility_settings.get_color((255, 100, 100))
+        
+        # Draw different symbols based on intent type
+        if hasattr(intent, 'type'):
+            if intent.type == 'attack':
+                # Draw sword symbol (simple lines)
+                pygame.draw.line(surface, icon_color, 
+                               (icon_x + 5, icon_y + 25), (icon_x + 25, icon_y + 5), 3)
+                pygame.draw.line(surface, icon_color,
+                               (icon_x + 10, icon_y + 20), (icon_x + 20, icon_y + 10), 2)
+            elif intent.type == 'defend':
+                # Draw shield symbol
+                shield_points = [(icon_x + 15, icon_y + 5), (icon_x + 25, icon_y + 15), 
+                               (icon_x + 25, icon_y + 20), (icon_x + 15, icon_y + 25),
+                               (icon_x + 5, icon_y + 20), (icon_x + 5, icon_y + 15)]
+                pygame.draw.polygon(surface, icon_color, shield_points)
+            else:
+                # Default: warning triangle
+                triangle_points = [(icon_x + 15, icon_y + 5), (icon_x + 25, icon_y + 25), (icon_x + 5, icon_y + 25)]
+                pygame.draw.polygon(surface, icon_color, triangle_points)
+    
+    def _draw_enemy_status_effects(self, surface: pygame.Surface, x: int, y: int, status_effects: Dict[str, Any]) -> None:
+        """Draw enemy status effects with icons and duration."""
+        if not status_effects:
+            return
+        
+        effect_width = 40
+        effect_height = 30
+        spacing = 5
+        current_x = x + 15
+        
+        for effect_name, effect_data in status_effects.items():
+            # Background for status effect
+            effect_rect = pygame.Rect(current_x, y, effect_width, effect_height)
+            
+            # Choose color based on effect type
+            if effect_name.lower() in ['poison', 'bleed', 'burn', 'weakness']:
+                bg_color = accessibility_settings.get_color((120, 40, 40))  # Red for debuffs
+                text_color = accessibility_settings.get_color((255, 150, 150))
+            else:
+                bg_color = accessibility_settings.get_color((40, 120, 40))  # Green for buffs
+                text_color = accessibility_settings.get_color((150, 255, 150))
+            
+            pygame.draw.rect(surface, bg_color, effect_rect, border_radius=3)
+            pygame.draw.rect(surface, text_color, effect_rect, 1, border_radius=3)
+            
+            # Effect duration or stacks
+            duration = effect_data.get('duration', effect_data.get('stacks', 1))
+            duration_font_size = accessibility_settings.get_font_size(16)
+            duration_font = pygame.font.Font(None, duration_font_size)
+            duration_text = str(duration)
+            duration_surface = duration_font.render(duration_text, True, text_color)
+            
+            # Center text in effect box
+            text_rect = duration_surface.get_rect(center=effect_rect.center)
+            surface.blit(duration_surface, text_rect)
+            
+            current_x += effect_width + spacing
+        
+        # Status effects label
+        if status_effects:
+            label_font_size = accessibility_settings.get_font_size(14)
+            label_font = pygame.font.Font(None, label_font_size)
+            label_text = "Status Effects:"
+            label_color = accessibility_settings.get_color((200, 200, 200))
+            label_surface = label_font.render(label_text, True, label_color)
+            surface.blit(label_surface, (x + 15, y - 20))
+    
+    def _draw_enhanced_cards(self, surface: pygame.Surface) -> None:
+        """Draw enhanced card display with better theming."""
+        if not self.combat_manager.player_hand:
+            return
+        
+        screen_width = surface.get_width()
+        screen_height = surface.get_height()
+        
+        # Card area background
+        card_area_height = 200
+        card_area_y = screen_height - card_area_height
+        
+        # Draw improved papyrus-style background for card area
+        card_bg_rect = pygame.Rect(0, card_area_y, screen_width, card_area_height)
+        card_bg_surface = pygame.Surface((screen_width, card_area_height), pygame.SRCALPHA)
+        # Use warmer papyrus color
+        card_bg_surface.fill((200, 185, 156, 140))  # Papyrus with transparency
+        surface.blit(card_bg_surface, (0, card_area_y))
+        
+        # Enhanced decorative border with Egyptian styling
+        border_color = (139, 117, 93)
+        pygame.draw.line(surface, border_color, 
+                        (0, card_area_y), (screen_width, card_area_y), 4)
+        
+        # Add subtle texture to border
+        for i in range(0, screen_width, 20):
+            pygame.draw.line(surface, (160, 140, 110), 
+                           (i, card_area_y - 1), (i + 10, card_area_y - 1), 1)
+        
+        # Draw cards with enhanced styling
+        self._draw_cards_simple(surface)  # Use existing card drawing for now
+    
+    def _draw_styled_end_turn_button(self, surface: pygame.Surface) -> None:
+        """Draw end turn button with Egyptian styling."""
+        state = self.combat_manager.get_combat_state()
+        
+        if state['phase'] != 'player_turn':
+            return
+        
+        screen_width = surface.get_width()
+        screen_height = surface.get_height()
+        
+        # Button position and size
+        button_width = 160
+        button_height = 50
+        button_x = screen_width - button_width - 40
+        button_y = screen_height - button_height - 40
+        
+        button_rect = pygame.Rect(button_x, button_y, button_width, button_height)
+        
+        # Ornate button background
+        pygame.draw.rect(surface, (139, 117, 93), button_rect, border_radius=8)
+        inner_rect = button_rect.inflate(-6, -6)
+        pygame.draw.rect(surface, (100, 80, 60), inner_rect, border_radius=5)
+        
+        # Highlight border
+        pygame.draw.rect(surface, (255, 215, 0), button_rect, 3, border_radius=8)
+        
+        # Button text with shadow
+        font = pygame.font.Font(None, 32)
+        button_text = "END TURN"
+        
+        # Text shadow
+        shadow_surface = font.render(button_text, True, (0, 0, 0))
+        shadow_rect = shadow_surface.get_rect(center=(button_rect.centerx + 2, button_rect.centery + 2))
+        surface.blit(shadow_surface, shadow_rect)
+        
+        # Main text
+        text_surface = font.render(button_text, True, (255, 215, 0))
+        text_rect = text_surface.get_rect(center=button_rect.center)
+        surface.blit(text_surface, text_rect)
+        
+        # Store for click detection
+        self.end_turn_button_rect = button_rect
+    
+    def _draw_atmospheric_elements(self, surface: pygame.Surface) -> None:
+        """Draw atmospheric elements like floating particles and environmental effects."""
+        screen_width = surface.get_width()
+        screen_height = surface.get_height()
+        
+        # Floating sand particles
+        current_time = time.time()
+        for i in range(15):
+            # Create floating particles with sine wave motion
+            base_x = (i * 200) % screen_width
+            base_y = (i * 150) % screen_height
+            
+            offset_x = math.sin(current_time * 0.5 + i) * 30
+            offset_y = math.cos(current_time * 0.3 + i) * 20
+            
+            particle_x = int(base_x + offset_x)
+            particle_y = int(base_y + offset_y)
+            
+            # Varying particle sizes and colors
+            size = 1 + int(math.sin(current_time * 2 + i) * 1)
+            alpha = int(30 + math.sin(current_time + i) * 20)
+            
+            particle_color = (255, 215, 0, max(10, alpha))
+            if size > 0:
+                particle_surface = pygame.Surface((size*2, size*2), pygame.SRCALPHA)
+                pygame.draw.circle(particle_surface, particle_color, (size, size), size)
+                surface.blit(particle_surface, (particle_x, particle_y))
+        
+        # Corner decorative elements (Egyptian-style corners)
+        corner_size = 60
+        corner_color = (139, 117, 93, 100)
+        
+        # Top corners
+        for x, y in [(20, 20), (screen_width - corner_size - 20, 20)]:
+            corner_surface = pygame.Surface((corner_size, corner_size), pygame.SRCALPHA)
+            # Draw simple hieroglyph-like patterns
+            pygame.draw.lines(corner_surface, corner_color, False, 
+                            [(10, 10), (30, 10), (30, 30), (50, 30)], 3)
+            pygame.draw.lines(corner_surface, corner_color, False,
+                            [(10, 50), (30, 50), (30, 30)], 3)
+            surface.blit(corner_surface, (x, y))

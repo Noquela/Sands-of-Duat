@@ -10,6 +10,7 @@ import math
 from typing import List, Dict, Optional, Tuple, Any
 from enum import Enum
 from .base import UIScreen, UIComponent
+from .menu_screen import MenuButton
 
 
 class NodeType(Enum):
@@ -293,8 +294,16 @@ class MapScreen(UIScreen):
     
     def _setup_ui_components(self) -> None:
         """Set up UI components."""
+        # Back button (top-left corner) - Egyptian themed
+        back_button = MenuButton(
+            20, 20, 150, 40,
+            "⬅ Back to Progression",
+            self._back_to_progression
+        )
+        self.add_component(back_button)
+        
         # Hour display
-        self.hour_display = HourDisplay(50, 50, 300, 100)
+        self.hour_display = HourDisplay(380, 50, 300, 100)  # Moved right to avoid overlap with back button
         self.hour_display.set_hour(1, self.hour_names[0])
         self.add_component(self.hour_display)
     
@@ -396,6 +405,14 @@ class MapScreen(UIScreen):
                 self._trigger_event("enter_rest", {"node_id": component.node_id})
             elif component.node_type == NodeType.BOSS:
                 self._trigger_event("enter_boss", {"node_id": component.node_id})
+    
+    def _back_to_progression(self) -> None:
+        """Return to progression screen."""
+        self.logger.info("Returning to progression screen from map")
+        if hasattr(self, 'ui_manager') and self.ui_manager:
+            self.ui_manager.switch_to_screen_with_transition("progression", "slide_right")
+        else:
+            self._trigger_event("switch_screen", {"screen": "progression"})
     
     def advance_to_next_hour(self) -> None:
         """Advance to the next hour of night."""

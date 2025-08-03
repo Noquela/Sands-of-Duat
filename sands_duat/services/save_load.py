@@ -232,6 +232,36 @@ class SaveLoadManager:
         
         return asdict(metadata)
     
+    def save_player_collection(self, collection_data: Dict[str, Any], slot_name: str = "quicksave") -> bool:
+        """Save player collection data to existing save file."""
+        try:
+            # Load existing save
+            existing_save = self.load_game(slot_name)
+            if existing_save is None:
+                self.logger.warning(f"No existing save found for slot {slot_name}")
+                return False
+            
+            # Update collection data
+            existing_save['player_collection'] = collection_data
+            
+            # Save updated data
+            return self.save_game(existing_save, slot_name)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to save player collection: {e}")
+            return False
+    
+    def load_player_collection(self, slot_name: str = "quicksave") -> Optional[Dict[str, Any]]:
+        """Load player collection data from save file."""
+        try:
+            save_data = self.load_game(slot_name)
+            if save_data and 'player_collection' in save_data:
+                return save_data['player_collection']
+            return None
+        except Exception as e:
+            self.logger.error(f"Failed to load player collection: {e}")
+            return None
+    
     def _verify_integrity(self, save_data: Dict[str, Any]) -> bool:
         """Verify save file integrity using checksum."""
         try:
