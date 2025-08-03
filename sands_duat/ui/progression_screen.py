@@ -344,7 +344,7 @@ class ProgressionScreen(UIScreen):
         # Back button (top-left corner) - Egyptian themed
         back_button = MenuButton(
             20, 20, 150, 40,
-            "⬅ Back to Menu",
+            "< Back to Menu",
             self._back_to_menu
         )
         self.add_component(back_button)

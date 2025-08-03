@@ -1002,7 +1002,7 @@ class CombatScreen(UIScreen):
         
         self.back_button = MenuButton(
             back_button_x, back_button_y, button_width, button_height,
-            "⬅ Back to Progression", self._back_to_progression
+            "< Back to Progression", self._back_to_progression
         )
         self.back_button.enable_egyptian_feedback('all')  # Enable Egyptian feedback
         self.add_component(self.back_button)

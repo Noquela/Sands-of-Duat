@@ -28,6 +28,17 @@ class ParticleType(Enum):
     HEAL_SPARKLE = "heal_sparkle"
     MAGIC_GLOW = "magic_glow"
     ATMOSPHERIC = "atmospheric"
+    
+    # Card-specific particle types
+    FIRE_SPARK = "fire_spark"        # Attack cards - fire effects
+    LIGHTNING_BOLT = "lightning_bolt" # Skill cards - blue lightning
+    GOLDEN_AURA = "golden_aura"      # Power cards - golden energy
+    MYSTICAL_RUNE = "mystical_rune"  # Status cards - purple magic
+    
+    # Enhanced effects
+    EMBER_TRAIL = "ember_trail"      # Trailing fire particles
+    ENERGY_ORB = "energy_orb"        # Floating energy spheres
+    SAND_SPIRAL = "sand_spiral"      # Swirling sand patterns
 
 
 @dataclass
@@ -92,6 +103,86 @@ class Particle:
             pygame.draw.line(surface, self.color, 
                            (int(self.x), int(self.y - sparkle_size)), 
                            (int(self.x), int(self.y + sparkle_size)), 2)
+        
+        elif self.particle_type == ParticleType.FIRE_SPARK:
+            # Fire spark for attack cards
+            spark_size = int(self.size * 1.8)
+            # Draw flame-like shape with gradient effect
+            center_color = self.color
+            outer_color = tuple(max(0, c - 50) for c in self.color)
+            
+            pygame.draw.circle(surface, outer_color, (int(self.x), int(self.y)), spark_size)
+            pygame.draw.circle(surface, center_color, (int(self.x), int(self.y)), max(1, spark_size // 2))
+        
+        elif self.particle_type == ParticleType.LIGHTNING_BOLT:
+            # Lightning effect for skill cards
+            bolt_length = int(self.size * 3)
+            # Draw jagged lightning bolt
+            points = [
+                (int(self.x), int(self.y - bolt_length)),
+                (int(self.x + bolt_length//3), int(self.y - bolt_length//2)),
+                (int(self.x - bolt_length//3), int(self.y)),
+                (int(self.x + bolt_length//2), int(self.y + bolt_length//2))
+            ]
+            if len(points) >= 2:
+                pygame.draw.lines(surface, self.color, False, points, 2)
+        
+        elif self.particle_type == ParticleType.GOLDEN_AURA:
+            # Golden aura for power cards
+            aura_size = int(self.size * 2)
+            # Draw layered golden circles for aura effect
+            for i in range(3):
+                size = aura_size - i * 2
+                alpha_mod = self.alpha - i * 30
+                if size > 0 and alpha_mod > 0:
+                    aura_color = tuple(min(255, c + i * 20) for c in self.color)
+                    pygame.draw.circle(surface, aura_color, (int(self.x), int(self.y)), size, 1)
+        
+        elif self.particle_type == ParticleType.MYSTICAL_RUNE:
+            # Mystical rune for status cards
+            rune_size = int(self.size * 2)
+            # Draw rune-like symbol
+            pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), rune_size, 2)
+            # Add inner pattern
+            inner_size = rune_size // 2
+            pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), inner_size)
+        
+        elif self.particle_type == ParticleType.EMBER_TRAIL:
+            # Trailing ember particles
+            trail_length = int(self.size * 4)
+            # Draw fading trail behind particle
+            trail_color = tuple(c // 2 for c in self.color)
+            pygame.draw.line(surface, trail_color, 
+                           (int(self.x - self.vel_x * 0.1), int(self.y - self.vel_y * 0.1)),
+                           (int(self.x), int(self.y)), max(1, int(self.size)))
+        
+        elif self.particle_type == ParticleType.ENERGY_ORB:
+            # Floating energy orb
+            orb_size = int(self.size * 1.5)
+            # Draw pulsing orb with glow
+            pulse = math.sin(time.time() * 5) * 0.3 + 0.7  # Pulsing effect
+            current_size = int(orb_size * pulse)
+            
+            # Outer glow
+            glow_color = tuple(min(255, c + 30) for c in self.color)
+            pygame.draw.circle(surface, glow_color, (int(self.x), int(self.y)), current_size + 2)
+            # Inner orb
+            pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), current_size)
+        
+        elif self.particle_type == ParticleType.SAND_SPIRAL:
+            # Swirling sand pattern
+            spiral_time = time.time() * 3 + self.x * 0.01  # Offset by position
+            spiral_radius = self.size * 2
+            
+            # Draw spiral points
+            for i in range(5):
+                angle = spiral_time + i * math.pi / 2.5
+                offset_x = math.cos(angle) * spiral_radius
+                offset_y = math.sin(angle) * spiral_radius
+                
+                point_x = int(self.x + offset_x)
+                point_y = int(self.y + offset_y)
+                pygame.draw.circle(surface, self.color, (point_x, point_y), max(1, int(self.size // 2)))
         
         else:
             # Default circular particle
@@ -343,6 +434,150 @@ class ParticleSystem:
     def get_particle_count(self) -> int:
         """Get current number of active particles."""
         return len(self.particles)
+    
+    def create_attack_card_effect(self, x: float, y: float, intensity: float = 1.0) -> None:
+        """Create fire particle effects for attack cards."""
+        particle_count = int(15 * intensity)
+        
+        for _ in range(particle_count):
+            angle = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(30, 100) * intensity
+            
+            particle = Particle(
+                x=x + random.uniform(-8, 8),
+                y=y + random.uniform(-8, 8),
+                vel_x=math.cos(angle) * speed,
+                vel_y=math.sin(angle) * speed,
+                size=random.uniform(2, 5),
+                life=random.uniform(0.8, 1.5),
+                max_life=1.2,
+                color=(255, 100, 50),  # Orange-red fire
+                alpha=255,
+                gravity=20.0,
+                particle_type=ParticleType.FIRE_SPARK
+            )
+            
+            self.particles.append(particle)
+    
+    def create_skill_card_effect(self, x: float, y: float, intensity: float = 1.0) -> None:
+        """Create lightning particle effects for skill cards."""
+        particle_count = int(12 * intensity)
+        
+        for _ in range(particle_count):
+            angle = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(50, 120) * intensity
+            
+            particle = Particle(
+                x=x + random.uniform(-10, 10),
+                y=y + random.uniform(-10, 10),
+                vel_x=math.cos(angle) * speed,
+                vel_y=math.sin(angle) * speed,
+                size=random.uniform(1, 3),
+                life=random.uniform(0.5, 1.0),
+                max_life=0.8,
+                color=(100, 150, 255),  # Blue lightning
+                alpha=255,
+                gravity=0.0,  # Lightning floats
+                particle_type=ParticleType.LIGHTNING_BOLT
+            )
+            
+            self.particles.append(particle)
+    
+    def create_power_card_effect(self, x: float, y: float, intensity: float = 1.0) -> None:
+        """Create golden aura effects for power cards."""
+        particle_count = int(18 * intensity)
+        
+        for _ in range(particle_count):
+            # Create expanding aura pattern
+            angle = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(10, 40) * intensity
+            
+            particle = Particle(
+                x=x + random.uniform(-5, 5),
+                y=y + random.uniform(-5, 5),
+                vel_x=math.cos(angle) * speed,
+                vel_y=math.sin(angle) * speed,
+                size=random.uniform(2, 4),
+                life=random.uniform(1.5, 2.5),
+                max_life=2.0,
+                color=(255, 215, 0),  # Golden
+                alpha=255,
+                gravity=-5.0,  # Slight upward float
+                particle_type=ParticleType.GOLDEN_AURA
+            )
+            
+            self.particles.append(particle)
+    
+    def create_status_card_effect(self, x: float, y: float, intensity: float = 1.0) -> None:
+        """Create mystical rune effects for status cards."""
+        particle_count = int(10 * intensity)
+        
+        for _ in range(particle_count):
+            # Create mystical swirling pattern
+            angle = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(20, 60) * intensity
+            
+            particle = Particle(
+                x=x + random.uniform(-12, 12),
+                y=y + random.uniform(-12, 12),
+                vel_x=math.cos(angle) * speed,
+                vel_y=math.sin(angle) * speed,
+                size=random.uniform(3, 6),
+                life=random.uniform(1.0, 2.0),
+                max_life=1.5,
+                color=(150, 50, 200),  # Purple mystical
+                alpha=255,
+                gravity=0.0,
+                particle_type=ParticleType.MYSTICAL_RUNE
+            )
+            
+            self.particles.append(particle)
+    
+    def create_card_type_effect(self, card_type: str, x: float, y: float, intensity: float = 1.0) -> None:
+        """Create appropriate particle effect based on card type."""
+        card_type_lower = card_type.lower()
+        
+        if card_type_lower == "attack":
+            self.create_attack_card_effect(x, y, intensity)
+        elif card_type_lower == "skill":
+            self.create_skill_card_effect(x, y, intensity)
+        elif card_type_lower == "power":
+            self.create_power_card_effect(x, y, intensity)
+        elif card_type_lower in ["status", "curse", "blessing"]:
+            self.create_status_card_effect(x, y, intensity)
+        else:
+            # Default effect
+            self.create_attack_card_effect(x, y, intensity)
+    
+    def create_enhanced_sand_effect(self, start_x: float, start_y: float, 
+                                  end_x: float, end_y: float, intensity: float = 1.0) -> None:
+        """Create enhanced sand effect with spiral patterns."""
+        # Create basic sand flow
+        self.create_sand_flow_effect(start_x, start_y, end_x, end_y, intensity)
+        
+        # Add spiral sand effects
+        spiral_count = int(8 * intensity)
+        
+        for i in range(spiral_count):
+            t = i / max(1, spiral_count - 1)
+            x = start_x + (end_x - start_x) * t
+            y = start_y + (end_y - start_y) * t
+            
+            particle = Particle(
+                x=x + random.uniform(-5, 5),
+                y=y + random.uniform(-5, 5),
+                vel_x=random.uniform(-20, 20),
+                vel_y=random.uniform(-20, 20),
+                size=random.uniform(2, 4),
+                life=random.uniform(1.0, 2.0),
+                max_life=1.5,
+                color=(255, 215, 0),  # Golden sand
+                alpha=255,
+                gravity=15.0,
+                particle_type=ParticleType.SAND_SPIRAL
+            )
+            
+            self.particles.append(particle)
     
     def clear_all(self) -> None:
         """Clear all particles and emitters."""

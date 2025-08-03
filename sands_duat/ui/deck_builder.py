@@ -13,6 +13,7 @@ from ..core.cards import Card, Deck, CardRarity, CardType
 from ..core.player_collection import PlayerCollection, CardRewardSystem
 from .menu_screen import MenuButton
 from .theme import get_theme
+from .animation_system import AnimationManager, EgyptianAnimationRenderer
 
 
 class CardDisplay(UIComponent):
@@ -34,63 +35,131 @@ class CardDisplay(UIComponent):
         self.drag_offset_y = 0
         self.original_pos = (x, y)
         
+        # Double click detection
+        self.last_click_time = 0
+        self.double_click_threshold = 0.3  # 300ms for double click
+        
+        # Egyptian animation system
+        self.animation_manager = AnimationManager()
+        self.egyptian_renderer = EgyptianAnimationRenderer()
+        self.animation_state = {
+            'ankh_glow': 0.0,
+            'scarab_rotation': 0.0,
+            'lotus_bloom': 1.0,
+            'egyptian_pulse': 1.0
+        }
+        
+        # Accessibility features
+        self.accessibility = {
+            'role': 'button',
+            'label': f"{card.name}",
+            'keyboard_accessible': True,
+            'screen_reader_text': f"Card: {card.name}",
+            'high_contrast_mode': False,
+            'focus_indicator': False
+        }
+        self.keyboard_focused = False
+        self.high_contrast_mode = False
+        
         # Enable Egyptian feedback effects for cards
         self.enable_egyptian_feedback('all')
         
         # Special effects for rare cards
         if hasattr(card, 'rarity'):
-            if card.rarity in ['LEGENDARY', 'EPIC']:
+            if card.rarity in [CardRarity.LEGENDARY, CardRarity.RARE]:
+                # Start continuous scarab rotation for rare cards
+                self.animation_manager.scarab_rare_rotation(f"card_{id(self)}", duration=3.0)
                 self.egyptian_feedback['mystical_particles'] = True
-                self.egyptian_feedback['glow_color'] = (255, 215, 0) if card.rarity == 'LEGENDARY' else (147, 112, 219)  # Gold for legendary, purple for epic
+                self.egyptian_feedback['glow_color'] = (255, 215, 0) if card.rarity == CardRarity.LEGENDARY else (147, 112, 219)
     
     def update(self, delta_time: float) -> None:
-        """Update card display."""
-        pass
+        """Update card display with Egyptian animations."""
+        # Update animations
+        animation_values = self.animation_manager.update(delta_time)
+        card_id = f"card_{id(self)}"
+        
+        if card_id in animation_values:
+            for anim_type, value in animation_values[card_id].items():
+                if anim_type.value == 'ankh_glow':
+                    self.animation_state['ankh_glow'] = value
+                elif anim_type.value == 'scarab_spin':
+                    self.animation_state['scarab_rotation'] = value
+                elif anim_type.value == 'lotus_bloom':
+                    self.animation_state['lotus_bloom'] = value
+                elif anim_type.value == 'egyptian_pulse':
+                    self.animation_state['egyptian_pulse'] = value
     
     def handle_event(self, event: pygame.event.Event) -> bool:
-        """Handle card interaction and drag events."""
+        """Handle card interaction with double-click to add to deck."""
         if not self.visible or not self.enabled:
             return False
         
         mouse_pos = pygame.mouse.get_pos()
         
-        # Handle drag and drop
-        if self.draggable:
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if self.rect.collidepoint(event.pos):
-                    self.being_dragged = True
-                    self.drag_offset_x = event.pos[0] - self.rect.x
-                    self.drag_offset_y = event.pos[1] - self.rect.y
-                    self.original_pos = (self.rect.x, self.rect.y)
-                    self._trigger_event("card_drag_start", {"card": self.card, "component": self})
+        # Handle mouse clicks
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.rect.collidepoint(event.pos):
+                import time
+                current_time = time.time()
+                
+                # Check for double click
+                if current_time - self.last_click_time <= self.double_click_threshold:
+                    # Double click detected - add card to deck
+                    self._trigger_event("card_double_click", {"card": self.card, "component": self})
+                    self.last_click_time = 0  # Reset to prevent triple clicks
                     return True
-            
-            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                if self.being_dragged:
-                    self.being_dragged = False
-                    self._trigger_event("card_drag_end", {
-                        "card": self.card, 
-                        "component": self,
-                        "drop_pos": mouse_pos,
-                        "original_pos": self.original_pos
-                    })
-                    return True
-            
-            elif event.type == pygame.MOUSEMOTION:
-                if self.being_dragged:
-                    self.rect.x = mouse_pos[0] - self.drag_offset_x
-                    self.rect.y = mouse_pos[1] - self.drag_offset_y
-                    self._trigger_event("card_dragging", {"card": self.card, "component": self})
+                else:
+                    # Single click - start drag or selection
+                    self.last_click_time = current_time
+                    
+                    if self.draggable:
+                        self.being_dragged = True
+                        self.drag_offset_x = event.pos[0] - self.rect.x
+                        self.drag_offset_y = event.pos[1] - self.rect.y
+                        self.original_pos = (self.rect.x, self.rect.y)
+                        self._trigger_event("card_drag_start", {"card": self.card, "component": self})
+                    else:
+                        self.selected = not self.selected
+                        self._trigger_event("card_selected", {"card": self.card, "selected": self.selected})
+                    
+                    super().handle_event(event)
                     return True
         
-        # Handle selection for non-draggable cards or when not dragging
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not self.being_dragged:
-            if self.rect.collidepoint(event.pos):
-                if not self.draggable:  # Only toggle selection for non-draggable cards
-                    self.selected = not self.selected
-                    self._trigger_event("card_selected", {"card": self.card, "selected": self.selected})
-                super().handle_event(event)
+        # Handle drag and drop (only if already dragging)
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            if self.being_dragged:
+                self.being_dragged = False
+                self._trigger_event("card_drag_end", {
+                    "card": self.card, 
+                    "component": self,
+                    "drop_pos": event.pos,
+                    "original_pos": self.original_pos
+                })
                 return True
+        
+        elif event.type == pygame.MOUSEMOTION:
+            if self.being_dragged:
+                self.rect.x = event.pos[0] - self.drag_offset_x
+                self.rect.y = event.pos[1] - self.drag_offset_y
+                self._trigger_event("card_dragging", {"card": self.card, "component": self})
+                return True
+        
+        # Handle hover events for lotus bloom animation
+        if event.type == pygame.MOUSEMOTION:
+            was_hovered = self.hovered
+            self.hovered = self.rect.collidepoint(event.pos)
+            
+            # Trigger lotus bloom on hover start
+            if self.hovered and not was_hovered:
+                self.animation_manager.lotus_hover_bloom(f"card_{id(self)}")
+            # Reset bloom on hover end
+            elif not self.hovered and was_hovered:
+                self.animation_state['lotus_bloom'] = 1.0
+        
+        # Trigger ankh glow on selection
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.rect.collidepoint(event.pos) and not self.being_dragged:
+                self.animation_manager.ankh_selection(f"card_{id(self)}")
         
         # Let base class handle other events (hover, etc.)
         return super().handle_event(event)
@@ -100,25 +169,25 @@ class CardDisplay(UIComponent):
         if not self.visible:
             return
         
-        # Card background with rarity color
-        rarity_colors = {
-            CardRarity.COMMON: (60, 60, 60),
-            CardRarity.UNCOMMON: (30, 70, 30),
-            CardRarity.RARE: (30, 30, 90),
-            CardRarity.LEGENDARY: (90, 60, 30)
-        }
+        # Get theme-based card styling
+        theme = get_theme()
+        card_style = theme.create_card_style(self.card.rarity, self.card.card_type)
         
-        bg_color = rarity_colors.get(self.card.rarity, (60, 45, 30))
-        border_color = (139, 117, 93)
+        bg_color = card_style['background_color']
+        border_color = card_style['border_color']
         
-        # Highlight if hovered, selected, or being dragged
+        # Highlight if hovered, selected, or being dragged with theme colors
         if self.hovered:
-            bg_color = tuple(min(255, c + 20) for c in bg_color)
+            bg_color = card_style['hover_color']
         if self.selected:
-            border_color = (255, 215, 0)
+            border_color = card_style['selected_color']
+            # Add selection glow background
+            selection_rect = pygame.Rect(self.rect.x - 2, self.rect.y - 2, 
+                                       self.rect.width + 4, self.rect.height + 4)
+            pygame.draw.rect(surface, theme.colors.GOLD, selection_rect)
         if self.being_dragged:
-            bg_color = tuple(min(255, c + 40) for c in bg_color)
-            border_color = (255, 100, 100)  # Red tint while dragging
+            bg_color = tuple(min(255, c + 30) for c in bg_color)
+            border_color = theme.colors.COPPER  # Copper tint while dragging
         
         pygame.draw.rect(surface, bg_color, self.rect)
         pygame.draw.rect(surface, border_color, self.rect, 3 if self.selected else 2)
@@ -128,46 +197,69 @@ class CardDisplay(UIComponent):
         cost_font_size = max(16, min(28, self.rect.width // 4))
         count_font_size = max(10, min(16, self.rect.width // 8))
         
-        # Card name (truncated if needed)
+        # Card name with theme text color
         font = pygame.font.Font(None, name_font_size)
         max_chars = max(8, self.rect.width // 8)
         display_name = self.card.name[:max_chars]
-        text = font.render(display_name, True, (255, 248, 220))
+        text = font.render(display_name, True, card_style['text_color'])
         surface.blit(text, (self.rect.x + 3, self.rect.y + 3))
         
-        # Sand cost
+        # Sand cost with theme cost color
         cost_font = pygame.font.Font(None, cost_font_size)
-        cost_text = cost_font.render(str(self.card.sand_cost), True, (255, 215, 0))
+        cost_text = cost_font.render(str(self.card.sand_cost), True, card_style['cost_color'])
         cost_y = self.rect.y + self.rect.height - cost_font_size - 3
         surface.blit(cost_text, (self.rect.x + 3, cost_y))
         
-        # Owned count
+        # Owned count with theme colors
         if self.owned_count > 0:
             count_font = pygame.font.Font(None, count_font_size)
-            count_text = count_font.render(f"x{self.owned_count}", True, (150, 255, 150))
+            count_text = count_font.render(f"x{self.owned_count}", True, theme.colors.GOLD)
             count_width = count_text.get_width()
             surface.blit(count_text, (self.rect.x + self.rect.width - count_width - 3, self.rect.y + 3))
         
-        # Favorite indicator
+        # Favorite indicator with theme gold
         if self.is_favorite:
             star_radius = max(3, self.rect.width // 15)
             star_center = (self.rect.x + self.rect.width - star_radius - 3, 
                           self.rect.y + self.rect.height - star_radius - 3)
-            pygame.draw.circle(surface, (255, 215, 0), star_center, star_radius)
+            pygame.draw.circle(surface, theme.colors.GOLD, star_center, star_radius)
         
-        # Type indicator
-        type_colors = {
-            CardType.ATTACK: (200, 100, 100),
-            CardType.SKILL: (100, 200, 100),
-            CardType.POWER: (100, 100, 200),
-            CardType.CURSE: (150, 50, 150)
-        }
-        type_color = type_colors.get(self.card.card_type, (128, 128, 128))
+        # Type indicator with theme type colors
+        type_color = card_style['type_accent']
         type_height = max(4, self.rect.height // 20)
         type_width = min(self.rect.width // 3, 25)
         type_rect = pygame.Rect(self.rect.x + 2, self.rect.y + self.rect.height - type_height - 2, 
                                type_width, type_height)
         pygame.draw.rect(surface, type_color, type_rect)
+        
+        # Render Egyptian animations
+        self._render_egyptian_effects(surface)
+    
+    def _render_egyptian_effects(self, surface: pygame.Surface) -> None:
+        """Render Egyptian-themed visual effects on the card."""
+        # Ankh glow effect for selection
+        if self.animation_state['ankh_glow'] > 0.1:
+            self.egyptian_renderer.render_ankh_glow(
+                surface, self.rect, self.animation_state['ankh_glow']
+            )
+        
+        # Scarab rotation for rare cards
+        if self.card.rarity in [CardRarity.RARE, CardRarity.LEGENDARY] and self.animation_state['scarab_rotation'] > 0:
+            self.egyptian_renderer.render_scarab_rotation(
+                surface, self.rect, self.animation_state['scarab_rotation']
+            )
+        
+        # Lotus bloom for hover effects
+        if self.hovered and self.animation_state['lotus_bloom'] != 1.0:
+            self.egyptian_renderer.render_lotus_bloom(
+                surface, self.rect, self.animation_state['lotus_bloom']
+            )
+        
+        # Egyptian pulse for legendary cards
+        if self.card.rarity == CardRarity.LEGENDARY and self.animation_state['egyptian_pulse'] != 1.0:
+            self.egyptian_renderer.render_egyptian_pulse(
+                surface, self.rect, self.animation_state['egyptian_pulse'] - 1.0
+            )
 
 
 class CardCollection(UIComponent):
@@ -205,6 +297,11 @@ class CardCollection(UIComponent):
         self.show_new = False
         self.search_text = ""
         
+        # Performance optimizations
+        self.lazy_loading_enabled = True
+        self.visible_card_cache: Dict[int, CardDisplay] = {}
+        self.last_visible_range = (0, 0)
+        
         # Initialize with player's collection
         self.refresh_collection()
     
@@ -220,6 +317,14 @@ class CardCollection(UIComponent):
             favorites_only=self.favorites_only
         )
         
+        # Apply search text filter
+        if self.search_text:
+            search_lower = self.search_text.lower()
+            self.filtered_cards = [
+                card for card in self.filtered_cards
+                if search_lower in card.name.lower() or search_lower in card.description.lower()
+            ]
+        
         # Add recently discovered cards if show_new is enabled
         if self.show_new:
             recent_cards = self.player_collection.get_recently_discovered()
@@ -233,8 +338,96 @@ class CardCollection(UIComponent):
         self._create_card_displays()
         self.logger.debug(f"Refreshed collection with {len(self.filtered_cards)} cards")
     
+    def remove_card_from_collection_display(self, card: Card) -> bool:
+        """Remove a card from the collection display after it's been moved to deck."""
+        # Remove from filtered cards
+        if card in self.filtered_cards:
+            self.filtered_cards.remove(card)
+            
+        # Remove the corresponding card display
+        for i, card_display in enumerate(self.card_displays):
+            if card_display.card.id == card.id:
+                self.card_displays.pop(i)
+                break
+        
+        # Update layout to fill the gap
+        self._create_card_displays()
+        self.logger.debug(f"Removed {card.name} from collection display")
+        return True
+    
     def _create_card_displays(self) -> None:
-        """Create card display components for filtered cards."""
+        """Create card display components for filtered cards with lazy loading optimization."""
+        if self.lazy_loading_enabled:
+            # Only create displays for cards that might be visible
+            self._create_visible_card_displays()
+        else:
+            # Create all displays (fallback for compatibility)
+            self._create_all_card_displays()
+        
+        # Calculate scrolling bounds
+        total_rows = (len(self.filtered_cards) + self.cards_per_row - 1) // self.cards_per_row
+        total_height = total_rows * (self.card_height + self.card_spacing) + self.card_spacing
+        self.max_scroll = max(0, total_height - self.rect.height)
+    
+    def _create_visible_card_displays(self) -> None:
+        """Create card displays only for currently visible cards (lazy loading)."""
+        self.card_displays.clear()
+        
+        if not self.filtered_cards:
+            return
+        
+        # Calculate visible range based on scroll position
+        visible_start_row = max(0, (self.scroll_offset - self.card_height) // (self.card_height + self.card_spacing))
+        visible_end_row = min(
+            (len(self.filtered_cards) + self.cards_per_row - 1) // self.cards_per_row,
+            (self.scroll_offset + self.rect.height + self.card_height) // (self.card_height + self.card_spacing) + 1
+        )
+        
+        visible_start_index = visible_start_row * self.cards_per_row
+        visible_end_index = min(len(self.filtered_cards), (visible_end_row + 1) * self.cards_per_row)
+        
+        # Cache visible range for performance tracking
+        self.last_visible_range = (visible_start_index, visible_end_index)
+        
+        for i in range(visible_start_index, visible_end_index):
+            if i >= len(self.filtered_cards):
+                break
+                
+            card = self.filtered_cards[i]
+            row = i // self.cards_per_row
+            col = i % self.cards_per_row
+            
+            x = self.rect.x + col * (self.card_width + self.card_spacing) + self.card_spacing
+            y = self.rect.y + row * (self.card_height + self.card_spacing) + self.card_spacing
+            
+            owned_count = self.player_collection.get_card_count(card.id)
+            is_favorite = self.player_collection.is_favorite(card.id)
+            
+            card_display = CardDisplay(x, y, self.card_width, self.card_height, 
+                                     card, owned_count, is_favorite, draggable=True)
+            card_display.add_event_handler("card_selected", self._on_card_selected)
+            card_display.add_event_handler("card_drag_start", self._on_card_drag_start)
+            card_display.add_event_handler("card_drag_end", self._on_card_drag_end)
+            card_display.add_event_handler("card_dragging", self._on_card_dragging)
+            card_display.add_event_handler("card_double_click", self._on_card_double_click)
+            
+            # Add accessibility attributes
+            rarity_text = card.rarity.value if hasattr(card.rarity, 'value') else str(card.rarity)
+            type_text = card.card_type.value if hasattr(card.card_type, 'value') else str(card.card_type)
+            favorite_text = " (favorite)" if is_favorite else ""
+            
+            card_display.accessibility = {
+                'role': 'button',
+                'label': f"{card.name}, {rarity_text} {type_text}, {card.sand_cost} sand cost, owned: {owned_count}{favorite_text}",
+                'keyboard_accessible': True,
+                'screen_reader_text': f"Collection card {i+1}: {card.name}, drag to deck or click for details",
+                'drag_instructions': "Drag to deck area to add to your deck"
+            }
+            
+            self.card_displays.append(card_display)
+    
+    def _create_all_card_displays(self) -> None:
+        """Create card displays for all cards (fallback method)."""
         self.card_displays.clear()
         
         for i, card in enumerate(self.filtered_cards):
@@ -253,12 +446,8 @@ class CardCollection(UIComponent):
             card_display.add_event_handler("card_drag_start", self._on_card_drag_start)
             card_display.add_event_handler("card_drag_end", self._on_card_drag_end)
             card_display.add_event_handler("card_dragging", self._on_card_dragging)
+            card_display.add_event_handler("card_double_click", self._on_card_double_click)
             self.card_displays.append(card_display)
-        
-        # Calculate scrolling bounds
-        total_rows = (len(self.filtered_cards) + self.cards_per_row - 1) // self.cards_per_row
-        total_height = total_rows * (self.card_height + self.card_spacing) + self.card_spacing
-        self.max_scroll = max(0, total_height - self.rect.height)
     
     def _on_card_selected(self, component: UIComponent, event_data: Dict[str, Any]) -> None:
         """Handle card selection."""
@@ -290,9 +479,6 @@ class CardCollection(UIComponent):
         drop_pos = event_data["drop_pos"]
         original_pos = event_data["original_pos"]
         
-        # Reset card position to original if not successfully dropped
-        component.rect.x, component.rect.y = original_pos
-        
         # Trigger parent event for deck builder to handle
         self._trigger_event("card_drag_end", {
             "card": card, 
@@ -305,6 +491,17 @@ class CardCollection(UIComponent):
         """Handle card being dragged."""
         card = event_data["card"]
         self._trigger_event("card_dragging", {"card": card, "component": component})
+    
+    def _on_card_double_click(self, component: UIComponent, event_data: Dict[str, Any]) -> None:
+        """Handle card double-click to add to deck automatically."""
+        card = event_data["card"]
+        self.logger.debug(f"Double-click detected on card: {card.name}")
+        
+        # Trigger event for deck builder to handle adding the card
+        self._trigger_event("card_double_click", {
+            "card": card, 
+            "component": component
+        })
     
     def set_filters(self, **filters) -> None:
         """Set multiple filters at once."""
@@ -322,6 +519,8 @@ class CardCollection(UIComponent):
             self.favorites_only = filters["favorites_only"]
         if "show_new" in filters:
             self.show_new = filters["show_new"]
+        if "search_text" in filters:
+            self.search_text = filters["search_text"]
         
         self.refresh_collection()
     
@@ -341,24 +540,31 @@ class CardCollection(UIComponent):
         if not self.visible:
             return
         
-        # Draw background
-        pygame.draw.rect(surface, (30, 25, 20), self.rect)
-        pygame.draw.rect(surface, self.border_color, self.rect, 2)
+        # Draw background with theme colors
+        theme = get_theme()
+        pygame.draw.rect(surface, theme.colors.COLLECTION_BG, self.rect)
+        pygame.draw.rect(surface, theme.colors.BRONZE, self.rect, 2)
         
         # Create clipping surface for scrolling
         clip_surface = surface.subsurface(self.rect)
         
-        # Render visible cards
+        # Render visible cards with proper scroll offset
         for card_display in self.card_displays:
             if self._is_card_visible(card_display):
-                adjusted_rect = card_display.rect.copy()
-                adjusted_rect.y -= self.scroll_offset
+                # Calculate position relative to the collection area
+                render_x = card_display.rect.x - self.rect.x
+                render_y = card_display.rect.y - self.rect.y - self.scroll_offset
                 
-                # Temporarily adjust the card display position
-                old_rect = card_display.rect
-                card_display.rect = adjusted_rect
-                card_display.render(clip_surface)
-                card_display.rect = old_rect
+                # Only render if the card is within the visible area
+                if render_y + card_display.rect.height >= 0 and render_y <= self.rect.height:
+                    # Create a temporary rect for rendering
+                    render_rect = pygame.Rect(render_x, render_y, card_display.rect.width, card_display.rect.height)
+                    
+                    # Temporarily adjust the card display position for rendering
+                    old_rect = card_display.rect
+                    card_display.rect = render_rect
+                    card_display.render(clip_surface)
+                    card_display.rect = old_rect
     
     def handle_event(self, event: pygame.event.Event) -> bool:
         """Handle events for card selection and scrolling."""
@@ -370,22 +576,48 @@ class CardCollection(UIComponent):
             self._scroll(-event.y * 30)  # Scroll speed
             return True
         
-        # Handle card interactions by directly calling card display event handlers
-        if event.type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(event.pos):
-            # Adjust click position for scroll offset
-            adjusted_pos = (event.pos[0], event.pos[1] + self.scroll_offset)
+        # Forward events to card displays for proper drag handling
+        mouse_in_area = self.rect.collidepoint(pygame.mouse.get_pos()) if hasattr(event, 'pos') else False
+        any_dragging = any(card.being_dragged for card in self.card_displays)
+        
+        if mouse_in_area or any_dragging:
+            # CRITICAL FIX: Create adjusted event with correct collision detection
+            if hasattr(event, 'pos'):
+                # Create event with original position for accurate collision detection
+                # We'll handle scroll offset inside the card rendering/collision logic
+                adjusted_event = event
+                
+                # Debug logging for coordinate tracking
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    self.logger.debug(f"Click event: pos={event.pos}, scroll_offset={self.scroll_offset}")
+            else:
+                adjusted_event = event
             
-            for card_display in self.card_displays:
-                if card_display.rect.collidepoint(adjusted_pos):
-                    # Directly toggle card selection and trigger events
-                    card_display.selected = not card_display.selected
-                    
-                    # Trigger the card selection event that CardCollection is listening for
-                    self._on_card_selected(card_display, {
-                        "card": card_display.card,
-                        "selected": card_display.selected
-                    })
-                    return True
+            # Forward to card displays with scroll-aware collision detection
+            for card_display in reversed(self.card_displays):
+                if self._is_card_visible(card_display):
+                    # Create scroll-adjusted rect for collision detection
+                    if hasattr(event, 'pos'):
+                        adjusted_card_rect = card_display.rect.copy()
+                        adjusted_card_rect.y -= self.scroll_offset
+                        
+                        # Check collision with adjusted rect
+                        if event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION]:
+                            if adjusted_card_rect.collidepoint(event.pos):
+                                # Create event with position adjusted to card's coordinate space
+                                card_adjusted_pos = (event.pos[0], event.pos[1] + self.scroll_offset)
+                                card_event = pygame.event.Event(
+                                    event.type,
+                                    dict(event.dict, pos=card_adjusted_pos)
+                                )
+                                if card_display.handle_event(card_event):
+                                    return True
+                        else:
+                            if card_display.handle_event(adjusted_event):
+                                return True
+                    else:
+                        if card_display.handle_event(adjusted_event):
+                            return True
         
         return super().handle_event(event)
     
@@ -462,11 +694,17 @@ class CardCollection(UIComponent):
             card_display.add_event_handler("card_drag_start", self._on_card_drag_start)
             card_display.add_event_handler("card_drag_end", self._on_card_drag_end)
             card_display.add_event_handler("card_dragging", self._on_card_dragging)
+            card_display.add_event_handler("card_double_click", self._on_card_double_click)
             self.card_displays.append(card_display)
     
     def _scroll(self, delta: int) -> None:
-        """Scroll the card collection."""
+        """Scroll the card collection with lazy loading optimization."""
+        old_scroll = self.scroll_offset
         self.scroll_offset = max(0, min(self.max_scroll, self.scroll_offset + delta))
+        
+        # Recreate card displays if scroll position changed significantly with lazy loading
+        if self.lazy_loading_enabled and abs(self.scroll_offset - old_scroll) > self.card_height:
+            self._create_card_displays()
     
     def _is_card_visible(self, card_display: CardDisplay) -> bool:
         """Check if a card display is currently visible."""
@@ -516,36 +754,37 @@ class DeckView(UIComponent):
         if not self.visible:
             return
         
-        # Draw background with drop zone highlighting
-        bg_color = (25, 20, 15)
-        border_color = self.border_color
+        # Draw background with theme colors and drop zone highlighting
+        theme = get_theme()
+        bg_color = theme.colors.DECK_VIEW_BG
+        border_color = theme.colors.BRONZE
         
         if self.drop_highlight:
-            bg_color = (40, 35, 25)  # Lighter background when hovering with card
-            border_color = (255, 215, 0)  # Gold border for drop zone
+            bg_color = theme.colors.HOVER  # Lighter background when hovering with card
+            border_color = theme.colors.GOLD  # Gold border for drop zone
         
         pygame.draw.rect(surface, bg_color, self.rect)
         pygame.draw.rect(surface, border_color, self.rect, 3 if self.drop_highlight else 2)
         
-        # Draw title with responsive font size
+        # Draw title with theme colors
         title_font_size = max(16, min(28, self.rect.width // 20))
         font = pygame.font.Font(None, title_font_size)
         title = "Deck"
-        if self.deck:
+        if self.deck is not None:
             title += f" ({len(self.deck.cards)}/30)"  # Assuming 30 card limit
         
-        title_surface = font.render(title, True, self.text_color)
+        title_surface = font.render(title, True, theme.colors.HIGH_CONTRAST_TEXT)
         title_rect = title_surface.get_rect()
         title_rect.left = self.rect.left + 10
         title_rect.top = self.rect.top + 5
         surface.blit(title_surface, title_rect)
         
-        # Draw drop zone hint if deck is empty
-        if not self.deck or len(self.deck.cards) == 0:
+        # Draw drop zone hint with theme colors
+        if self.deck is None or len(self.deck.cards) == 0:
             hint_font_size = max(14, min(20, self.rect.width // 30))
             hint_font = pygame.font.Font(None, hint_font_size)
             hint_text = "Drag cards here to build your deck"
-            hint_surface = hint_font.render(hint_text, True, (150, 150, 100))
+            hint_surface = hint_font.render(hint_text, True, theme.colors.MEDIUM_CONTRAST_TEXT)
             hint_rect = hint_surface.get_rect()
             hint_rect.center = self.rect.center
             surface.blit(hint_surface, hint_rect)
@@ -570,10 +809,12 @@ class DeckView(UIComponent):
         
         # Handle drag events for drop zone highlighting
         if event.type == pygame.MOUSEMOTION:
-            # Check if we're in the drop zone
-            in_drop_zone = self.rect.collidepoint(mouse_pos)
+            # Check if we're in the drop zone using the same logic as is_valid_drop_zone
+            in_drop_zone = self.is_valid_drop_zone(mouse_pos)
             if in_drop_zone != self.drop_highlight:
                 self.drop_highlight = in_drop_zone
+                # Debug logging
+                logging.getLogger(__name__).debug(f"Drop highlight changed: {self.drop_highlight} at {mouse_pos}")
         
         # Let card displays handle their own events
         for card_display in self.card_displays:
@@ -589,17 +830,24 @@ class DeckView(UIComponent):
     
     def add_card(self, card: Card) -> bool:
         """Add a card to the deck."""
-        if self.deck and len(self.deck.cards) < 30:  # Deck size limit
+        if self.deck is not None:
             # Create a copy of the card for the deck to avoid issues
-            deck_card = card.copy(deep=True) if hasattr(card, 'copy') else card
-            self.deck.add_card(deck_card)
-            self._update_layout()
-            return True
+            if hasattr(card, 'model_copy'):
+                deck_card = card.model_copy(deep=True)
+            elif hasattr(card, 'copy'):
+                deck_card = card.copy(deep=True)
+            else:
+                deck_card = card
+            # Use deck's own size validation (max_size)
+            success = self.deck.add_card(deck_card)
+            if success:
+                self._update_layout()
+            return success
         return False
     
     def remove_card_at(self, index: int) -> Optional[Card]:
         """Remove a card at the specified index."""
-        if self.deck and 0 <= index < len(self.deck.cards):
+        if self.deck is not None and 0 <= index < len(self.deck.cards):
             card = self.deck.cards.pop(index)
             self._update_layout()
             return card
@@ -609,7 +857,7 @@ class DeckView(UIComponent):
         """Update the layout of cards in the deck view."""
         self.card_displays.clear()
         
-        if not self.deck:
+        if self.deck is None:
             return
         
         start_y = self.rect.top + 35  # Leave space for title
@@ -624,6 +872,15 @@ class DeckView(UIComponent):
             # Deck cards are not draggable, only removable via right-click
             card_display = CardDisplay(x, y, self.card_width, self.card_height, card, draggable=False)
             card_display.add_event_handler("card_selected", self._on_deck_card_selected)
+            
+            # Add accessibility attributes
+            card_display.accessibility = {
+                'role': 'button',
+                'label': f"{card.name} in deck, {card.sand_cost} sand cost, right-click to remove",
+                'keyboard_accessible': True,
+                'screen_reader_text': f"Deck card {i+1} of {len(self.deck.cards)}: {card.name}"
+            }
+            
             self.card_displays.append(card_display)
     
     def _remove_card(self, index: int) -> None:
@@ -640,84 +897,462 @@ class DeckView(UIComponent):
     
     def accept_dropped_card(self, card: Card) -> bool:
         """Accept a card dropped into this deck view."""
+        logger = logging.getLogger(__name__)
+        logger.debug(f"Attempting to add card {card.name} to deck")
+        
+        if self.deck is None:
+            logger.error("No deck available to add card to")
+            return False
+        
         if self.add_card(card):
+            logger.info(f"Successfully added {card.name} to deck (deck size: {len(self.deck.cards)})")
             self._trigger_event("card_added_to_deck", {"card": card})
             return True
-        return False
+        else:
+            logger.warning(f"Failed to add {card.name} to deck")
+            return False
     
     def is_valid_drop_zone(self, pos: Tuple[int, int]) -> bool:
         """Check if a position is a valid drop zone for cards."""
-        return self.rect.collidepoint(pos)
+        # CRITICAL FIX: More robust drop zone detection
+        if not self.rect.collidepoint(pos):
+            return False
+        
+        # Additional validation to ensure we're in the actual deck area
+        # (not just the title or borders)
+        title_height = 35  # Space reserved for title
+        actual_deck_area = pygame.Rect(
+            self.rect.x + 10,  # Small margin from border
+            self.rect.y + title_height,
+            self.rect.width - 20,  # Margins on both sides
+            self.rect.height - title_height - 10  # Bottom margin
+        )
+        is_valid = actual_deck_area.collidepoint(pos)
+        
+        # Debug logging
+        if hasattr(self, 'logger'):
+            if not hasattr(self, '_last_drop_debug') or self._last_drop_debug != pos:
+                self._last_drop_debug = pos
+                logging.getLogger(__name__).debug(f"Drop zone check: pos={pos}, deck_rect={self.rect}, deck_area={actual_deck_area}, valid={is_valid}")
+        
+        return is_valid
 
 
 class FilterPanel(UIComponent):
     """
-    Panel with filter controls for the card collection.
+    Enhanced collapsible panel with filter controls for the card collection.
+    Includes Egyptian-themed visual elements and improved UX.
     """
     
     def __init__(self, x: int, y: int, width: int, height: int):
         super().__init__(x, y, width, height)
+        
+        # Filter state
         self.selected_rarity: Optional[CardRarity] = None
+        self.selected_type: Optional[CardType] = None
         self.selected_cost: Optional[int] = None
+        self.cost_min: Optional[int] = None
+        self.cost_max: Optional[int] = None
+        self.search_text: str = ""
+        
+        # Panel state
+        self.is_collapsed = False
+        self.collapse_height = 40  # Height when collapsed
+        self.expanded_height = height
+        self.collapse_animation_progress = 1.0  # 1.0 = expanded, 0.0 = collapsed
         
         # Responsive font sizing based on panel width
         self.font_size = max(16, min(24, width // 12))
         self.line_height = self.font_size + 4
         
+        # Interactive areas for clicking filters
+        self.filter_buttons: Dict[str, pygame.Rect] = {}
+        self.search_input_active = False
+        
+        # Accessibility features
+        self.high_contrast_mode = False
+        
+        # Egyptian icons for visual appeal (simple shapes for now)
+        self.egyptian_colors = {
+            'ankh': (255, 215, 0),     # Gold
+            'scarab': (139, 117, 93),  # Bronze
+            'lotus': (100, 180, 100)   # Green
+        }
+        
     def update(self, delta_time: float) -> None:
-        """Update filter panel."""
-        pass
+        """Update filter panel and collapse animation."""
+        # Update collapse animation
+        target_progress = 0.0 if self.is_collapsed else 1.0
+        if abs(self.collapse_animation_progress - target_progress) > 0.01:
+            animation_speed = 5.0  # Animation speed
+            if self.collapse_animation_progress < target_progress:
+                self.collapse_animation_progress = min(1.0, self.collapse_animation_progress + delta_time * animation_speed)
+            else:
+                self.collapse_animation_progress = max(0.0, self.collapse_animation_progress - delta_time * animation_speed)
+        
+        # Update actual height based on animation progress
+        current_height = int(self.collapse_height + (self.expanded_height - self.collapse_height) * self.collapse_animation_progress)
+        self.rect.height = current_height
     
     def render(self, surface: pygame.Surface) -> None:
-        """Render the filter panel with responsive sizing."""
+        """Render the enhanced filter panel with sandstone colors and Egyptian styling."""
         if not self.visible:
             return
         
-        # Draw background
-        pygame.draw.rect(surface, (35, 30, 25), self.rect)
-        pygame.draw.rect(surface, self.border_color, self.rect, 2)
+        # Use sandstone background color
+        bg_color = (245, 222, 179) if not self.is_collapsed else (220, 200, 165)  # F5DEB3 sandstone
+        border_color = (139, 117, 93)  # Bronze border
+        
+        # Draw background with Egyptian styling
+        pygame.draw.rect(surface, bg_color, self.rect)
+        pygame.draw.rect(surface, border_color, self.rect, 3)
+        
+        # Add decorative corner elements (simple Egyptian-style corners)
+        corner_size = min(10, self.rect.width // 20)
+        for corner in [(self.rect.left, self.rect.top), (self.rect.right - corner_size, self.rect.top)]:
+            pygame.draw.rect(surface, (255, 215, 0), (corner[0], corner[1], corner_size, corner_size))
         
         # Use responsive font sizing
         font = pygame.font.Font(None, self.font_size)
         small_font = pygame.font.Font(None, max(14, self.font_size - 4))
+        tiny_font = pygame.font.Font(None, max(12, self.font_size - 6))
         
         padding = max(5, self.rect.width // 30)
         y_offset = self.rect.top + padding
         
-        # Title
-        title_text = font.render("Filters", True, (255, 215, 0))
-        surface.blit(title_text, (self.rect.x + padding, y_offset))
+        # Title with collapse/expand button
+        title_text = "Filters " + ("▼" if not self.is_collapsed else "▶")
+        title_surface = font.render(title_text, True, (139, 117, 93))  # Deep brown text
+        surface.blit(title_surface, (self.rect.x + padding, y_offset))
+        
+        # Store collapse button area for click detection
+        self.filter_buttons['collapse'] = pygame.Rect(
+            self.rect.x + padding, y_offset, 
+            title_surface.get_width(), title_surface.get_height()
+        )
+        
         y_offset += self.line_height + padding
         
-        # Rarity filters
-        rarity_text = small_font.render("Rarity:", True, self.text_color)
-        surface.blit(rarity_text, (self.rect.x + padding, y_offset))
-        y_offset += self.line_height
-        
-        for rarity in CardRarity:
-            color = self.text_color if self.selected_rarity != rarity else (255, 215, 0)
-            rarity_label = small_font.render(rarity.value.title(), True, color)
-            surface.blit(rarity_label, (self.rect.x + padding * 2, y_offset))
-            y_offset += self.line_height - 2
-        
-        y_offset += padding
-        
-        # Cost filters
-        cost_text = small_font.render("Cost:", True, self.text_color)
-        surface.blit(cost_text, (self.rect.x + padding, y_offset))
-        y_offset += self.line_height
-        
-        for cost in range(7):  # 0-6 sand cost
-            color = self.text_color if self.selected_cost != cost else (255, 215, 0)
-            cost_label = small_font.render(str(cost), True, color)
-            surface.blit(cost_label, (self.rect.x + padding * 2, y_offset))
-            y_offset += self.line_height - 2
+        # Only show filters if not collapsed or still animating
+        if self.collapse_animation_progress > 0.1:
+            # Create a clipping surface for smooth collapse animation
+            if self.collapse_animation_progress < 1.0:
+                remaining_height = int((self.rect.bottom - y_offset) * self.collapse_animation_progress)
+                if remaining_height <= 0:
+                    return
+                clip_surface = surface.subsurface(
+                    pygame.Rect(self.rect.x, y_offset, self.rect.width, remaining_height)
+                )
+                render_surface = clip_surface
+                base_y = 0
+            else:
+                render_surface = surface
+                base_y = y_offset
+            
+            # Search box
+            search_label = small_font.render("Search:", True, (47, 27, 20))
+            render_surface.blit(search_label, (padding, base_y))
+            search_y = base_y + self.line_height
+            
+            # Search input box with Egyptian styling
+            search_box_rect = pygame.Rect(padding, search_y, self.rect.width - padding * 2, self.line_height + 4)
+            search_bg = (255, 248, 220) if self.search_input_active else (235, 228, 200)
+            pygame.draw.rect(render_surface, search_bg, search_box_rect)
+            pygame.draw.rect(render_surface, border_color, search_box_rect, 2)
+            
+            search_display = self.search_text if self.search_text else "Enter card name..."
+            search_color = (47, 27, 20) if self.search_text else (120, 100, 80)
+            search_surface = tiny_font.render(search_display, True, search_color)
+            render_surface.blit(search_surface, (search_box_rect.x + 4, search_box_rect.y + 2))
+            
+            self.filter_buttons['search'] = pygame.Rect(
+                self.rect.x + search_box_rect.x, self.rect.y + search_y, 
+                search_box_rect.width, search_box_rect.height
+            )
+            
+            current_y = base_y + self.line_height * 3
+            
+            # Rarity filters with Egyptian icons
+            rarity_text = small_font.render("✦ Rarity:", True, (47, 27, 20))
+            render_surface.blit(rarity_text, (padding, current_y))
+            current_y += self.line_height
+            
+            rarity_colors = {
+                CardRarity.COMMON: (139, 117, 93),
+                CardRarity.UNCOMMON: (100, 150, 100),
+                CardRarity.RARE: (100, 100, 200),
+                CardRarity.LEGENDARY: (255, 215, 0)
+            }
+            
+            for rarity in CardRarity:
+                is_selected = self.selected_rarity == rarity
+                color = rarity_colors.get(rarity, (47, 27, 20))
+                if is_selected:
+                    # Highlight selected with sandstone background
+                    highlight_rect = pygame.Rect(padding * 2 - 2, current_y - 2, self.rect.width - padding * 4, self.line_height)
+                    pygame.draw.rect(render_surface, (200, 180, 140), highlight_rect)
+                    pygame.draw.rect(render_surface, (255, 215, 0), highlight_rect, 1)
+                
+                rarity_label = tiny_font.render(f"● {rarity.value.title()}", True, color)
+                render_surface.blit(rarity_label, (padding * 2, current_y))
+                
+                # Store button area
+                button_rect = pygame.Rect(
+                    self.rect.x + padding * 2, self.rect.y + current_y,
+                    rarity_label.get_width(), rarity_label.get_height()
+                )
+                self.filter_buttons[f'rarity_{rarity.value}'] = button_rect
+                
+                current_y += self.line_height - 2
+            
+            current_y += padding
+            
+            # Card Type filters
+            type_text = small_font.render("⚔ Type:", True, (47, 27, 20))
+            render_surface.blit(type_text, (padding, current_y))
+            current_y += self.line_height
+            
+            type_colors = {
+                CardType.ATTACK: (200, 100, 100),
+                CardType.SKILL: (100, 200, 100),
+                CardType.POWER: (100, 100, 200),
+                CardType.CURSE: (150, 50, 150)
+            }
+            
+            for card_type in CardType:
+                is_selected = self.selected_type == card_type
+                color = type_colors.get(card_type, (47, 27, 20))
+                if is_selected:
+                    highlight_rect = pygame.Rect(padding * 2 - 2, current_y - 2, self.rect.width - padding * 4, self.line_height)
+                    pygame.draw.rect(render_surface, (200, 180, 140), highlight_rect)
+                    pygame.draw.rect(render_surface, (255, 215, 0), highlight_rect, 1)
+                
+                type_label = tiny_font.render(f"◆ {card_type.value.title()}", True, color)
+                render_surface.blit(type_label, (padding * 2, current_y))
+                
+                self.filter_buttons[f'type_{card_type.value}'] = pygame.Rect(
+                    self.rect.x + padding * 2, self.rect.y + current_y,
+                    type_label.get_width(), type_label.get_height()
+                )
+                
+                current_y += self.line_height - 2
+            
+            current_y += padding
+            
+            # Cost filters with Egyptian styling
+            cost_text = small_font.render("⏳ Sand Cost:", True, (47, 27, 20))
+            render_surface.blit(cost_text, (padding, current_y))
+            current_y += self.line_height
+            
+            # Cost range display
+            cost_range_text = "All" if self.cost_min is None and self.cost_max is None else f"{self.cost_min or 0}-{self.cost_max or 6}"
+            range_surface = tiny_font.render(f"Range: {cost_range_text}", True, (47, 27, 20))
+            render_surface.blit(range_surface, (padding * 2, current_y))
+            current_y += self.line_height
+            
+            # Individual cost buttons
+            cost_x = padding * 2
+            for cost in range(7):  # 0-6 sand cost
+                is_selected = self.selected_cost == cost
+                color = (255, 215, 0) if is_selected else (139, 117, 93)
+                
+                if is_selected:
+                    cost_bg = pygame.Rect(cost_x - 2, current_y - 2, 20, self.line_height)
+                    pygame.draw.rect(render_surface, (200, 180, 140), cost_bg)
+                    pygame.draw.rect(render_surface, (255, 215, 0), cost_bg, 1)
+                
+                cost_label = tiny_font.render(str(cost), True, color)
+                render_surface.blit(cost_label, (cost_x, current_y))
+                
+                self.filter_buttons[f'cost_{cost}'] = pygame.Rect(
+                    self.rect.x + cost_x, self.rect.y + current_y,
+                    15, cost_label.get_height()
+                )
+                
+                cost_x += 25
+            
+            current_y += self.line_height + padding
+            
+            # Clear filters button
+            clear_button_rect = pygame.Rect(padding, current_y, self.rect.width - padding * 2, self.line_height + 4)
+            pygame.draw.rect(render_surface, (220, 200, 160), clear_button_rect)
+            pygame.draw.rect(render_surface, border_color, clear_button_rect, 2)
+            clear_text = tiny_font.render("Clear All Filters", True, (47, 27, 20))
+            text_x = clear_button_rect.x + (clear_button_rect.width - clear_text.get_width()) // 2
+            render_surface.blit(clear_text, (text_x, clear_button_rect.y + 2))
+            
+            self.filter_buttons['clear'] = pygame.Rect(
+                self.rect.x + clear_button_rect.x, self.rect.y + current_y,
+                clear_button_rect.width, clear_button_rect.height
+            )
     
     def handle_event(self, event: pygame.event.Event) -> bool:
-        """Handle filter interactions."""
-        # Simplified click handling - in a full implementation,
-        # this would use proper button components
+        """Handle enhanced filter interactions including collapse/expand."""
+        if not self.visible or not self.enabled:
+            return False
+        
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            # Check all filter button clicks
+            for button_name, button_rect in self.filter_buttons.items():
+                if button_rect.collidepoint(event.pos):
+                    if button_name == 'collapse':
+                        self.is_collapsed = not self.is_collapsed
+                        return True
+                    
+                    elif button_name == 'search':
+                        self.search_input_active = True
+                        return True
+                    
+                    elif button_name.startswith('rarity_'):
+                        rarity_name = button_name.split('_', 1)[1]
+                        target_rarity = None
+                        for rarity in CardRarity:
+                            if rarity.value == rarity_name:
+                                target_rarity = rarity
+                                break
+                        
+                        # Toggle selection
+                        if self.selected_rarity == target_rarity:
+                            self.selected_rarity = None
+                        else:
+                            self.selected_rarity = target_rarity
+                        
+                        self._trigger_filter_change()
+                        return True
+                    
+                    elif button_name.startswith('type_'):
+                        type_name = button_name.split('_', 1)[1]
+                        target_type = None
+                        for card_type in CardType:
+                            if card_type.value == type_name:
+                                target_type = card_type
+                                break
+                        
+                        # Toggle selection
+                        if self.selected_type == target_type:
+                            self.selected_type = None
+                        else:
+                            self.selected_type = target_type
+                        
+                        self._trigger_filter_change()
+                        return True
+                    
+                    elif button_name.startswith('cost_'):
+                        cost = int(button_name.split('_', 1)[1])
+                        
+                        # Toggle cost selection
+                        if self.selected_cost == cost:
+                            self.selected_cost = None
+                            self.cost_min = None
+                            self.cost_max = None
+                        else:
+                            self.selected_cost = cost
+                            self.cost_min = cost
+                            self.cost_max = cost
+                        
+                        self._trigger_filter_change()
+                        return True
+                    
+                    elif button_name == 'clear':
+                        self.clear_all_filters()
+                        return True
+            
+            # Click outside search box deactivates it
+            if self.search_input_active:
+                search_rect = self.filter_buttons.get('search')
+                if not search_rect or not search_rect.collidepoint(event.pos):
+                    self.search_input_active = False
+        
+        elif event.type == pygame.KEYDOWN:
+            # Handle keyboard navigation and search input
+            if self.search_input_active:
+                # Handle search text input
+                if event.key == pygame.K_BACKSPACE:
+                    self.search_text = self.search_text[:-1]
+                    self._trigger_filter_change()
+                    return True
+                elif event.key == pygame.K_RETURN:
+                    self.search_input_active = False
+                    return True
+                elif event.key == pygame.K_ESCAPE:
+                    self.search_input_active = False
+                    self.search_text = ""
+                    self._trigger_filter_change()
+                    return True
+                elif event.unicode.isprintable() and len(self.search_text) < 20:
+                    self.search_text += event.unicode
+                    self._trigger_filter_change()
+                    return True
+            else:
+                # Handle keyboard shortcuts for accessibility
+                if event.key == pygame.K_F1:
+                    # Toggle high contrast mode
+                    self.toggle_high_contrast()
+                    return True
+                elif event.key == pygame.K_c and event.mod & pygame.KMOD_CTRL:
+                    # Clear all filters (Ctrl+C)
+                    self.clear_all_filters()
+                    return True
+                elif event.key == pygame.K_SLASH:
+                    # Focus search (/) 
+                    self.search_input_active = True
+                    return True
+        
         return super().handle_event(event)
+    
+    def _trigger_filter_change(self) -> None:
+        """Trigger filter change event."""
+        filter_data = {
+            'rarity': self.selected_rarity,
+            'type': self.selected_type,
+            'cost_min': self.cost_min,
+            'cost_max': self.cost_max,
+            'search_text': self.search_text
+        }
+        self._trigger_event('filters_changed', filter_data)
+    
+    def clear_all_filters(self) -> None:
+        """Clear all active filters."""
+        self.selected_rarity = None
+        self.selected_type = None
+        self.selected_cost = None
+        self.cost_min = None
+        self.cost_max = None
+        self.search_text = ""
+        self._trigger_filter_change()
+    
+    def get_active_filters(self) -> Dict[str, Any]:
+        """Get currently active filters."""
+        return {
+            'rarity': self.selected_rarity,
+            'type': self.selected_type,
+            'cost_min': self.cost_min,
+            'cost_max': self.cost_max,
+            'search_text': self.search_text
+        }
+    
+    def toggle_high_contrast(self) -> None:
+        """Toggle high contrast mode for accessibility."""
+        self.high_contrast_mode = not self.high_contrast_mode
+        self._trigger_event('high_contrast_changed', {'enabled': self.high_contrast_mode})
+    
+    def get_accessibility_info(self) -> str:
+        """Get current filter status for screen readers."""
+        filters = []
+        if self.selected_rarity:
+            filters.append(f"Rarity: {self.selected_rarity.value}")
+        if self.selected_type:
+            filters.append(f"Type: {self.selected_type.value}")
+        if self.cost_min is not None or self.cost_max is not None:
+            cost_range = f"{self.cost_min or 0}-{self.cost_max or 6}"
+            filters.append(f"Cost: {cost_range}")
+        if self.search_text:
+            filters.append(f"Search: {self.search_text}")
+        
+        if filters:
+            return f"Active filters: {', '.join(filters)}"
+        else:
+            return "No active filters"
 
 
 class DeckBuilderScreen(UIScreen):
@@ -765,7 +1400,7 @@ class DeckBuilderScreen(UIScreen):
             # Back button using theme zone
             back_button = MenuButton(
                 back_zone.x, back_zone.y, back_zone.width, back_zone.height,
-                "<- Back to Progression",
+                "< Back to Progression",
                 self._back_to_progression
             )
             self.add_component(back_button)
@@ -774,6 +1409,8 @@ class DeckBuilderScreen(UIScreen):
             self.filter_panel = FilterPanel(
                 filter_zone.x, filter_zone.y, filter_zone.width, filter_zone.height
             )
+            self.filter_panel.add_event_handler("filters_changed", self._on_filters_changed)
+            self.filter_panel.add_event_handler("high_contrast_changed", self._on_high_contrast_changed)
             self.add_component(self.filter_panel)
             
             # Create temporary player collection for testing
@@ -799,6 +1436,7 @@ class DeckBuilderScreen(UIScreen):
             self.card_collection.add_event_handler("card_drag_start", self._on_card_drag_start)
             self.card_collection.add_event_handler("card_drag_end", self._on_card_drag_end)
             self.card_collection.add_event_handler("card_dragging", self._on_card_dragging)
+            self.card_collection.add_event_handler("card_double_click", self._on_card_double_click)
             self.add_component(self.card_collection)
             
             # Deck view using theme zone
@@ -810,8 +1448,8 @@ class DeckBuilderScreen(UIScreen):
             self.deck_view.add_event_handler("deck_card_info", self._on_deck_card_info)
             self.add_component(self.deck_view)
             
-            # Initialize with empty deck
-            self.current_deck = Deck(name="Custom Deck")
+            # Initialize with empty deck with proper size limits
+            self.current_deck = Deck(name="Custom Deck", max_size=30)
             self.deck_view.set_deck(self.current_deck)
             
             self.logger.info(f"Deck builder UI setup for {theme.display.display_mode.value} mode")
@@ -826,13 +1464,15 @@ class DeckBuilderScreen(UIScreen):
         # Back button (top-left corner) - Egyptian themed
         back_button = MenuButton(
             20, 20, 150, 40,
-            "<- Back to Progression",
+            "< Back to Progression",
             self._back_to_progression
         )
         self.add_component(back_button)
         
         # Filter panel (left side)
         self.filter_panel = FilterPanel(20, 80, 150, 500)
+        self.filter_panel.add_event_handler("filters_changed", self._on_filters_changed)
+        self.filter_panel.add_event_handler("high_contrast_changed", self._on_high_contrast_changed)
         self.add_component(self.filter_panel)
         
         # Create temporary player collection for testing
@@ -844,6 +1484,7 @@ class DeckBuilderScreen(UIScreen):
         self.card_collection.add_event_handler("card_drag_start", self._on_card_drag_start)
         self.card_collection.add_event_handler("card_drag_end", self._on_card_drag_end)
         self.card_collection.add_event_handler("card_dragging", self._on_card_dragging)
+        self.card_collection.add_event_handler("card_double_click", self._on_card_double_click)
         self.add_component(self.card_collection)
         
         # Deck view (right side)
@@ -853,8 +1494,8 @@ class DeckBuilderScreen(UIScreen):
         self.deck_view.add_event_handler("deck_card_info", self._on_deck_card_info)
         self.add_component(self.deck_view)
         
-        # Initialize with empty deck
-        self.current_deck = Deck(name="Custom Deck")
+        # Initialize with empty deck with proper size limits
+        self.current_deck = Deck(name="Custom Deck", max_size=30)
         self.deck_view.set_deck(self.current_deck)
     
     def _setup_sample_data(self) -> None:
@@ -926,18 +1567,51 @@ class DeckBuilderScreen(UIScreen):
         card = event_data.get("card")
         drop_pos = event_data.get("drop_pos")
         card_component = event_data.get("component")
+        original_pos = event_data.get("original_pos")
+        
+        self.logger.debug(f"Card drag ended: card={card.name if card else 'None'}, drop_pos={drop_pos}, original_pos={original_pos}")
         
         if card and drop_pos and self.deck_view:
             # Check if card was dropped on the deck view
-            if self.deck_view.is_valid_drop_zone(drop_pos):
+            is_valid_drop = self.deck_view.is_valid_drop_zone(drop_pos)
+            self.logger.debug(f"Drop zone validation for {card.name}: valid={is_valid_drop}")
+            
+            if is_valid_drop:
                 # Try to add card to deck
-                if self.deck_view.accept_dropped_card(card):
+                add_success = self.deck_view.accept_dropped_card(card)
+                self.logger.debug(f"Deck add attempt for {card.name}: success={add_success}")
+                
+                if add_success:
                     self.logger.info(f"Successfully added {card.name} to deck via drag-and-drop")
-                    # Keep the card in its original position since it's been added
+                    # CRITICAL FIX: Remove card from collection display instead of resetting position
+                    if self.card_collection:
+                        self.card_collection.remove_card_from_collection_display(card)
+                    
+                    # Clear drag state but don't reset position - card should disappear from collection
+                    if card_component:
+                        card_component.being_dragged = False
+                        card_component.drag_offset_x = 0
+                        card_component.drag_offset_y = 0
+                        # Remove the card component from the collection's display list
+                        # (this is handled by remove_card_from_collection_display)
                 else:
                     self.logger.warning(f"Failed to add {card.name} to deck - deck may be full")
+                    # Reset card position on failed drop
+                    if card_component and original_pos:
+                        card_component.rect.x, card_component.rect.y = original_pos
+                        card_component.being_dragged = False
             else:
-                self.logger.debug(f"Card {card.name} dropped outside deck area")
+                self.logger.debug(f"Card {card.name} dropped outside deck area at {drop_pos}")
+                # Reset card position when dropped outside valid zone
+                if card_component and original_pos:
+                    card_component.rect.x, card_component.rect.y = original_pos
+                    card_component.being_dragged = False
+        else:
+            self.logger.warning(f"Incomplete drag end data: card={card}, drop_pos={drop_pos}, deck_view={self.deck_view}")
+            # Reset card position as fallback
+            if card_component and original_pos:
+                card_component.rect.x, card_component.rect.y = original_pos
+                card_component.being_dragged = False
     
     def _on_card_dragging(self, component: UIComponent, event_data: Dict[str, Any]) -> None:
         """Handle card being dragged - update drop zone highlights."""
@@ -945,6 +1619,27 @@ class DeckBuilderScreen(UIScreen):
         if card and self.deck_view:
             mouse_pos = pygame.mouse.get_pos()
             self.deck_view.drop_highlight = self.deck_view.rect.collidepoint(mouse_pos)
+    
+    def _on_card_double_click(self, component: UIComponent, event_data: Dict[str, Any]) -> None:
+        """Handle card double-click to automatically add to deck."""
+        card = event_data.get("card")
+        card_component = event_data.get("component")
+        
+        if card and self.deck_view:
+            self.logger.info(f"Double-click adding {card.name} to deck")
+            
+            # Try to add card to deck
+            add_success = self.deck_view.accept_dropped_card(card)
+            
+            if add_success:
+                self.logger.info(f"Successfully added {card.name} to deck via double-click")
+                # Remove card from collection display
+                if self.card_collection:
+                    self.card_collection.remove_card_from_collection_display(card)
+            else:
+                self.logger.warning(f"Failed to add {card.name} to deck - deck may be full")
+        else:
+            self.logger.warning(f"Double-click failed: card={card}, deck_view={self.deck_view}")
     
     def _on_card_added_to_deck(self, component: UIComponent, event_data: Dict[str, Any]) -> None:
         """Handle card successfully added to deck."""
@@ -957,6 +1652,41 @@ class DeckBuilderScreen(UIScreen):
         card = event_data.get("card")
         if card:
             self.logger.debug(f"Viewing info for deck card: {card.name}")
+    
+    def _on_filters_changed(self, component: UIComponent, event_data: Dict[str, Any]) -> None:
+        """Handle filter changes from the filter panel."""
+        if self.card_collection:
+            # Apply filters to card collection
+            self.card_collection.set_filters(
+                rarity=event_data.get('rarity'),
+                type=event_data.get('type'),
+                cost_min=event_data.get('cost_min'),
+                cost_max=event_data.get('cost_max'),
+                search_text=event_data.get('search_text', '')
+            )
+            self.logger.debug(f"Applied filters: {event_data}")
+            
+            # Log accessibility info
+            if hasattr(self.filter_panel, 'get_accessibility_info'):
+                accessibility_status = self.filter_panel.get_accessibility_info()
+                self.logger.info(f"Filter accessibility status: {accessibility_status}")
+    
+    def _on_high_contrast_changed(self, component: UIComponent, event_data: Dict[str, Any]) -> None:
+        """Handle high contrast mode changes."""
+        enabled = event_data.get('enabled', False)
+        self.logger.info(f"High contrast mode {'enabled' if enabled else 'disabled'}")
+        
+        # Propagate to all UI components that support high contrast
+        if self.card_collection:
+            for card_display in self.card_collection.card_displays:
+                if hasattr(card_display, 'accessibility'):
+                    card_display.accessibility['high_contrast_mode'] = enabled
+                    card_display.high_contrast_mode = enabled
+    
+    def toggle_accessibility_features(self) -> None:
+        """Toggle various accessibility features."""
+        if self.filter_panel and hasattr(self.filter_panel, 'toggle_high_contrast'):
+            self.filter_panel.toggle_high_contrast()
     
     def _back_to_progression(self) -> None:
         """Return to progression screen."""

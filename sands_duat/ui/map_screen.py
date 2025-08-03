@@ -297,7 +297,7 @@ class MapScreen(UIScreen):
         # Back button (top-left corner) - Egyptian themed
         back_button = MenuButton(
             20, 20, 150, 40,
-            "⬅ Back to Progression",
+            "< Back to Progression",
             self._back_to_progression
         )
         self.add_component(back_button)

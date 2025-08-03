@@ -12,7 +12,7 @@ Features:
 """
 
 import pygame
-from typing import Tuple, Dict, Any, NamedTuple
+from typing import Tuple, Dict, Any, NamedTuple, Optional
 from enum import Enum
 import logging
 
@@ -34,36 +34,70 @@ class LayoutZone(NamedTuple):
 
 
 class EgyptianColors:
-    """Improved Egyptian-themed color palette for better UX."""
+    """Enhanced Egyptian-themed color palette with improved sandstone hierarchy."""
     
-    # Main colors - Warm sandstone theme
-    SANDSTONE = (212, 184, 150)         # Primary warm background
-    PAPYRUS = (200, 185, 156)           # Secondary background
-    GOLD = (255, 215, 0)                # Accents/sand
-    BRONZE = (139, 117, 93)             # Borders/frames
-    DEEP_BROWN = (47, 27, 20)           # Text and dark elements
-    VERY_DARK = (25, 15, 10)            # Minimal use dark backgrounds
+    # Sandstone color hierarchy - F5DEB3 base with variations
+    SANDSTONE_LIGHT = (250, 240, 195)   # F5DEB3 + 15 lightness - Lightest backgrounds
+    SANDSTONE = (245, 222, 179)         # F5DEB3 Primary sandstone background
+    SANDSTONE_MEDIUM = (235, 212, 169)  # F5DEB3 - 10 lightness - Secondary panels
+    SANDSTONE_DARK = (225, 202, 159)    # F5DEB3 - 20 lightness - Pressed states
+    SANDSTONE_DARKER = (215, 192, 149)  # F5DEB3 - 30 lightness - Deep backgrounds
     
-    # New improved backgrounds
+    # Complementary warm colors
+    PAPYRUS = (240, 230, 200)           # Light papyrus color
+    GOLD = (255, 215, 0)                # Egyptian gold accents
+    BRONZE = (139, 117, 93)             # Bronze borders and details
+    COPPER = (184, 115, 51)             # Copper highlights
+    DEEP_BROWN = (47, 27, 20)           # Dark text and elements
+    VERY_DARK = (25, 15, 10)            # Minimal use backgrounds
+    
+    # Improved backgrounds with hierarchy
     PRIMARY_BG = SANDSTONE              # Main screen background
-    SECONDARY_BG = PAPYRUS              # Panel backgrounds
+    SECONDARY_BG = SANDSTONE_MEDIUM     # Panel backgrounds
+    TERTIARY_BG = SANDSTONE_LIGHT       # Card backgrounds
     
-    # Alias for UI compatibility (updated to lighter theme)
+    # Deck builder specific colors
+    COLLECTION_BG = SANDSTONE_MEDIUM    # Card collection background
+    DECK_VIEW_BG = SANDSTONE_DARK       # Deck view background
+    FILTER_PANEL_BG = SANDSTONE         # Filter panel background
+    CARD_BG = SANDSTONE_LIGHT           # Individual card background
+    CARD_SELECTED = GOLD                # Selected card highlight
+    
+    # Alias for UI compatibility
     background = PRIMARY_BG
     
-    # Status colors
-    HEALTH_RED = (220, 20, 60)          # Health bars
-    MANA_BLUE = (70, 130, 180)          # Mana/energy
-    SAND_GOLD = (255, 215, 0)           # Sand particles
+    # Status colors with sandstone harmony
+    HEALTH_RED = (200, 60, 60)          # Muted red for health
+    MANA_BLUE = (90, 140, 190)          # Softer blue for mana
+    SAND_GOLD = GOLD                    # Sand particles
     
-    # UI states
-    HOVER = (180, 150, 120)             # Hover state
-    PRESSED = (100, 80, 60)             # Pressed state
-    DISABLED = (60, 50, 40)             # Disabled state
+    # UI interaction states
+    HOVER = (220, 195, 155)             # Sandstone + warmth for hover
+    PRESSED = SANDSTONE_DARK            # Darker sandstone for pressed
+    DISABLED = (180, 160, 130)          # Muted sandstone for disabled
+    SELECTED = (255, 235, 180)          # Golden sandstone for selection
+    
+    # Accessibility improvements
+    HIGH_CONTRAST_TEXT = (25, 15, 10)   # Very dark for readability
+    MEDIUM_CONTRAST_TEXT = (60, 40, 25) # Medium dark for secondary text
+    LOW_CONTRAST_TEXT = (100, 80, 60)   # Lighter for hints/placeholders
     
     # Transparency levels
-    GLASS = (200, 200, 255, 100)        # Semi-transparent overlays
-    SHADOW = (0, 0, 0, 80)              # Drop shadows
+    GLASS = (245, 222, 179, 120)        # Sandstone with transparency
+    SHADOW = (47, 27, 20, 80)           # Dark brown shadows
+    OVERLAY = (245, 222, 179, 200)      # Semi-opaque sandstone overlay
+    
+    # Rarity colors that harmonize with sandstone
+    RARITY_COMMON = BRONZE              # Bronze for common
+    RARITY_UNCOMMON = (100, 150, 100)   # Muted green
+    RARITY_RARE = (100, 100, 200)       # Muted blue
+    RARITY_LEGENDARY = GOLD             # Golden for legendary
+    
+    # Card type colors
+    TYPE_ATTACK = (180, 100, 90)        # Warm red
+    TYPE_SKILL = (100, 150, 110)        # Earthy green
+    TYPE_POWER = (110, 120, 180)        # Soft blue
+    TYPE_CURSE = (140, 80, 140)         # Muted purple
 
 
 class DisplayManager:
@@ -310,42 +344,154 @@ class ThemeManager:
         # Get layout zones for current display
         self.zones = self.display.get_layout_zones()
         
-        logging.info(f"Theme initialized for {self.display.display_mode.value} mode")
+        logging.info(f"Theme initialized for {self.display.display_mode.value} mode with sandstone color hierarchy")
+        
+        # Validate color accessibility
+        self._validate_color_accessibility()
     
     def get_zone(self, zone_name: str) -> LayoutZone:
         """Get a layout zone by name."""
         return self.zones.get(zone_name, LayoutZone(0, 0, 100, 100))
     
+    def _validate_color_accessibility(self) -> None:
+        """Validate color contrast ratios for accessibility."""
+        def calculate_luminance(color: Tuple[int, int, int]) -> float:
+            """Calculate relative luminance of a color."""
+            def component_luminance(c: int) -> float:
+                c = c / 255.0
+                if c <= 0.03928:
+                    return c / 12.92
+                else:
+                    return pow((c + 0.055) / 1.055, 2.4)
+            
+            r, g, b = color
+            return 0.2126 * component_luminance(r) + 0.7152 * component_luminance(g) + 0.0722 * component_luminance(b)
+        
+        def contrast_ratio(color1: Tuple[int, int, int], color2: Tuple[int, int, int]) -> float:
+            """Calculate contrast ratio between two colors."""
+            l1 = calculate_luminance(color1)
+            l2 = calculate_luminance(color2)
+            lighter = max(l1, l2)
+            darker = min(l1, l2)
+            return (lighter + 0.05) / (darker + 0.05)
+        
+        # Check critical text combinations
+        bg_text_contrast = contrast_ratio(self.colors.PRIMARY_BG, self.colors.HIGH_CONTRAST_TEXT)
+        button_text_contrast = contrast_ratio(self.colors.SECONDARY_BG, self.colors.HIGH_CONTRAST_TEXT)
+        
+        if bg_text_contrast < 4.5:  # WCAG AA standard
+            logging.warning(f"Background-text contrast ratio {bg_text_contrast:.2f} may be too low for accessibility")
+        else:
+            logging.info(f"Background-text contrast ratio: {bg_text_contrast:.2f} (good)")
+        
+        if button_text_contrast < 4.5:
+            logging.warning(f"Button-text contrast ratio {button_text_contrast:.2f} may be too low for accessibility")
+        else:
+            logging.info(f"Button-text contrast ratio: {button_text_contrast:.2f} (good)")
+    
     def create_button_style(self, state: str = "normal") -> Dict[str, Any]:
-        """Create a button style dictionary."""
+        """Create a button style dictionary with improved sandstone hierarchy."""
         if state == "hover":
             bg_color = self.colors.HOVER
             border_color = self.colors.GOLD
+            text_color = self.colors.HIGH_CONTRAST_TEXT
         elif state == "pressed":
             bg_color = self.colors.PRESSED
             border_color = self.colors.BRONZE
+            text_color = self.colors.HIGH_CONTRAST_TEXT
         elif state == "disabled":
             bg_color = self.colors.DISABLED
             border_color = self.colors.DISABLED
+            text_color = self.colors.LOW_CONTRAST_TEXT
         else:  # normal
-            bg_color = self.colors.DEEP_BROWN
+            bg_color = self.colors.SECONDARY_BG
             border_color = self.colors.BRONZE
+            text_color = self.colors.HIGH_CONTRAST_TEXT
         
         return {
             'background_color': bg_color,
             'border_color': border_color,
-            'text_color': self.colors.PAPYRUS,
+            'text_color': text_color,
             'border_width': 2,
             'font': self.fonts.get_font('medium')
         }
     
+    def create_deck_builder_style(self) -> Dict[str, Any]:
+        """Create specialized styling for deck builder components."""
+        return {
+            'collection_background': self.colors.COLLECTION_BG,
+            'deck_view_background': self.colors.DECK_VIEW_BG,
+            'filter_panel_background': self.colors.FILTER_PANEL_BG,
+            'card_background': self.colors.CARD_BG,
+            'card_selected': self.colors.CARD_SELECTED,
+            'card_hover': self.colors.HOVER,
+            'border_color': self.colors.BRONZE,
+            'text_primary': self.colors.HIGH_CONTRAST_TEXT,
+            'text_secondary': self.colors.MEDIUM_CONTRAST_TEXT,
+            'text_hint': self.colors.LOW_CONTRAST_TEXT,
+            'accent_color': self.colors.GOLD
+        }
+    
+    def create_card_style(self, rarity: Optional[Any] = None, card_type: Optional[Any] = None) -> Dict[str, Any]:
+        """Create card-specific styling based on rarity and type."""
+        # Import here to avoid circular imports
+        try:
+            from ..core.cards import CardRarity, CardType
+            
+            # Rarity-based styling
+            if rarity == CardRarity.LEGENDARY:
+                border_color = self.colors.RARITY_LEGENDARY
+                bg_modifier = (20, 15, 0)  # Golden tint
+            elif rarity == CardRarity.RARE:
+                border_color = self.colors.RARITY_RARE
+                bg_modifier = (0, 5, 15)  # Blue tint
+            elif rarity == CardRarity.UNCOMMON:
+                border_color = self.colors.RARITY_UNCOMMON
+                bg_modifier = (0, 10, 5)  # Green tint
+            else:  # Common
+                border_color = self.colors.RARITY_COMMON
+                bg_modifier = (0, 0, 0)  # No tint
+            
+            # Type-based accent
+            type_accent = self.colors.BRONZE
+            if card_type == CardType.ATTACK:
+                type_accent = self.colors.TYPE_ATTACK
+            elif card_type == CardType.SKILL:
+                type_accent = self.colors.TYPE_SKILL
+            elif card_type == CardType.POWER:
+                type_accent = self.colors.TYPE_POWER
+            elif card_type == CardType.CURSE:
+                type_accent = self.colors.TYPE_CURSE
+                
+        except ImportError:
+            # Fallback if card types not available
+            border_color = self.colors.BRONZE
+            bg_modifier = (0, 0, 0)
+            type_accent = self.colors.BRONZE
+        
+        # Apply background modifier
+        base_bg = self.colors.CARD_BG
+        modified_bg = tuple(min(255, max(0, base_bg[i] + bg_modifier[i])) for i in range(3))
+        
+        return {
+            'background_color': modified_bg,
+            'border_color': border_color,
+            'type_accent': type_accent,
+            'text_color': self.colors.HIGH_CONTRAST_TEXT,
+            'cost_color': self.colors.GOLD,
+            'hover_color': self.colors.HOVER,
+            'selected_color': self.colors.SELECTED
+        }
+    
     def create_sand_gauge_style(self) -> Dict[str, Any]:
-        """Create styling for sand gauge components."""
+        """Create styling for sand gauge components with sandstone hierarchy."""
         return {
             'glass_color': self.colors.GLASS,
             'sand_color': self.colors.SAND_GOLD,
             'frame_color': self.colors.BRONZE,
-            'text_color': self.colors.PAPYRUS,
+            'background_color': self.colors.SECONDARY_BG,
+            'text_color': self.colors.HIGH_CONTRAST_TEXT,
+            'label_color': self.colors.MEDIUM_CONTRAST_TEXT,
             'countdown_font': self.fonts.get_font('sand_counter'),
             'label_font': self.fonts.get_font('small')
         }
@@ -356,9 +502,10 @@ theme: ThemeManager = None
 
 
 def initialize_theme(screen_width: int, screen_height: int) -> ThemeManager:
-    """Initialize the global theme manager."""
+    """Initialize the global theme manager with sandstone color hierarchy."""
     global theme
     theme = ThemeManager(screen_width, screen_height)
+    logging.info(f"Initialized sandstone theme for {screen_width}x{screen_height} display")
     return theme
 
 
@@ -367,3 +514,9 @@ def get_theme() -> ThemeManager:
     if theme is None:
         raise RuntimeError("Theme not initialized. Call initialize_theme() first.")
     return theme
+
+
+def get_sandstone_color(lightness_modifier: int = 0) -> Tuple[int, int, int]:
+    """Get a sandstone color variant with specified lightness modifier."""
+    base_sandstone = (245, 222, 179)  # F5DEB3
+    return tuple(min(255, max(0, base_sandstone[i] + lightness_modifier)) for i in range(3))

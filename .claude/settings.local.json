@@ -24,7 +24,9 @@
       "Bash(C:ProgramDataanaconda3python.exe main.py --windowed --width 1920 --height 1080 --debug)",
       "Bash(\"C:\\ProgramData\\anaconda3\\python.exe\":*)",
       "Bash(del test_menu_click.py debug_menu_positions.py)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(sed:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": []
   }
