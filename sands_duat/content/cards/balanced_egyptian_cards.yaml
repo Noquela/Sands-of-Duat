@@ -1,0 +1,602 @@
+# Balanced Egyptian Mythology Cards for Sands of Duat
+# Enhanced with strategic depth mechanics and improved balance
+# Incorporates resonance, momentum, divine judgment, and new Egyptian underworld themes
+
+# ═══ 0 SAND COST CARDS ═══
+# Fast, efficient actions that enable other plays - BALANCED FOR STRATEGIC DEPTH
+
+whisper_of_thoth:
+  id: "whisper_of_thoth"
+  name: "Whisper of Thoth"
+  description: "The god of wisdom guides your hand. Wisdom grows with momentum."
+  sand_cost: 0
+  card_type: "skill"
+  rarity: "common"
+  effects:
+    - effect_type: "draw_cards"
+      value: 1
+      target: "self"
+      momentum_scaling: true
+    - effect_type: "gain_sand"
+      value: 1
+      target: "self"
+      resonance_bonus:
+        "0": 1  # Bonus sand when played at 0 current sand
+  keywords: ["cantrip", "thoth", "divine", "wisdom"]
+  divine_alignment: "balance"
+  flavor_text: "In the silence between thoughts, wisdom speaks."
+
+desert_meditation:
+  id: "desert_meditation"
+  name: "Desert Meditation"
+  description: "Focus your mind as the ancient pharaohs did. Channel the power of the dunes."
+  sand_cost: 0
+  card_type: "skill"
+  rarity: "common"
+  effects:
+    - effect_type: "draw_cards"
+      value: 1
+      target: "self"
+    - effect_type: "temporal_momentum"
+      value: 1
+      target: "self"
+      metadata:
+        momentum_type: "meditation_focus"
+  keywords: ["cantrip", "pharaoh", "desert", "meditation"]
+  divine_alignment: "order"
+  flavor_text: "Stillness is the first lesson of the sands."
+
+# ═══ 1 SAND COST CARDS ═══
+# Basic attacks and utility - REBALANCED FOR CONSISTENCY
+
+anubis_judgment:
+  id: "anubis_judgment"
+  name: "Anubis's Judgment"
+  description: "Strike with divine justice. The worthy are rewarded, the wicked punished."
+  sand_cost: 1
+  card_type: "attack"
+  rarity: "common"
+  effects:
+    - effect_type: "damage"
+      value: 5
+      target: "enemy"
+      divine_alignment: "order"
+    - effect_type: "apply_vulnerable"
+      value: 1
+      target: "enemy"
+      metadata:
+        duration: 2
+    - effect_type: "divine_judgment"
+      value: 1
+      target: "self"
+      metadata:
+        judgment_type: "moral_weighing"
+  keywords: ["strike", "anubis", "divine", "judgment"]
+  divine_alignment: "order"
+  flavor_text: "The scales of Ma'at tip toward justice."
+
+isis_protection:
+  id: "isis_protection"
+  name: "Isis's Protection"
+  description: "The goddess of magic weaves a shield of pure energy around you."
+  sand_cost: 1
+  card_type: "skill"
+  rarity: "common"
+  effects:
+    - effect_type: "block"
+      value: 5
+      target: "self"
+    - effect_type: "heal"
+      value: 2
+      target: "self"
+      resonance_bonus:
+        "1": 2  # +2 healing at perfect resonance
+  keywords: ["defense", "isis", "divine", "protection"]
+  divine_alignment: "order"
+  flavor_text: "Her love transcends death itself."
+
+# ═══ 2 SAND COST CARDS ═══
+# Solid mid-range options - ENHANCED WITH RESONANCE
+
+ra_solar_flare:
+  id: "ra_solar_flare"
+  name: "Ra's Solar Flare"
+  description: "Channel the blazing power of the sun god. Perfect timing amplifies the fire."
+  sand_cost: 2
+  card_type: "attack"
+  rarity: "uncommon"
+  effects:
+    - effect_type: "damage"
+      value: 9
+      target: "enemy"
+      resonance_bonus:
+        "2": 3  # +3 damage when played at 2 current sand
+        "1": 1  # +1 damage when played at 1 current sand
+        "3": 1  # +1 damage when played at 3 current sand
+    - effect_type: "apply_weak"
+      value: 1
+      target: "enemy"
+      metadata:
+        duration: 2
+  keywords: ["fire", "divine", "desert", "ra", "solar"]
+  divine_alignment: "order"
+  flavor_text: "Even in the underworld, Ra's fire burns eternal."
+
+mummification_ritual:
+  id: "mummification_ritual"
+  name: "Mummification Ritual"
+  description: "Bind your wounds with sacred bandages, preserving life and strength."
+  sand_cost: 2
+  card_type: "skill"
+  rarity: "uncommon"
+  effects:
+    - effect_type: "heal"
+      value: 7
+      target: "self"
+    - effect_type: "block"
+      value: 7
+      target: "self"
+    - effect_type: "mummify"
+      value: 1
+      target: "self"
+      metadata:
+        preserve_type: "defensive_stance"
+  keywords: ["ritual", "mummy", "defense", "preservation"]
+  divine_alignment: "balance"
+  flavor_text: "Death is but another form of preservation."
+
+# ═══ 3 SAND COST CARDS ═══
+# Powerful tactical options - MOMENTUM AND SYNERGY ENHANCED
+
+horus_divine_sight:
+  id: "horus_divine_sight"
+  name: "Horus's Divine Sight"
+  description: "See through the falcon god's eyes. Perfect timing reveals all weaknesses."
+  sand_cost: 3
+  card_type: "skill"
+  rarity: "uncommon"
+  effects:
+    - effect_type: "draw_cards"
+      value: 2
+      target: "self"
+    - effect_type: "apply_vulnerable"
+      value: 2
+      target: "enemy"
+      metadata:
+        duration: 3
+      resonance_bonus:
+        "3": 1  # +1 vulnerable stack at perfect resonance
+    - effect_type: "gain_sand"
+      value: 1
+      target: "self"
+  keywords: ["horus", "divine", "tactical", "sight"]
+  divine_alignment: "order"
+  flavor_text: "Nothing escapes the gaze of the sky god."
+
+bastet_feline_grace:
+  id: "bastet_feline_grace"
+  name: "Bastet's Feline Grace"
+  description: "Move with fluid elegance. Strike and evade with perfect timing."
+  sand_cost: 3
+  card_type: "attack"
+  rarity: "rare"
+  effects:
+    - effect_type: "damage"
+      value: 11
+      target: "enemy"
+      momentum_scaling: true
+    - effect_type: "block"
+      value: 6
+      target: "self"
+    - effect_type: "apply_dexterity"
+      value: 1
+      target: "self"
+      metadata:
+        duration: 3
+  keywords: ["bastet", "divine", "strike", "grace"]
+  divine_alignment: "balance"
+  flavor_text: "Grace and fury dance as one."
+
+# ═══ 4 SAND COST CARDS ═══
+# High-impact abilities - ENHANCED STRATEGIC DEPTH
+
+sekhmet_war_cry:
+  id: "sekhmet_war_cry"
+  name: "Sekhmet's War Cry"
+  description: "Unleash the lioness goddess's fury. Momentum fuels the rage."
+  sand_cost: 4
+  card_type: "attack"
+  rarity: "rare"
+  effects:
+    - effect_type: "damage"
+      value: 18
+      target: "enemy"
+      momentum_scaling: true
+    - effect_type: "apply_strength"
+      value: 2
+      target: "self"
+      metadata:
+        duration: 3
+    - effect_type: "apply_weak"
+      value: 2
+      target: "enemy"
+      metadata:
+        duration: 2
+  keywords: ["sekhmet", "divine", "fire", "wrath", "lioness"]
+  divine_alignment: "chaos"
+  cast_time: 1.2
+  flavor_text: "The battlefield is her temple, blood her offering."
+
+osiris_resurrection:
+  id: "osiris_resurrection"
+  name: "Osiris's Resurrection"
+  description: "Draw upon the power of death and rebirth. Rise stronger than before."
+  sand_cost: 4
+  card_type: "skill"
+  rarity: "epic"
+  effects:
+    - effect_type: "heal"
+      value: 15
+      target: "self"
+    - effect_type: "max_health_increase"
+      value: 5
+      target: "self"
+    - effect_type: "draw_cards"
+      value: 1
+      target: "self"
+    - effect_type: "divine_judgment"
+      value: 3
+      target: "self"
+      metadata:
+        judgment_type: "resurrection_blessing"
+  keywords: ["osiris", "divine", "ritual", "resurrection"]
+  divine_alignment: "balance"
+  exhaust: true
+  flavor_text: "Death is not the end, but a transformation."
+
+# ═══ 5 SAND COST CARDS ═══
+# Game-changing powers - LEGENDARY STRATEGIC IMPACT
+
+pyramid_power:
+  id: "pyramid_power"
+  name: "Pyramid Power"
+  description: "Channel the ancient energies stored within the great monuments."
+  sand_cost: 5
+  card_type: "power"
+  rarity: "epic"
+  effects:
+    - effect_type: "permanent_sand_increase"
+      value: 1
+      target: "self"
+    - effect_type: "apply_strength"
+      value: 2
+      target: "self"
+      metadata:
+        duration: 999  # Permanent for combat
+    - effect_type: "sand_resonance"
+      value: 1
+      target: "self"
+      metadata:
+        resonance_type: "pyramid_attunement"
+  keywords: ["pyramid", "divine", "pharaoh", "power"]
+  divine_alignment: "order"
+  flavor_text: "The ancients built for eternity."
+
+set_chaos_storm:
+  id: "set_chaos_storm"
+  name: "Set's Chaos Storm"
+  description: "Embrace the god of chaos and storms. Devastate all who oppose you."
+  sand_cost: 5
+  card_type: "attack"
+  rarity: "epic"
+  effects:
+    - effect_type: "damage"
+      value: 22
+      target: "enemy"
+    - effect_type: "damage"
+      value: 4
+      target: "self"
+    - effect_type: "apply_vulnerable"
+      value: 3
+      target: "enemy"
+      metadata:
+        duration: 3
+    - effect_type: "divine_judgment"
+      value: -2
+      target: "self"
+      metadata:
+        judgment_type: "embrace_chaos"
+  keywords: ["set", "divine", "chaos", "storm"]
+  divine_alignment: "chaos"
+  flavor_text: "Order is an illusion. Chaos is truth."
+
+# ═══ 6 SAND COST CARDS ═══
+# Ultimate abilities - PERFECT RESONANCE REWARDS
+
+pharaoh_divine_mandate:
+  id: "pharaoh_divine_mandate"
+  name: "Pharaoh's Divine Mandate"
+  description: "Command with absolute authority. Perfect timing grants absolute power."
+  sand_cost: 6
+  card_type: "skill"
+  rarity: "legendary"
+  effects:
+    - effect_type: "heal"
+      value: 20
+      target: "self"
+      resonance_bonus:
+        "6": 10  # Massive healing bonus at perfect resonance
+    - effect_type: "apply_strength"
+      value: 2
+      target: "self"
+      metadata:
+        duration: 999
+    - effect_type: "apply_dexterity"
+      value: 2
+      target: "self"
+      metadata:
+        duration: 999
+    - effect_type: "draw_cards"
+      value: 2
+      target: "self"
+    - effect_type: "divine_judgment"
+      value: 5
+      target: "self"
+      metadata:
+        judgment_type: "divine_authority"
+  keywords: ["pharaoh", "divine", "legendary", "royal", "mandate"]
+  divine_alignment: "order"
+  exhaust: true
+  cast_time: 2.0
+  flavor_text: "I am the living god, the eternal ruler."
+
+duat_master:
+  id: "duat_master"
+  name: "Master of the Duat"
+  description: "Become one with the underworld itself. Command the very sands of death."
+  sand_cost: 6
+  card_type: "power"
+  rarity: "legendary"
+  effects:
+    - effect_type: "permanent_sand_increase"
+      value: 2
+      target: "self"
+    - effect_type: "channel_divinity"
+      value: 1
+      target: "self"
+      metadata:
+        effect: "sand_mastery"
+    - effect_type: "underworld_navigation"
+      value: 1
+      target: "self"
+      metadata:
+        navigation_type: "realm_mastery"
+  keywords: ["duat", "divine", "underworld", "master"]
+  divine_alignment: "balance"
+  flavor_text: "In death's domain, I am sovereign."
+
+# ═══ NEW MECHANIC SHOWCASE CARDS ═══
+
+# Mummification System
+mummy_eternal_guardian:
+  id: "mummy_eternal_guardian"
+  name: "Mummy: Eternal Guardian"
+  description: "A preserved warrior awakens to serve. Grows stronger through preservation."
+  sand_cost: 3
+  card_type: "attack"
+  rarity: "rare"
+  effects:
+    - effect_type: "damage"
+      value: 12
+      target: "enemy"
+    - effect_type: "mummify"
+      value: 1
+      target: "self"
+      metadata:
+        preserve_type: "combat_ready"
+  keywords: ["mummy", "guardian", "preserved", "eternal"]
+  mummified: true
+  eternal: true
+  flavor_text: "Death could not claim what was already eternal."
+
+# Soul Fragment System
+soul_division_ritual:
+  id: "soul_division_ritual"
+  name: "Soul Division Ritual"
+  description: "Split your essence into fragments of power. Each piece holds potential."
+  sand_cost: 2
+  card_type: "skill"
+  rarity: "uncommon"
+  effects:
+    - effect_type: "soul_fragment"
+      value: 3
+      target: "self"
+      metadata:
+        fragment_type: "essence_shard"
+    - effect_type: "draw_cards"
+      value: 1
+      target: "self"
+  keywords: ["ritual", "soul", "fragment", "division"]
+  exhaust: true
+  flavor_text: "To master the whole, one must first understand the parts."
+
+soul_reconstruction:
+  id: "soul_reconstruction"
+  name: "Ba-Ka Reunion"
+  description: "Reunite the divided soul. Power flows from wholeness."
+  sand_cost: 1
+  card_type: "skill"
+  rarity: "rare"
+  effects:
+    - effect_type: "special"
+      value: 1
+      target: "self"
+      metadata:
+        special_type: "soul_merge"
+        requires_fragments: 2
+    - effect_type: "gain_sand"
+      value: 2
+      target: "self"
+    - effect_type: "apply_strength"
+      value: 1
+      target: "self"
+      metadata:
+        duration: 5
+  keywords: ["ba", "ka", "soul", "reunion", "wholeness"]
+  flavor_text: "The scattered becomes one, the weak becomes mighty."
+
+# Hieroglyphic Combination Magic
+hieroglyph_ankh:
+  id: "hieroglyph_ankh"
+  name: "Hieroglyph: Ankh"
+  description: "The symbol of life eternal. Combine with other symbols for greater power."
+  sand_cost: 1
+  card_type: "skill"
+  rarity: "common"
+  effects:
+    - effect_type: "heal"
+      value: 4
+      target: "self"
+    - effect_type: "hieroglyph_symbol"
+      value: 1
+      target: "self"
+      metadata:
+        symbol_type: "ankh"
+  keywords: ["hieroglyph", "ankh", "life", "symbol"]
+  hieroglyph_symbols: ["ankh"]
+  retain: true
+  flavor_text: "The key to the eternal realm."
+
+hieroglyph_eye:
+  id: "hieroglyph_eye"
+  name: "Hieroglyph: Eye of Horus"
+  description: "The all-seeing eye grants protection and sight. Combine for divine vision."
+  sand_cost: 1
+  card_type: "skill"
+  rarity: "common"
+  effects:
+    - effect_type: "block"
+      value: 6
+      target: "self"
+    - effect_type: "hieroglyph_symbol"
+      value: 1
+      target: "self"
+      metadata:
+        symbol_type: "eye"
+  keywords: ["hieroglyph", "eye", "horus", "protection"]
+  hieroglyph_symbols: ["eye"]
+  retain: true
+  flavor_text: "The eye that guards against all evil."
+
+hieroglyph_scarab:
+  id: "hieroglyph_scarab"
+  name: "Hieroglyph: Sacred Scarab"
+  description: "The beetle that rolls the sun. Combine for endless renewal."
+  sand_cost: 1
+  card_type: "skill"
+  rarity: "common"
+  effects:
+    - effect_type: "gain_sand"
+      value: 2
+      target: "self"
+    - effect_type: "hieroglyph_symbol"
+      value: 1
+      target: "self"
+      metadata:
+        symbol_type: "scarab"
+  keywords: ["hieroglyph", "scarab", "renewal", "sacred"]
+  hieroglyph_symbols: ["scarab"]
+  retain: true
+  flavor_text: "Symbol of transformation and rebirth."
+
+# Temporal Momentum Mechanics
+sands_of_time_acceleration:
+  id: "sands_of_time_acceleration"
+  name: "Sands of Time: Acceleration"
+  description: "Speed flows through you. Each quick action builds upon the last."
+  sand_cost: 1
+  card_type: "skill"
+  rarity: "uncommon"
+  effects:
+    - effect_type: "temporal_momentum"
+      value: 2
+      target: "self"
+      metadata:
+        momentum_type: "acceleration"
+    - effect_type: "gain_sand"
+      value: 1
+      target: "self"
+      momentum_scaling: true
+  keywords: ["temporal", "momentum", "acceleration", "time"]
+  flavor_text: "Time bends to the will of the swift."
+
+# Divine Resonance System
+divine_resonance_chamber:
+  id: "divine_resonance_chamber"
+  name: "Divine Resonance Chamber"
+  description: "Attune your soul to cosmic vibrations. Perfect harmony grants perfect power."
+  sand_cost: 3
+  card_type: "power"
+  rarity: "rare"
+  effects:
+    - effect_type: "sand_resonance"
+      value: 1
+      target: "self"
+      metadata:
+        resonance_type: "divine_attunement"
+    - effect_type: "special"
+      value: 1
+      target: "self"
+      metadata:
+        special_type: "resonance_amplifier"
+  keywords: ["divine", "resonance", "chamber", "attunement"]
+  flavor_text: "When soul and cosmos align, miracles become possible."
+
+# Underworld Navigation
+duat_gateway_portal:
+  id: "duat_gateway_portal"
+  name: "Duat Gateway Portal"
+  description: "Open passages through the underworld. Each realm holds different power."
+  sand_cost: 4
+  card_type: "skill"
+  rarity: "epic"
+  effects:
+    - effect_type: "underworld_navigation"
+      value: 1
+      target: "self"
+      metadata:
+        navigation_type: "realm_shift"
+    - effect_type: "draw_cards"
+      value: 2
+      target: "self"
+    - effect_type: "special"
+      value: 1
+      target: "self"
+      metadata:
+        special_type: "unlock_realm_powers"
+  keywords: ["duat", "gateway", "portal", "navigation"]
+  exhaust: true
+  flavor_text: "The path through death leads to rebirth."
+
+# Combination Spell (created when 3+ symbols are combined)
+eternal_life_incantation:
+  id: "eternal_life_incantation"
+  name: "Eternal Life Incantation"
+  description: "Born from the union of sacred symbols. Grant true immortality."
+  sand_cost: 0
+  card_type: "skill"
+  rarity: "legendary"
+  effects:
+    - effect_type: "heal"
+      value: 25
+      target: "self"
+    - effect_type: "max_health_increase"
+      value: 10
+      target: "self"
+    - effect_type: "permanent_sand_increase"
+      value: 1
+      target: "self"
+  keywords: ["combination", "eternal", "incantation", "divine"]
+  exhaust: true
+  ethereal: false
+  flavor_text: "The ultimate fusion of sacred knowledge."

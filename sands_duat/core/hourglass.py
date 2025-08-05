@@ -113,7 +113,7 @@ class PrecisionTimer:
 class SandTimer(BaseModel):
     """High-precision timer for sand regeneration with frame-rate independence."""
     
-    regeneration_rate: float = Field(default=1.0, description="Sand grains per second")
+    regeneration_rate: float = Field(default=0.5, description="Sand grains per second (1 grain every 2 seconds)")
     is_paused: bool = Field(default=False)
     timing_accuracy: float = Field(default=TimingAccuracy.HIGH.value, description="Timing precision in seconds")
     frame_accumulator: float = Field(default=0.0, description="Frame time accumulator for consistency")
@@ -161,11 +161,20 @@ class HourGlass(BaseModel):
     Manages sand storage, regeneration, and spending mechanics
     for the unique Initiative system using time.perf_counter() for
     sub-millisecond accuracy.
+    
+    Enhanced with strategic depth mechanics including resonance,
+    momentum, and dynamic regeneration.
     """
     
     current_sand: int = Field(default=0, ge=0, description="Current sand amount")
     max_sand: int = Field(default=6, ge=1, le=8, description="Maximum sand capacity (expandable with buffs)")
     on_sand_change: Optional[Callable[[int], None]] = Field(default=None, exclude=True)
+    
+    # Enhanced strategic mechanics
+    temporal_momentum_stacks: int = Field(default=0, description="Stacks of momentum for cost reduction")
+    last_card_cost: int = Field(default=0, description="Cost of last card played for momentum tracking")
+    divine_favor: int = Field(default=0, description="Moral alignment (-10 to +10)")
+    resonance_multiplier: float = Field(default=1.0, description="Current resonance power multiplier")
     
     class Config:
         arbitrary_types_allowed = True
@@ -178,6 +187,7 @@ class HourGlass(BaseModel):
         self._logger = logging.getLogger(__name__)
         self._sand_timing_errors = []
         self._regeneration_events = []
+        self._fractional_sand = 0.0  # Accumulator for fractional sand
         
         # Load configuration
         self._load_config()
@@ -213,7 +223,7 @@ class HourGlass(BaseModel):
                 
                 # Use correct ConfigParser syntax
                 if config.has_section('timing'):
-                    self._regeneration_rate = config.getfloat('timing', 'sand_regeneration_rate', fallback=1.0)
+                    self._regeneration_rate = config.getfloat('timing', 'sand_regeneration_rate', fallback=0.5)
                     self._max_delta_clamp = config.getfloat('timing', 'max_delta_clamp', fallback=0.05)
                     self._timing_precision = config.getfloat('timing', 'timing_precision', fallback=0.001)
                     self._debug_time_scale = config.getfloat('timing', 'debug_time_scale', fallback=1.0)
@@ -228,7 +238,7 @@ class HourGlass(BaseModel):
     
     def _set_default_values(self):
         """Set default configuration values."""
-        self._regeneration_rate = 1.0
+        self._regeneration_rate = 0.5
         self._max_delta_clamp = 0.05
         self._timing_precision = 0.001
         self._debug_time_scale = 1.0
@@ -253,12 +263,13 @@ class HourGlass(BaseModel):
         """Check if the hourglass has enough sand for a given cost."""
         return self.current_sand >= cost
     
-    def spend_sand(self, cost: int) -> bool:
+    def spend_sand(self, cost: int, card_cost: Optional[int] = None) -> bool:
         """
         Attempt to spend sand for a card or ability.
         
         Returns True if successful, False if insufficient sand.
         Includes overflow protection for costs exceeding max_sand.
+        Enhanced with momentum tracking.
         """
         if cost < 0 or cost > self.max_sand:
             self._logger.warning(f"Invalid sand cost: {cost} (max: {self.max_sand})")
@@ -268,18 +279,72 @@ class HourGlass(BaseModel):
             return False
         
         self.current_sand -= cost
+        
+        # Update temporal momentum if this is a card play
+        if card_cost is not None:
+            self.update_temporal_momentum(card_cost)
+        
         self._logger.debug(f"Spent {cost} sand, remaining: {self.current_sand}")
         
         if self.on_sand_change:
             self.on_sand_change(self.current_sand)
         return True
     
-    def update_sand(self) -> None:
+    def update_temporal_momentum(self, card_cost: int) -> None:
+        """
+        Update temporal momentum based on decreasing card costs.
+        
+        Momentum builds when playing cards with decreasing costs,
+        providing cost reduction for future cards.
+        """
+        if card_cost < self.last_card_cost:
+            self.temporal_momentum_stacks = min(self.temporal_momentum_stacks + 1, 5)
+            self._logger.debug(f"Momentum increased to {self.temporal_momentum_stacks}")
+        else:
+            self.temporal_momentum_stacks = 0
+            self._logger.debug("Momentum reset")
+        
+        self.last_card_cost = card_cost
+    
+    def get_momentum_reduction(self) -> int:
+        """Get current cost reduction from temporal momentum."""
+        return min(self.temporal_momentum_stacks, 3)  # Max 3 sand reduction
+    
+    def check_sand_resonance(self, card_cost: int) -> str:
+        """
+        Check resonance between current sand and card cost.
+        
+        Returns resonance level: 'perfect', 'minor', or 'none'
+        """
+        if card_cost == self.current_sand:
+            return 'perfect'
+        elif abs(card_cost - self.current_sand) <= 1:
+            return 'minor'
+        return 'none'
+    
+    def apply_divine_judgment(self, action_alignment: str) -> None:
+        """
+        Apply divine judgment based on action moral alignment.
+        
+        Args:
+            action_alignment: 'order', 'chaos', or 'balance'
+        """
+        if action_alignment == 'order':
+            self.divine_favor = min(self.divine_favor + 1, 10)
+        elif action_alignment == 'chaos':
+            self.divine_favor = max(self.divine_favor - 1, -10)
+        # 'balance' actions don't change favor
+        
+        self._logger.debug(f"Divine favor: {self.divine_favor}")
+    
+    def update_sand(self, player_health_percentage: float = 1.0, has_divine_blessing: bool = False) -> None:
         """
         Update sand based on high-precision elapsed time.
         
         Uses time.perf_counter() for sub-millisecond accuracy and implements
         delta time clamping to prevent lag-induced acceleration.
+        
+        Enhanced with dynamic regeneration based on game state.
         """
         if self.current_sand >= self.max_sand:
             return
@@ -290,32 +355,66 @@ class HourGlass(BaseModel):
         if delta_time <= 0:
             return
         
-        # Calculate sand to add based on regeneration rate
-        sand_to_add = delta_time * self.regeneration_rate
+        # Calculate dynamic regeneration rate
+        dynamic_rate = self.get_dynamic_regeneration_rate(player_health_percentage, has_divine_blessing)
         
-        # Track timing accuracy
-        expected_time = 1.0 / self.regeneration_rate  # Time per sand grain
-        if sand_to_add >= 1.0:
-            actual_time = delta_time / int(sand_to_add)
-            timing_error = abs(expected_time - actual_time)
+        # Calculate fractional sand to add based on dynamic regeneration rate
+        fractional_sand_to_add = delta_time * dynamic_rate
+        
+        # Add to fractional accumulator
+        self._fractional_sand += fractional_sand_to_add
+        
+        # Convert whole grains from fractional accumulator
+        grains_to_add = int(self._fractional_sand)
+        if grains_to_add > 0:
+            # Remove the whole grains from fractional accumulator, keeping remainder
+            self._fractional_sand -= grains_to_add
             
-            if timing_error > self.timing_precision:
-                self._sand_timing_errors.append(timing_error * 1000)  # Convert to ms
-                if timing_error > 0.05:  # 50ms threshold
-                    self._logger.warning(f"Sand timing drift: {timing_error*1000:.1f}ms")
-        
-        # Add sand grains (integer only)
-        grains_added = int(sand_to_add)
-        if grains_added > 0:
+            # Add grains to current sand
             old_sand = self.current_sand
-            self.current_sand = min(self.max_sand, self.current_sand + grains_added)
+            self.current_sand = min(self.max_sand, self.current_sand + grains_to_add)
             
             if self.current_sand > old_sand:
                 self._regeneration_events.append(time.perf_counter())
-                self._logger.debug(f"Sand regenerated: {old_sand} -> {self.current_sand}")
+                self._logger.debug(f"Sand regenerated: {old_sand} -> {self.current_sand} (+{self.current_sand - old_sand} grains)")
                 
                 if self.on_sand_change:
                     self.on_sand_change(self.current_sand)
+    
+    def get_dynamic_regeneration_rate(self, health_percentage: float, has_divine_blessing: bool) -> float:
+        """
+        Calculate dynamic sand regeneration rate based on game state.
+        
+        Args:
+            health_percentage: Player's current health as percentage (0.0-1.0)
+            has_divine_blessing: Whether player has divine blessing active
+        
+        Returns:
+            Modified regeneration rate
+        """
+        base_rate = self.regeneration_rate
+        
+        # Accelerate when low on health (desperation)
+        if health_percentage < 0.3:
+            base_rate *= 1.5
+        elif health_percentage < 0.6:
+            base_rate *= 1.2
+        
+        # Slow when at max sand (prevent resource waste)
+        if self.current_sand >= self.max_sand - 1:
+            base_rate *= 0.5
+        
+        # Divine blessing influence
+        if has_divine_blessing:
+            base_rate *= 1.25
+        
+        # Divine favor affects regeneration
+        if self.divine_favor > 5:
+            base_rate *= 1.3  # High favor = faster regeneration
+        elif self.divine_favor < -5:
+            base_rate *= 0.7  # Low favor = slower regeneration
+        
+        return base_rate
     
     def get_time_to_next_sand(self) -> float:
         """
@@ -327,12 +426,12 @@ class HourGlass(BaseModel):
         if self.current_sand >= self.max_sand:
             return 0.0
         
-        # Calculate progress toward next sand grain
+        # Calculate progress toward next sand grain using fractional accumulator
         time_for_one_grain = 1.0 / self.regeneration_rate
-        elapsed = self.timer.accumulated_time
-        progress = elapsed % time_for_one_grain
+        fractional_progress = self._fractional_sand
+        time_remaining = time_for_one_grain * (1.0 - fractional_progress)
         
-        return time_for_one_grain - progress
+        return max(0.0, time_remaining)
     
     def get_time_until_next_sand(self) -> float:
         """Alias for get_time_to_next_sand() for backward compatibility."""

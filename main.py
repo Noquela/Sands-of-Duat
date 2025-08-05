@@ -147,11 +147,20 @@ def main() -> int:
         audio_manager = initialize_audio_manager()
         logger.info("Audio system initialized")
         
+        # Initialize Game Flow Manager
+        from sands_duat.core.game_flow_manager import GameFlowManager
+        game_flow = GameFlowManager()
+        logger.info("Game Flow Manager initialized")
+        
         # Set up UI manager
         ui_manager = UIManager(screen)
+        game_flow.set_ui_manager(ui_manager)
+        
+        # Connect game flow to UI manager for screen access
+        ui_manager.game_flow = game_flow
         
         # Import and add screens using delayed imports
-        from sands_duat.ui.ui_manager import get_menu_screen, get_combat_screen, get_map_screen, get_deck_builder_screen, get_tutorial_screen, get_progression_screen
+        from sands_duat.ui.ui_manager import get_menu_screen, get_combat_screen, get_map_screen, get_deck_builder_screen, get_tutorial_screen, get_progression_screen, get_victory_screen, get_defeat_screen, get_dynamic_combat_screen
         
         ui_manager.add_screen(get_menu_screen()())
         ui_manager.add_screen(get_combat_screen()())
@@ -159,10 +168,13 @@ def main() -> int:
         ui_manager.add_screen(get_deck_builder_screen()())
         ui_manager.add_screen(get_tutorial_screen()())
         ui_manager.add_screen(get_progression_screen()())
+        ui_manager.add_screen(get_victory_screen()())
+        ui_manager.add_screen(get_defeat_screen()())
+        ui_manager.add_screen(get_dynamic_combat_screen()())
         
-        # Start with menu screen (or skip to combat if in dev mode)
+        # Start with menu screen (or skip to progression if in dev mode)
         if args.dev_mode:
-            ui_manager.switch_to_screen_with_transition("combat", "slide_left")
+            ui_manager.switch_to_screen_with_transition("progression", "slide_left")
         else:
             ui_manager.switch_to_screen("menu")  # No transition on startup
         
@@ -197,6 +209,7 @@ def main() -> int:
             
             # Update game systems
             engine.update(delta_time)
+            game_flow.update(delta_time)
             ui_manager.update(delta_time)
             
             # Render

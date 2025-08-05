@@ -26,7 +26,18 @@
       "Bash(del test_menu_click.py debug_menu_positions.py)",
       "Bash(find:*)",
       "Bash(sed:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(del:*)",
+      "Bash(dir:*)",
+      "Bash(xcopy:*)",
+      "Bash(mcp.godot.ping:*)",
+      "Bash(\"C:\\Users\\Bruno\\AppData\\Roaming\\Python\\Python313\\Scripts\\mcp.exe\" --help)",
+      "Bash(rd:*)",
+      "Bash(taskkill:*)",
+      "Bash(kill:*)",
+      "Bash(powershell:*)",
+      "Bash(start:*)",
+      "Bash(copy:*)"
     ],
     "deny": []
   }

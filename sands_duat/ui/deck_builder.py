@@ -192,16 +192,28 @@ class CardDisplay(UIComponent):
         pygame.draw.rect(surface, bg_color, self.rect)
         pygame.draw.rect(surface, border_color, self.rect, 3 if self.selected else 2)
         
+        # AI Card Artwork (main focus of the card)
+        art_rect = pygame.Rect(
+            self.rect.x + 3,
+            self.rect.y + 20,  # Leave space for name
+            self.rect.width - 6,
+            self.rect.height - 50  # Leave space for name and cost
+        )
+        self._draw_card_artwork(surface, art_rect)
+        
         # Responsive font sizing based on card size
         name_font_size = max(12, min(20, self.rect.width // 6))
         cost_font_size = max(16, min(28, self.rect.width // 4))
         count_font_size = max(10, min(16, self.rect.width // 8))
         
-        # Card name with theme text color
+        # Card name with theme text color (on top)
         font = pygame.font.Font(None, name_font_size)
         max_chars = max(8, self.rect.width // 8)
         display_name = self.card.name[:max_chars]
         text = font.render(display_name, True, card_style['text_color'])
+        # Add text background for better readability
+        text_bg = pygame.Rect(self.rect.x, self.rect.y, text.get_width() + 6, text.get_height() + 6)
+        pygame.draw.rect(surface, (0, 0, 0, 180), text_bg)
         surface.blit(text, (self.rect.x + 3, self.rect.y + 3))
         
         # Sand cost with theme cost color
@@ -234,6 +246,56 @@ class CardDisplay(UIComponent):
         
         # Render Egyptian animations
         self._render_egyptian_effects(surface)
+    
+    def _draw_card_artwork(self, surface: pygame.Surface, art_rect: pygame.Rect) -> None:
+        """Draw AI-generated card artwork."""
+        try:
+            from ..graphics.card_art_loader import load_card_art
+            
+            artwork = load_card_art(self.card.name, (art_rect.width, art_rect.height))
+            if artwork:
+                surface.blit(artwork, art_rect)
+                
+                # Add Egyptian-style border
+                pygame.draw.rect(surface, (139, 117, 93), art_rect, 2)
+                
+                # Success indicator
+                font = pygame.font.Font(None, 10)
+                debug_text = font.render("AI", True, (0, 255, 0))
+                surface.blit(debug_text, (art_rect.x + 2, art_rect.y + 2))
+                
+            else:
+                # Enhanced fallback with card name
+                pygame.draw.rect(surface, (80, 60, 40), art_rect)
+                pygame.draw.rect(surface, (139, 117, 93), art_rect, 2)
+                
+                # Card name display
+                font = pygame.font.Font(None, 12)
+                name_lines = self.card.name.split(' ')
+                for i, line in enumerate(name_lines[:2]):  # Max 2 lines for deck builder
+                    text = font.render(line, True, (255, 255, 255))
+                    text_rect = text.get_rect(center=(art_rect.centerx, art_rect.centery + i * 12 - 6))
+                    surface.blit(text, text_rect)
+                
+                # Type indicator
+                type_font = pygame.font.Font(None, 10)
+                type_text = type_font.render(self.card.card_type.value[:4], True, (200, 200, 200))
+                type_rect = type_text.get_rect(center=(art_rect.centerx, art_rect.bottom - 8))
+                surface.blit(type_text, type_rect)
+                
+        except Exception as e:
+            # Error fallback with more info
+            pygame.draw.rect(surface, (60, 30, 30), art_rect)
+            pygame.draw.rect(surface, (120, 60, 60), art_rect, 2)
+            
+            font = pygame.font.Font(None, 12)
+            error_text = font.render("Error", True, (255, 100, 100))
+            error_rect = error_text.get_rect(center=(art_rect.centerx, art_rect.centery - 8))
+            surface.blit(error_text, error_rect)
+            
+            card_text = font.render(self.card.name[:10], True, (255, 255, 255))
+            card_rect = card_text.get_rect(center=(art_rect.centerx, art_rect.centery + 8))
+            surface.blit(card_text, card_rect)
     
     def _render_egyptian_effects(self, surface: pygame.Surface) -> None:
         """Render Egyptian-themed visual effects on the card."""
@@ -268,7 +330,7 @@ class CardCollection(UIComponent):
     """
     
     def __init__(self, x: int, y: int, width: int, height: int, player_collection: PlayerCollection, 
-                 cards_per_row: int = 6, card_width: int = 90, card_height: int = 120):
+                 cards_per_row: int = 3, card_width: int = 220, card_height: int = 300):
         super().__init__(x, y, width, height)
         self.player_collection = player_collection
         self.logger = logging.getLogger(__name__)
@@ -278,11 +340,14 @@ class CardCollection(UIComponent):
         self.card_displays: List[CardDisplay] = []
         self.selected_cards: List[str] = []  # Card IDs
         
-        # Layout settings - now configurable for different display sizes
+        # Improved layout settings - better responsive design
         self.cards_per_row = cards_per_row
         self.card_width = card_width
         self.card_height = card_height
-        self.card_spacing = max(8, width // 200)  # Adaptive spacing based on width
+        # Better spacing calculation with minimum and maximum bounds
+        self.card_spacing = min(20, max(10, width // 120))  # More consistent spacing
+        self.margin_x = max(15, width // 80)  # Side margins
+        self.margin_y = max(10, height // 60)  # Top/bottom margins
         self.scroll_offset = 0
         self.max_scroll = 0
         
@@ -364,9 +429,9 @@ class CardCollection(UIComponent):
             # Create all displays (fallback for compatibility)
             self._create_all_card_displays()
         
-        # Calculate scrolling bounds
+        # Calculate scrolling bounds with proper margins
         total_rows = (len(self.filtered_cards) + self.cards_per_row - 1) // self.cards_per_row
-        total_height = total_rows * (self.card_height + self.card_spacing) + self.card_spacing
+        total_height = total_rows * (self.card_height + self.card_spacing) + self.margin_y * 2
         self.max_scroll = max(0, total_height - self.rect.height)
     
     def _create_visible_card_displays(self) -> None:
@@ -397,8 +462,9 @@ class CardCollection(UIComponent):
             row = i // self.cards_per_row
             col = i % self.cards_per_row
             
-            x = self.rect.x + col * (self.card_width + self.card_spacing) + self.card_spacing
-            y = self.rect.y + row * (self.card_height + self.card_spacing) + self.card_spacing
+            # Improved card positioning with proper margins
+            x = self.rect.x + self.margin_x + col * (self.card_width + self.card_spacing)
+            y = self.rect.y + self.margin_y + row * (self.card_height + self.card_spacing)
             
             owned_count = self.player_collection.get_card_count(card.id)
             is_favorite = self.player_collection.is_favorite(card.id)
@@ -434,8 +500,9 @@ class CardCollection(UIComponent):
             row = i // self.cards_per_row
             col = i % self.cards_per_row
             
-            x = self.rect.x + col * (self.card_width + self.card_spacing) + self.card_spacing
-            y = self.rect.y + row * (self.card_height + self.card_spacing) + self.card_spacing
+            # Improved card positioning with proper margins
+            x = self.rect.x + self.margin_x + col * (self.card_width + self.card_spacing)
+            y = self.rect.y + self.margin_y + row * (self.card_height + self.card_spacing)
             
             owned_count = self.player_collection.get_card_count(card.id)
             is_favorite = self.player_collection.is_favorite(card.id)
@@ -679,15 +746,16 @@ class CardCollection(UIComponent):
         self.selected_cards.clear()
         
         rows = (len(self.filtered_cards) + self.cards_per_row - 1) // self.cards_per_row
-        total_height = rows * (self.card_height + self.card_spacing)
+        total_height = rows * (self.card_height + self.card_spacing) + self.margin_y * 2
         self.max_scroll = max(0, total_height - self.rect.height)
         
         for i, card in enumerate(self.filtered_cards):
             row = i // self.cards_per_row
             col = i % self.cards_per_row
             
-            x = self.rect.x + col * (self.card_width + self.card_spacing)
-            y = self.rect.y + row * (self.card_height + self.card_spacing)
+            # Improved card positioning with proper margins
+            x = self.rect.x + self.margin_x + col * (self.card_width + self.card_spacing)
+            y = self.rect.y + self.margin_y + row * (self.card_height + self.card_spacing)
             
             card_display = CardDisplay(x, y, self.card_width, self.card_height, card, draggable=True)
             card_display.add_event_handler("card_selected", self._on_card_selected)
@@ -734,11 +802,20 @@ class DeckView(UIComponent):
         self.deck: Optional[Deck] = None
         self.card_displays: List[CardDisplay] = []
         
-        # Layout settings - responsive based on available width
-        self.cards_per_row = max(6, width // 120)  # More cards per row for horizontal layout
-        self.card_width = min(100, (width - 40) // self.cards_per_row - 10)  # Responsive card width
+        # Improved layout settings - better responsive design for deck area
+        margin_total = 30  # Total margins
+        min_spacing = 12  # Minimum spacing between cards
+        base_card_width = 180  # Much larger cards to showcase AI artwork
+        
+        available_width = width - margin_total
+        max_cards_per_row = available_width // (base_card_width + min_spacing)
+        self.cards_per_row = min(max(4, max_cards_per_row), 15)  # Reasonable bounds for deck
+        
+        # Recalculate actual dimensions
+        total_spacing = (self.cards_per_row - 1) * min_spacing
+        self.card_width = (available_width - total_spacing) // self.cards_per_row
         self.card_height = int(self.card_width * 1.3)  # Maintain aspect ratio
-        self.card_spacing = max(8, width // 100)  # Adaptive spacing
+        self.card_spacing = min_spacing
         
         # Drop zone visual feedback
         self.is_drop_target = False
@@ -961,9 +1038,9 @@ class FilterPanel(UIComponent):
         self.expanded_height = height
         self.collapse_animation_progress = 1.0  # 1.0 = expanded, 0.0 = collapsed
         
-        # Responsive font sizing based on panel width
-        self.font_size = max(16, min(24, width // 12))
-        self.line_height = self.font_size + 4
+        # Improved responsive font sizing based on panel width
+        self.font_size = max(18, min(26, width // 10))  # Better scaling
+        self.line_height = self.font_size + 6  # More breathing room
         
         # Interactive areas for clicking filters
         self.filter_buttons: Dict[str, pygame.Rect] = {}
@@ -1012,12 +1089,14 @@ class FilterPanel(UIComponent):
         for corner in [(self.rect.left, self.rect.top), (self.rect.right - corner_size, self.rect.top)]:
             pygame.draw.rect(surface, (255, 215, 0), (corner[0], corner[1], corner_size, corner_size))
         
-        # Use responsive font sizing
+        # Use improved responsive font sizing
         font = pygame.font.Font(None, self.font_size)
-        small_font = pygame.font.Font(None, max(14, self.font_size - 4))
-        tiny_font = pygame.font.Font(None, max(12, self.font_size - 6))
+        small_font = pygame.font.Font(None, max(16, self.font_size - 3))  # Larger small fonts
+        tiny_font = pygame.font.Font(None, max(14, self.font_size - 4))  # Readable tiny fonts
         
-        padding = max(5, self.rect.width // 30)
+        # Improved padding calculation for better space utilization
+        padding = max(8, self.rect.width // 25)  # Better base padding
+        item_spacing = max(4, self.rect.width // 50)  # Consistent item spacing
         y_offset = self.rect.top + padding
         
         # Title with collapse/expand button
@@ -1031,7 +1110,7 @@ class FilterPanel(UIComponent):
             title_surface.get_width(), title_surface.get_height()
         )
         
-        y_offset += self.line_height + padding
+        y_offset += self.line_height + item_spacing
         
         # Only show filters if not collapsed or still animating
         if self.collapse_animation_progress > 0.1:
@@ -1054,8 +1133,9 @@ class FilterPanel(UIComponent):
             render_surface.blit(search_label, (padding, base_y))
             search_y = base_y + self.line_height
             
-            # Search input box with Egyptian styling
-            search_box_rect = pygame.Rect(padding, search_y, self.rect.width - padding * 2, self.line_height + 4)
+            # Search input box with Egyptian styling - better width utilization
+            search_box_width = max(120, self.rect.width - padding * 2)
+            search_box_rect = pygame.Rect(padding, search_y, search_box_width, self.line_height + 4)
             search_bg = (255, 248, 220) if self.search_input_active else (235, 228, 200)
             pygame.draw.rect(render_surface, search_bg, search_box_rect)
             pygame.draw.rect(render_surface, border_color, search_box_rect, 2)
@@ -1088,8 +1168,9 @@ class FilterPanel(UIComponent):
                 is_selected = self.selected_rarity == rarity
                 color = rarity_colors.get(rarity, (47, 27, 20))
                 if is_selected:
-                    # Highlight selected with sandstone background
-                    highlight_rect = pygame.Rect(padding * 2 - 2, current_y - 2, self.rect.width - padding * 4, self.line_height)
+                    # Highlight selected with sandstone background - better width usage
+                    highlight_width = max(80, self.rect.width - padding * 3)
+                    highlight_rect = pygame.Rect(padding * 2 - 2, current_y - 2, highlight_width, self.line_height)
                     pygame.draw.rect(render_surface, (200, 180, 140), highlight_rect)
                     pygame.draw.rect(render_surface, (255, 215, 0), highlight_rect, 1)
                 
@@ -1103,9 +1184,9 @@ class FilterPanel(UIComponent):
                 )
                 self.filter_buttons[f'rarity_{rarity.value}'] = button_rect
                 
-                current_y += self.line_height - 2
+                current_y += self.line_height - item_spacing // 2  # Better spacing between filter items
             
-            current_y += padding
+            current_y += item_spacing * 2  # Section spacing
             
             # Card Type filters
             type_text = small_font.render("⚔ Type:", True, (47, 27, 20))
@@ -1123,7 +1204,8 @@ class FilterPanel(UIComponent):
                 is_selected = self.selected_type == card_type
                 color = type_colors.get(card_type, (47, 27, 20))
                 if is_selected:
-                    highlight_rect = pygame.Rect(padding * 2 - 2, current_y - 2, self.rect.width - padding * 4, self.line_height)
+                    highlight_width = max(80, self.rect.width - padding * 3)
+                    highlight_rect = pygame.Rect(padding * 2 - 2, current_y - 2, highlight_width, self.line_height)
                     pygame.draw.rect(render_surface, (200, 180, 140), highlight_rect)
                     pygame.draw.rect(render_surface, (255, 215, 0), highlight_rect, 1)
                 
@@ -1135,9 +1217,9 @@ class FilterPanel(UIComponent):
                     type_label.get_width(), type_label.get_height()
                 )
                 
-                current_y += self.line_height - 2
+                current_y += self.line_height - item_spacing // 2  # Better spacing between filter items
             
-            current_y += padding
+            current_y += item_spacing * 2  # Section spacing
             
             # Cost filters with Egyptian styling
             cost_text = small_font.render("⏳ Sand Cost:", True, (47, 27, 20))
@@ -1171,7 +1253,7 @@ class FilterPanel(UIComponent):
                 
                 cost_x += 25
             
-            current_y += self.line_height + padding
+            current_y += self.line_height + item_spacing
             
             # Clear filters button
             clear_button_rect = pygame.Rect(padding, current_y, self.rect.width - padding * 2, self.line_height + 4)
@@ -1405,6 +1487,14 @@ class DeckBuilderScreen(UIScreen):
             )
             self.add_component(back_button)
             
+            # Add Start Combat button
+            combat_button = MenuButton(
+                back_zone.x + back_zone.width + 20, back_zone.y, back_zone.width, back_zone.height,
+                "Start Combat",
+                self._start_combat
+            )
+            self.add_component(combat_button)
+            
             # Filter panel using theme zone
             self.filter_panel = FilterPanel(
                 filter_zone.x, filter_zone.y, filter_zone.width, filter_zone.height
@@ -1418,10 +1508,20 @@ class DeckBuilderScreen(UIScreen):
             temp_player_collection = PlayerCollection()
             
             # Calculate optimal card layout based on collection zone size
-            # For ultrawide: 2200px width allows for ~15 cards per row at 130px width + spacing
-            optimal_card_width = min(130, collection_zone.width // 15)
+            # Better responsive calculation for card sizing
+            base_card_width = 200  # Much larger target to showcase AI artwork
+            min_spacing = 15  # Minimum spacing between cards
+            margin_total = 30  # Total left/right margins
+            
+            # Calculate how many cards fit with proper spacing
+            available_width = collection_zone.width - margin_total
+            max_cards_per_row = available_width // (base_card_width + min_spacing)
+            cards_per_row = min(max(6, max_cards_per_row), 20)  # Reasonable bounds
+            
+            # Recalculate card width based on actual cards per row
+            total_spacing = (cards_per_row - 1) * min_spacing
+            optimal_card_width = (available_width - total_spacing) // cards_per_row
             optimal_card_height = int(optimal_card_width * 1.4)  # Maintain aspect ratio
-            cards_per_row = max(8, collection_zone.width // (optimal_card_width + 15))
             
             # Card collection using theme zone with responsive sizing
             self.card_collection = CardCollection(
@@ -1460,17 +1560,51 @@ class DeckBuilderScreen(UIScreen):
             self._setup_fallback_ui()
     
     def _setup_fallback_ui(self) -> None:
-        """Fallback UI setup if theme system fails."""
-        # Back button (top-left corner) - Egyptian themed
+        """Improved fallback UI setup with responsive breakpoints."""
+        # Get screen dimensions for responsive layout
+        screen_info = pygame.display.Info()
+        screen_width = screen_info.current_w
+        screen_height = screen_info.current_h
+        
+        # Define responsive breakpoints
+        if screen_width >= 3200:  # Ultrawide+
+            filter_width, collection_width, deck_width = 280, 1800, 400
+            button_width = 180
+        elif screen_width >= 2560:  # Ultrawide
+            filter_width, collection_width, deck_width = 250, 1400, 350
+            button_width = 160
+        elif screen_width >= 1920:  # Full HD
+            filter_width, collection_width, deck_width = 220, 1000, 300
+            button_width = 150
+        elif screen_width >= 1366:  # Standard laptop
+            filter_width, collection_width, deck_width = 180, 700, 250
+            button_width = 130
+        else:  # Compact
+            filter_width, collection_width, deck_width = 150, 500, 200
+            button_width = 120
+        
+        margin = max(10, screen_width // 200)
+        button_height = max(35, screen_height // 30)
+        
+        # Responsive button positioning
         back_button = MenuButton(
-            20, 20, 150, 40,
+            margin, margin, button_width, button_height,
             "< Back to Progression",
             self._back_to_progression
         )
         self.add_component(back_button)
         
-        # Filter panel (left side)
-        self.filter_panel = FilterPanel(20, 80, 150, 500)
+        combat_button = MenuButton(
+            margin + button_width + 10, margin, button_width, button_height,
+            "Start Combat",
+            self._start_combat
+        )
+        self.add_component(combat_button)
+        
+        # Responsive filter panel
+        filter_y = margin + button_height + 15
+        filter_height = min(600, screen_height - filter_y - margin)
+        self.filter_panel = FilterPanel(margin, filter_y, filter_width, filter_height)
         self.filter_panel.add_event_handler("filters_changed", self._on_filters_changed)
         self.filter_panel.add_event_handler("high_contrast_changed", self._on_high_contrast_changed)
         self.add_component(self.filter_panel)
@@ -1478,8 +1612,13 @@ class DeckBuilderScreen(UIScreen):
         # Create temporary player collection for testing
         temp_player_collection = PlayerCollection()
         
-        # Card collection (center)
-        self.card_collection = CardCollection(180, 80, 400, 500, temp_player_collection)
+        # Responsive card collection
+        collection_x = margin + filter_width + 15
+        collection_height = filter_height
+        self.card_collection = CardCollection(
+            collection_x, filter_y, collection_width, collection_height, 
+            temp_player_collection
+        )
         self.card_collection.add_event_handler("card_selection_changed", self._on_card_selected)
         self.card_collection.add_event_handler("card_drag_start", self._on_card_drag_start)
         self.card_collection.add_event_handler("card_drag_end", self._on_card_drag_end)
@@ -1487,8 +1626,9 @@ class DeckBuilderScreen(UIScreen):
         self.card_collection.add_event_handler("card_double_click", self._on_card_double_click)
         self.add_component(self.card_collection)
         
-        # Deck view (right side)
-        self.deck_view = DeckView(590, 80, 200, 500)
+        # Responsive deck view
+        deck_x = collection_x + collection_width + 15
+        self.deck_view = DeckView(deck_x, filter_y, deck_width, collection_height)
         self.deck_view.add_event_handler("card_removed", self._on_card_removed)
         self.deck_view.add_event_handler("card_added_to_deck", self._on_card_added_to_deck)
         self.deck_view.add_event_handler("deck_card_info", self._on_deck_card_info)
@@ -1497,6 +1637,8 @@ class DeckBuilderScreen(UIScreen):
         # Initialize with empty deck with proper size limits
         self.current_deck = Deck(name="Custom Deck", max_size=30)
         self.deck_view.set_deck(self.current_deck)
+        
+        self.logger.info(f"Fallback UI setup for {screen_width}x{screen_height} resolution")
     
     def _setup_sample_data(self) -> None:
         """Set up sample cards for demonstration."""
@@ -1696,6 +1838,27 @@ class DeckBuilderScreen(UIScreen):
         else:
             # Fallback - just log for now since UIScreen doesn't have _trigger_event
             self.logger.warning("No UI manager available for screen transition")
+    
+    def _start_combat(self) -> None:
+        """Start combat with current deck."""
+        self.logger.info("Starting combat from deck builder")
+        
+        # Get game flow manager
+        game_flow = getattr(self.ui_manager, 'game_flow', None) if self.ui_manager else None
+        
+        if game_flow:
+            # Use Game Flow Manager to handle combat
+            node_data = {
+                "enemy_id": "desert_mummy",
+                "is_boss": False
+            }
+            game_flow.handle_node_selection("combat", node_data)
+        else:
+            # Fallback to direct transition
+            if hasattr(self, 'ui_manager') and self.ui_manager:
+                self.ui_manager.switch_to_screen_with_transition("dynamic_combat", "slide_left")
+            else:
+                self.logger.warning("No UI manager available for combat transition")
     
     def set_available_cards(self, cards: List[Card]) -> None:
         """Set the available card collection."""

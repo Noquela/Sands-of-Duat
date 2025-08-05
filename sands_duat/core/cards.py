@@ -64,6 +64,15 @@ class EffectType(Enum):
     PERMANENT_SAND_INCREASE = "permanent_sand_increase"  # Permanently increase max sand
     BLESSING = "blessing"  # Egyptian-themed persistent effects
     CHANNEL_DIVINITY = "channel_divinity"  # Legendary unique mechanic
+    
+    # New mechanics for enhanced gameplay
+    MUMMIFY = "mummify"  # Preserve cards with enhanced effects
+    DIVINE_JUDGMENT = "divine_judgment"  # Moral alignment effects
+    SOUL_FRAGMENT = "soul_fragment"  # Split soul into components
+    HIEROGLYPH_SYMBOL = "hieroglyph_symbol"  # Symbol combination magic
+    SAND_RESONANCE = "sand_resonance"  # Bonus when played at specific sand amounts
+    TEMPORAL_MOMENTUM = "temporal_momentum"  # Reward decreasing cost sequences
+    UNDERWORLD_NAVIGATION = "underworld_navigation"  # Move through Duat regions
     SPECIAL = "special"  # For unique Egyptian effects
 
 
@@ -90,6 +99,11 @@ class CardEffect(BaseModel):
     condition: Optional[str] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
     
+    # Enhanced mechanics for strategic depth
+    resonance_bonus: Optional[Dict[str, int]] = None  # Bonus effects at specific sand amounts
+    momentum_scaling: bool = False  # Whether effect scales with temporal momentum
+    divine_alignment: Optional[str] = None  # "order", "chaos", "balance" for judgment system
+    
     def __str__(self) -> str:
         return f"{self.effect_type.value}({self.value}) -> {self.target.value}"
 
@@ -107,6 +121,7 @@ class Card(BaseModel):
     name: str
     description: str
     sand_cost: int = Field(ge=0, le=6, description="Sand cost (0-6 grains)")
+    cast_time: float = Field(default=0.0, ge=0.0, le=10.0, description="Time to cast in seconds")
     card_type: CardType
     rarity: CardRarity = CardRarity.COMMON
     effects: List[CardEffect] = Field(default_factory=list)
@@ -116,6 +131,17 @@ class Card(BaseModel):
     upgradeable: bool = True
     upgraded: bool = False
     
+    # Enhanced mechanics for strategic depth
+    mummified: bool = False  # Preserved with enhanced effects
+    experience_points: int = 0  # Gained through use, unlocks mastery
+    divine_alignment: Optional[str] = None  # "order", "chaos", "balance"
+    soul_fragments: int = 0  # Number of soul fragments contained
+    hieroglyph_symbols: Set[str] = Field(default_factory=set)  # For combination magic
+    eternal: bool = False  # Returns to hand when discarded
+    exhaust: bool = False  # Removed from combat when played
+    retain: bool = False  # Stays in hand at end of turn
+    ethereal: bool = False  # Disappears if not played this turn
+    
     @validator('sand_cost')
     def validate_sand_cost(cls, v):
         """Ensure sand cost is within valid range."""
@@ -123,20 +149,33 @@ class Card(BaseModel):
             raise ValueError('Sand cost must be between 0 and 6')
         return v
     
-    def get_effective_cost(self, modifiers: Optional[Dict[str, int]] = None) -> int:
+    def get_effective_cost(self, modifiers: Optional[Dict[str, int]] = None, current_sand: int = 0, momentum_stacks: int = 0) -> int:
         """
         Get the effective sand cost after applying modifiers.
         
         Modifiers can come from powers, relics, or temporary effects.
+        Enhanced with resonance and momentum systems.
         """
         cost = self.sand_cost
         
+        # Apply traditional modifiers
         if modifiers:
             cost += modifiers.get('cost_increase', 0)
             cost -= modifiers.get('cost_reduction', 0)
             
             if 'set_cost' in modifiers:
                 cost = modifiers['set_cost']
+        
+        # Apply temporal momentum reduction
+        cost -= min(momentum_stacks, 3)
+        
+        # Apply sand resonance discount
+        if abs(self.sand_cost - current_sand) <= 1:
+            cost -= 1  # Minor resonance discount
+        
+        # Mummified cards get cost reduction based on experience
+        if self.mummified:
+            cost -= min(self.experience_points // 5, 2)
         
         return max(0, min(6, cost))  # Clamp to valid range
     
@@ -156,9 +195,27 @@ class Card(BaseModel):
         """Get all damage effects from this card."""
         return [effect for effect in self.effects if effect.effect_type == EffectType.DAMAGE]
     
-    def get_total_damage(self) -> int:
-        """Calculate total damage this card can deal."""
-        return sum(effect.value for effect in self.get_damage_effects())
+    def get_total_damage(self, current_sand: int = 0, divine_favor: int = 0) -> int:
+        """Calculate total damage this card can deal with enhancements."""
+        base_damage = sum(effect.value for effect in self.get_damage_effects())
+        
+        # Apply sand resonance bonus
+        if self.sand_cost == current_sand:
+            base_damage = int(base_damage * 1.5)  # Perfect resonance
+        elif abs(self.sand_cost - current_sand) <= 1:
+            base_damage = int(base_damage * 1.25)  # Minor resonance
+        
+        # Apply mummification bonus
+        if self.mummified:
+            base_damage += 5
+        
+        # Apply divine judgment bonus
+        if self.divine_alignment == "order" and divine_favor > 0:
+            base_damage += divine_favor * 2
+        elif self.divine_alignment == "chaos" and divine_favor < 0:
+            base_damage += abs(divine_favor) * 3
+        
+        return base_damage
     
     def can_target(self, target_type: TargetType) -> bool:
         """Check if this card can target a specific target type."""

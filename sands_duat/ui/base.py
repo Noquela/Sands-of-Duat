@@ -361,6 +361,10 @@ class UIScreen(ABC):
         self.screen_alpha = 255
         self.transition_offset_x = 0
         self.transition_offset_y = 0
+        
+        # Background system
+        self.background_surface = None
+        self.use_ai_background = True
     
     @abstractmethod
     def on_enter(self) -> None:
@@ -387,15 +391,57 @@ class UIScreen(ABC):
                 # Update Egyptian feedback animations
                 component.update_egyptian_feedback(delta_time)
     
+    def load_background(self, screen_size: Tuple[int, int] = None) -> None:
+        """Load AI background for this screen"""
+        if not self.use_ai_background:
+            return
+            
+        try:
+            from ..graphics.background_loader import load_background
+            self.background_surface = load_background(self.name, screen_size)
+            if self.background_surface:
+                self.logger.info(f"Loaded AI background for {self.name}")
+            else:
+                self.logger.warning(f"No AI background available for {self.name}")
+        except Exception as e:
+            self.logger.error(f"Failed to load background for {self.name}: {e}")
+    
     def render(self, surface: pygame.Surface) -> None:
         """Render the screen and all its components with animation support."""
         if not self.active:
             return
         
+        # Draw AI background if available
+        if self.background_surface:
+            # Scale background to fit screen if needed
+            if self.background_surface.get_size() != surface.get_size():
+                scaled_bg = pygame.transform.smoothscale(
+                    self.background_surface, 
+                    surface.get_size()
+                )
+                surface.blit(scaled_bg, (0, 0))
+            else:
+                surface.blit(self.background_surface, (0, 0))
+        else:
+            # Fallback to solid color background
+            surface.fill(self.background_color)
+        
         # Create render surface for alpha blending
         if self.screen_alpha < 255 or self.transition_offset_x != 0 or self.transition_offset_y != 0:
             screen_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-            screen_surface.fill(self.background_color)
+            
+            # Draw AI background on render surface too if available
+            if self.background_surface:
+                if self.background_surface.get_size() != screen_surface.get_size():
+                    scaled_bg = pygame.transform.smoothscale(
+                        self.background_surface, 
+                        screen_surface.get_size()
+                    )
+                    screen_surface.blit(scaled_bg, (0, 0))
+                else:
+                    screen_surface.blit(self.background_surface, (0, 0))
+            else:
+                screen_surface.fill(self.background_color)
             
             # Render components to screen surface
             for component in self.components:

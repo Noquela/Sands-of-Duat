@@ -13,7 +13,11 @@ from typing import Dict, Any, Optional, List, Callable, Tuple
 from .base import UIScreen, UIComponent
 from .theme import get_theme
 from .animation_system import EasingType
-from audio.sound_effects import play_button_sound
+try:
+    from audio.sound_effects import play_button_sound
+except ImportError:
+    def play_button_sound(sound_type):
+        pass
 from .menu_screen import MenuButton
 
 
@@ -45,68 +49,120 @@ class TempleChambersMap(UIComponent):
         self.chamber_font = pygame.font.Font(None, 24)
     
     def _create_chamber_layout(self) -> Dict[str, Dict[str, Any]]:
-        """Create the temple chamber layout."""
+        """Create a proper roguelike level progression."""
         chambers = {
-            "entrance": {
-                "name": "Temple Entrance",
+            # FLOOR 1 - Desert Outskirts
+            "floor_1_start": {
+                "name": "Desert Path",
                 "position": (100, 400),
                 "unlocked": True,
                 "completed": False,
-                "chamber_type": "tutorial",
-                "description": "Learn the ways of the ancient pharaohs",
-                "next_chambers": ["antechamber"]
+                "chamber_type": "story",
+                "floor": 1,
+                "description": "Begin your journey into the Duat",
+                "next_chambers": ["floor_1_combat"]
             },
-            "antechamber": {
-                "name": "Antechamber of Preparation",
-                "position": (300, 350),
-                "unlocked": False,
-                "completed": False,
-                "chamber_type": "deck_building",
-                "description": "Assemble your sacred deck of power",
-                "next_chambers": ["first_trial"]
-            },
-            "first_trial": {
-                "name": "Trial of Anubis",
-                "position": (500, 300),
+            "floor_1_combat": {
+                "name": "Desert Scorpion Lair",
+                "position": (300, 400),
                 "unlocked": False,
                 "completed": False,
                 "chamber_type": "combat",
-                "description": "Face the guardian of the dead",
-                "next_chambers": ["chamber_of_isis", "chamber_of_horus"]
+                "floor": 1,
+                "description": "Face the desert's first guardian",
+                "next_chambers": ["floor_1_reward"]
             },
-            "chamber_of_isis": {
-                "name": "Chamber of Isis",
+            "floor_1_reward": {
+                "name": "Ancient Cache",
+                "position": (500, 400),
+                "unlocked": False,
+                "completed": False,
+                "chamber_type": "reward",
+                "floor": 1,
+                "description": "Claim your first treasures",
+                "next_chambers": ["floor_2_start"]
+            },
+            
+            # FLOOR 2 - Temple Entrance
+            "floor_2_start": {
+                "name": "Temple Gates",
+                "position": (100, 300),
+                "unlocked": False,
+                "completed": False,
+                "chamber_type": "story",
+                "floor": 2,
+                "description": "Enter the sacred temple",
+                "next_chambers": ["floor_2_choice"]
+            },
+            "floor_2_choice": {
+                "name": "Temple Crossroads",
+                "position": (300, 300),
+                "unlocked": False,
+                "completed": False,
+                "chamber_type": "choice",
+                "floor": 2,
+                "description": "Choose your path through the temple",
+                "next_chambers": ["floor_2_combat_a", "floor_2_combat_b"]
+            },
+            "floor_2_combat_a": {
+                "name": "Hall of Anubis",
+                "position": (200, 200),
+                "unlocked": False,
+                "completed": False,
+                "chamber_type": "combat",
+                "floor": 2,
+                "description": "Face the jackal god's guardian",
+                "next_chambers": ["floor_2_boss"]
+            },
+            "floor_2_combat_b": {
+                "name": "Chamber of Thoth",
                 "position": (400, 200),
                 "unlocked": False,
                 "completed": False,
                 "chamber_type": "combat",
-                "description": "Seek the blessing of the mother goddess",
-                "next_chambers": ["hall_of_truth"]
+                "floor": 2,
+                "description": "Test your wisdom against ancient magic",
+                "next_chambers": ["floor_2_boss"]
             },
-            "chamber_of_horus": {
-                "name": "Chamber of Horus",
-                "position": (600, 200),
+            "floor_2_boss": {
+                "name": "Temple Guardian",
+                "position": (300, 100),
+                "unlocked": False,
+                "completed": False,
+                "chamber_type": "boss",
+                "floor": 2,
+                "description": "Defeat the temple's ancient protector",
+                "next_chambers": ["floor_3_start"]
+            },
+            
+            # FLOOR 3 - Inner Sanctum
+            "floor_3_start": {
+                "name": "Inner Sanctum",
+                "position": (500, 300),
+                "unlocked": False,
+                "completed": False,
+                "chamber_type": "story",
+                "floor": 3,
+                "description": "Enter the heart of the temple",
+                "next_chambers": ["floor_3_combat"]
+            },
+            "floor_3_combat": {
+                "name": "Hall of Two Truths",
+                "position": (700, 300),
                 "unlocked": False,
                 "completed": False,
                 "chamber_type": "combat",
-                "description": "Test your sight against the sky god",
-                "next_chambers": ["hall_of_truth"]
+                "floor": 3,
+                "description": "Face the final judgment",
+                "next_chambers": ["floor_3_boss"]
             },
-            "hall_of_truth": {
-                "name": "Hall of Two Truths",
-                "position": (500, 100),
-                "unlocked": False,
-                "completed": False,
-                "chamber_type": "boss_combat",
-                "description": "Face the final judgment of Ma'at",
-                "next_chambers": ["pharaoh_tomb"]
-            },
-            "pharaoh_tomb": {
-                "name": "Pharaoh's Burial Chamber",
-                "position": (700, 150),
+            "floor_3_boss": {
+                "name": "Pharaoh's Throne",
+                "position": (900, 300),
                 "unlocked": False,
                 "completed": False,
                 "chamber_type": "final_boss",
+                "floor": 3,
                 "description": "Claim the throne of the god-king",
                 "next_chambers": []
             }
@@ -239,22 +295,35 @@ class TempleChambersMap(UIComponent):
         symbol_rect = symbol_surface.get_rect(center=chamber_rect.center)
         surface.blit(symbol_surface, symbol_rect)
         
-        # Draw chamber name
+        # Draw chamber name and floor
         if is_unlocked:
             name_surface = self.chamber_font.render(chamber["name"], True, self.gold_color)
             name_rect = name_surface.get_rect()
             name_rect.centerx = pos[0]
             name_rect.y = pos[1] + chamber_size // 2 + 10
             surface.blit(name_surface, name_rect)
+            
+            # Draw floor indicator
+            if "floor" in chamber:
+                floor_text = f"Floor {chamber['floor']}"
+                floor_surface = pygame.font.Font(None, 16).render(floor_text, True, (200, 200, 150))
+                floor_rect = floor_surface.get_rect()
+                floor_rect.centerx = pos[0]
+                floor_rect.y = name_rect.bottom + 5
+                surface.blit(floor_surface, floor_rect)
     
     def _get_chamber_symbol(self, chamber_type: str) -> str:
         """Get the symbol for a chamber type."""
         symbols = {
-            "tutorial": "?",
-            "deck_building": "D",
-            "combat": "⚔",
-            "boss_combat": "B",
-            "final_boss": "♚"
+            "story": "⧗",        # Hourglass symbol for story progression
+            "combat": "⚔",       # Sword for combat
+            "boss": "👑",        # Crown for boss
+            "final_boss": "♚",   # King for final boss
+            "reward": "💰",      # Treasure for rewards
+            "choice": "🔀",      # Split paths for choices
+            "deck_building": "📜", # Scroll for deck building
+            "shop": "🏪",        # Shop
+            "rest": "💤"         # Rest area
         }
         return symbols.get(chamber_type, "•")
     
@@ -357,8 +426,8 @@ class ProgressionScreen(UIScreen):
         
         self.temple_map = TempleChambersMap(map_x, map_y, map_width, map_height)
         
-        # Initialize progression state - unlock tutorial chamber initially
-        self.temple_map.unlock_chamber("entrance")
+        # Initialize progression state - unlock starting chamber
+        self.temple_map.unlock_chamber("floor_1_start")
         
         # If accessing progression after tutorial, unlock more chambers
         self._setup_post_tutorial_state()
@@ -376,24 +445,116 @@ class ProgressionScreen(UIScreen):
         self.logger.info(f"Chamber selected: {chamber_id} (type: {chamber_type})")
         
         # Route to appropriate screen based on chamber type
-        if chamber_type == "tutorial":
-            if self.ui_manager:
-                self.ui_manager.switch_to_screen_with_transition("tutorial", "fade")
+        if chamber_type == "story":
+            # Story chambers automatically advance progression
+            if self.temple_map:
+                self.temple_map.complete_chamber(chamber_id)
+                self.logger.info(f"Story chamber completed: {chamber_id}")
+        elif chamber_type == "choice":
+            # Choice chambers automatically advance progression and unlock options
+            if self.temple_map:
+                self.temple_map.complete_chamber(chamber_id)
+                self.logger.info(f"Choice chamber completed: {chamber_id}")
+        elif chamber_type == "reward":
+            # Reward chambers show reward screen then advance
+            self._show_reward_screen(chamber_id)
         elif chamber_type == "deck_building":
             if self.ui_manager:
                 self.ui_manager.switch_to_screen_with_transition("deck_builder", "fade")
-        elif chamber_type in ["combat", "boss_combat", "final_boss"]:
-            if self.ui_manager:
-                self.ui_manager.switch_to_screen_with_transition("combat", "slide_left")
+        elif chamber_type in ["combat", "boss", "final_boss"]:
+            print(f"CLICKED COMBAT NODE: {chamber_type} in chamber {chamber_id}")  # DEBUG
+            
+            # Get game flow manager
+            game_flow = getattr(self.ui_manager, 'game_flow', None) if self.ui_manager else None
+            
+            if game_flow:
+                print("USING GAME FLOW MANAGER FOR COMBAT")  # DEBUG
+                # Use Game Flow Manager to handle combat
+                enemy_id = self._get_enemy_for_chamber(chamber_id, chamber_type)
+                node_data = {
+                    "enemy_id": enemy_id,
+                    "is_boss": chamber_type in ["boss_combat", "final_boss"]
+                }
+                game_flow.handle_node_selection("combat", node_data)
+            else:
+                print("FALLBACK: SWITCHING TO DYNAMIC COMBAT NOW!")  # DEBUG
+                # Fallback to direct transition
+                if self.ui_manager:
+                    self.ui_manager.switch_to_screen_with_transition("dynamic_combat", "slide_left")
     
     def _setup_post_tutorial_state(self) -> None:
-        """Setup progression state for players who completed tutorial."""
-        # For new players coming from tutorial, unlock the starting chambers
-        # This provides a clear progression path after tutorial completion
+        """Setup progression state based on current progress."""
+        # Check with game flow manager for current state
+        game_flow = getattr(self.ui_manager, 'game_flow', None) if self.ui_manager else None
+        
+        if game_flow and self.temple_map:
+            game_state = game_flow.get_game_state()
+            nodes_completed = game_state.nodes_completed
+            
+            # Floor 1 progression
+            if nodes_completed >= 1:  # Completed Desert Path
+                self.temple_map.complete_chamber("floor_1_start")
+                self.temple_map.unlock_chamber("floor_1_combat")
+            
+            if nodes_completed >= 2:  # Completed Desert Scorpion
+                self.temple_map.complete_chamber("floor_1_combat")
+                self.temple_map.unlock_chamber("floor_1_reward")
+            
+            if nodes_completed >= 3:  # Completed Ancient Cache
+                self.temple_map.complete_chamber("floor_1_reward")
+                self.temple_map.unlock_chamber("floor_2_start")
+            
+            # Floor 2 progression
+            if nodes_completed >= 4:  # Completed Temple Gates
+                self.temple_map.complete_chamber("floor_2_start")
+                self.temple_map.unlock_chamber("floor_2_choice")
+            
+            if nodes_completed >= 5:  # Completed Crossroads
+                self.temple_map.complete_chamber("floor_2_choice")
+                self.temple_map.unlock_chamber("floor_2_combat_a")
+                self.temple_map.unlock_chamber("floor_2_combat_b")
+            
+            if nodes_completed >= 6:  # Completed one path
+                # Auto-complete whichever combat they chose
+                if nodes_completed >= 7:  # Completed boss
+                    self.temple_map.complete_chamber("floor_2_boss")
+                    self.temple_map.unlock_chamber("floor_3_start")
+                
+            self.logger.info(f"Progression state: {nodes_completed} nodes completed")
+        elif self.temple_map:
+            # Demo fallback - unlock first combat for testing
+            self.temple_map.complete_chamber("floor_1_start")
+            self.temple_map.unlock_chamber("floor_1_combat")
+            self.logger.info("Demo state: unlocked first combat")
+    
+    def _get_enemy_for_chamber(self, chamber_id: str, chamber_type: str) -> str:
+        """Get appropriate enemy for chamber."""
+        enemy_mapping = {
+            # Floor 1 - Desert Outskirts
+            "floor_1_combat": "desert_scorpion",
+            
+            # Floor 2 - Temple Entrance  
+            "floor_2_combat_a": "anubis_guardian",
+            "floor_2_combat_b": "thoth_sentinel", 
+            "floor_2_boss": "temple_guardian",
+            
+            # Floor 3 - Inner Sanctum
+            "floor_3_combat": "maat_judge",
+            "floor_3_boss": "pharaoh_lich"
+        }
+        
+        return enemy_mapping.get(chamber_id, "desert_mummy")
+    
+    def _show_reward_screen(self, chamber_id: str) -> None:
+        """Show reward screen for reward chambers."""
+        # For now, auto-complete and give rewards
         if self.temple_map:
-            # Mark tutorial as completed and unlock next chambers
-            self.temple_map.complete_chamber("entrance")
-            self.logger.info("Post-tutorial state: unlocked antechamber and basic progression")
+            self.temple_map.complete_chamber(chamber_id)
+            
+        # Could show a dedicated reward screen here
+        # For now, just show a simple message
+        self.logger.info(f"Reward chamber completed: {chamber_id}")
+        # TODO: Implement proper reward screen
     
     def _back_to_menu(self) -> None:
         """Return to main menu."""

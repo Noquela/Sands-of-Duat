@@ -238,8 +238,12 @@ def create_starter_cards():
     return cards
 
 
-def get_starter_deck():
-    """Create a balanced starter deck for new players with Egyptian cards."""
+def get_starter_deck(deck_type: str = "wanderer"):
+    """Create a balanced starter deck for new players with Egyptian cards.
+    
+    Args:
+        deck_type: Type of starter deck (wanderer, mystic, warrior)
+    """
     from sands_duat.core.cards import Deck
     
     # Ensure cards are created

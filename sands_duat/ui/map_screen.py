@@ -394,17 +394,51 @@ class MapScreen(UIScreen):
             # Update current node
             self.current_node = component.node_id
             
-            # Trigger appropriate screen transition based on node type
-            if component.node_type == NodeType.COMBAT:
-                self._trigger_event("enter_combat", {"node_id": component.node_id})
-            elif component.node_type == NodeType.EVENT:
-                self._trigger_event("enter_event", {"node_id": component.node_id})
-            elif component.node_type == NodeType.SHOP:
-                self._trigger_event("enter_shop", {"node_id": component.node_id})
-            elif component.node_type == NodeType.REST:
-                self._trigger_event("enter_rest", {"node_id": component.node_id})
-            elif component.node_type == NodeType.BOSS:
-                self._trigger_event("enter_boss", {"node_id": component.node_id})
+            # Get game flow manager
+            game_flow = getattr(self.ui_manager, 'game_flow', None) if self.ui_manager else None
+            
+            # Create node data for game flow manager
+            node_data = {
+                "node_id": component.node_id,
+                "enemy_id": self._get_enemy_for_node(component),
+                "boss_id": self._get_boss_for_node(component) if component.node_type == NodeType.BOSS else None
+            }
+            
+            if game_flow:
+                # Use Game Flow Manager to handle node selection
+                game_flow.handle_node_selection(component.node_type.value, node_data)
+            else:
+                # Fallback to old event system
+                if component.node_type == NodeType.COMBAT:
+                    self._trigger_event("enter_combat", {"node_id": component.node_id})
+                elif component.node_type == NodeType.EVENT:
+                    self._trigger_event("enter_event", {"node_id": component.node_id})
+                elif component.node_type == NodeType.SHOP:
+                    self._trigger_event("enter_shop", {"node_id": component.node_id})
+                elif component.node_type == NodeType.REST:
+                    self._trigger_event("enter_rest", {"node_id": component.node_id})
+                elif component.node_type == NodeType.BOSS:
+                    self._trigger_event("enter_boss", {"node_id": component.node_id})
+    
+    def _get_enemy_for_node(self, node: MapNode) -> str:
+        """Get the appropriate enemy ID for a combat node."""
+        if node.node_type != NodeType.COMBAT:
+            return None
+        
+        # Simple enemy selection based on node position
+        enemies = ["desert_mummy", "shadow_jackal", "dune_scorpion", "lost_soul"]
+        import random
+        return random.choice(enemies)
+    
+    def _get_boss_for_node(self, node: MapNode) -> str:
+        """Get the appropriate boss ID for a boss node."""
+        if node.node_type != NodeType.BOSS:
+            return None
+        
+        # Boss selection based on current hour (would be provided by game state)
+        bosses = ["serpent_of_apophis", "pharaoh_lich", "sphinx_guardian"]
+        import random
+        return random.choice(bosses)
     
     def _back_to_progression(self) -> None:
         """Return to progression screen."""
@@ -436,3 +470,36 @@ class MapScreen(UIScreen):
     def get_current_hour(self) -> int:
         """Get the current hour number."""
         return self.hour_display.current_hour if self.hour_display else 1
+    
+    def render(self, surface: pygame.Surface) -> None:
+        """Render the map screen with AI background."""
+        # Draw AI background first
+        ai_background_drawn = False
+        
+        try:
+            from ..graphics.background_loader import load_background
+            ai_bg = load_background('map', surface.get_size())
+            if ai_bg:
+                surface.blit(ai_bg, (0, 0))
+                ai_background_drawn = True
+                
+                # Add subtle overlay to ensure UI readability
+                overlay = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 40))  # Subtle dark overlay
+                surface.blit(overlay, (0, 0))
+        except Exception as e:
+            self.logger.warning(f"Failed to load AI background: {e}")
+        
+        if not ai_background_drawn:
+            # Fallback to Egyptian-themed gradient
+            for y in range(surface.get_height()):
+                # Create a gradient from dark purple at top to warm brown at bottom
+                ratio = y / surface.get_height()
+                r = int(25 + ratio * 35)  # 25 to 60
+                g = int(15 + ratio * 25)  # 15 to 40
+                b = int(35 + ratio * 15)  # 35 to 50
+                
+                pygame.draw.line(surface, (r, g, b), (0, y), (surface.get_width(), y))
+        
+        # Render UI components on top
+        super().render(surface)

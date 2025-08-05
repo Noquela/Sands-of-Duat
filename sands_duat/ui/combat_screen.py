@@ -17,6 +17,8 @@ from ..core.hourglass import HourGlass
 from ..core.cards import Card, CardType, EffectType
 from ..core.combat_manager import CombatManager
 from ..audio.sound_effects import play_card_interaction_sound, play_combat_feedback_sound, play_sand_feedback_sound
+from ..graphics.sprite_animator import CharacterSprite, AnimationState, create_character_sprite
+from ..graphics.card_art_loader import load_card_art
 
 
 class AccessibilitySettings:
@@ -469,6 +471,64 @@ class CardDisplay(UIComponent):
         pygame.draw.line(overlay, (255, 0, 0), (rect.width, 0), (0, rect.height), 3)
         surface.blit(overlay, rect.topleft)
     
+    def _draw_card_artwork(self, surface: pygame.Surface, art_rect: pygame.Rect) -> None:
+        """Draw AI-generated card artwork"""
+        try:
+            # Load AI artwork for this card
+            from ..graphics.card_art_loader import load_card_art
+            artwork = load_card_art(self.card.name, (art_rect.width, art_rect.height))
+            
+            if artwork:
+                # Draw the AI artwork
+                surface.blit(artwork, art_rect)
+                
+                # Add subtle border around artwork
+                pygame.draw.rect(surface, (139, 117, 93), art_rect, 2)
+                
+                # Success indicator for debugging
+                font = pygame.font.Font(None, 12)
+                debug_text = font.render("AI Art", True, (0, 255, 0))
+                surface.blit(debug_text, (art_rect.x + 2, art_rect.y + 2))
+                
+            else:
+                # Fallback to simple colored background with card name
+                color = self._get_card_type_color()
+                pygame.draw.rect(surface, color, art_rect)
+                pygame.draw.rect(surface, (100, 50, 25), art_rect, 2)
+                
+                # Show card name in fallback
+                font = pygame.font.Font(None, 16)
+                name_lines = self.card.name.split(' ')
+                for i, line in enumerate(name_lines[:3]):  # Max 3 lines
+                    text = font.render(line, True, (255, 255, 255))
+                    text_rect = text.get_rect(center=(art_rect.centerx, art_rect.centery + i * 20 - 20))
+                    surface.blit(text, text_rect)
+                
+        except Exception as e:
+            # Error fallback - draw simple rectangle
+            pygame.draw.rect(surface, (80, 40, 20), art_rect)
+            pygame.draw.rect(surface, (120, 60, 30), art_rect, 2)
+            
+            # Show error info for debugging
+            font = pygame.font.Font(None, 14)
+            error_text = font.render(f"Error: {str(e)[:20]}", True, (255, 100, 100))
+            error_rect = error_text.get_rect(center=(art_rect.centerx, art_rect.centery - 10))
+            surface.blit(error_text, error_rect)
+            
+            card_text = font.render(self.card.name[:15], True, (255, 255, 255))
+            card_rect = card_text.get_rect(center=(art_rect.centerx, art_rect.centery + 10))
+            surface.blit(card_text, card_rect)
+    
+    def _get_card_type_color(self) -> tuple:
+        """Get color based on card type"""
+        type_colors = {
+            CardType.ATTACK: (150, 50, 50),
+            CardType.DEFENSE: (50, 100, 150),
+            CardType.MAGIC: (100, 50, 150),
+            CardType.SUPPORT: (50, 150, 100)
+        }
+        return type_colors.get(self.card.card_type, (100, 100, 100))
+    
     def _draw_card_content(self, surface: pygame.Surface, rect: pygame.Rect) -> None:
         """Draw the card's content with enhanced visibility."""
         # Sand cost with background
@@ -484,6 +544,15 @@ class CardDisplay(UIComponent):
         
         cost_rect = cost_surface.get_rect(center=cost_center)
         surface.blit(cost_surface, cost_rect)
+        
+        # AI Card Artwork (prominent center area)
+        art_rect = pygame.Rect(
+            rect.left + 5, 
+            rect.top + 30, 
+            rect.width - 10, 
+            rect.height - 60
+        )
+        self._draw_card_artwork(surface, art_rect)
         
         # Card name with shadow
         name_font = pygame.font.Font(None, 22)
@@ -561,22 +630,33 @@ class CardDisplay(UIComponent):
                 self.being_dragged = True
                 self.drag_offset_x = 0
                 self.drag_offset_y = 0
+                self.drag_start_time = time.time()  # Track drag start time
                 self._trigger_event("card_drag_start", {"card": self.card})
                 return True
         
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             if self.being_dragged:
                 self.being_dragged = False
-                self.drag_offset_x = 0
-                self.drag_offset_y = 0
+                drag_duration = time.time() - getattr(self, 'drag_start_time', 0)
                 
-                # Check if card was dropped in a valid play area
-                if self.in_play_zone and self.drag_offset_y < -80:  # Dragged up significantly into play zone
+                # If it was a quick click (< 0.2 seconds) and minimal drag, treat as direct play
+                if drag_duration < 0.2 and abs(self.drag_offset_x) < 10 and abs(self.drag_offset_y) < 10:
+                    if self.playable:  # Only trigger if card is actually playable
+                        self.start_play_animation()
+                        self._trigger_event("card_played", {"card": self.card})
+                    else:
+                        # Show feedback that card cannot be played
+                        self._trigger_event("card_play_failed", {"card": self.card})
+                # Check if card was dropped in a valid play area (drag-and-drop)
+                elif self.in_play_zone and self.drag_offset_y < -80:  # Dragged up significantly into play zone
                     self.start_play_animation()
                     self._trigger_event("card_played", {"card": self.card})
                 else:
                     # Card was released but not in play zone - return to hand
                     self._trigger_event("card_drag_end", {"card": self.card})
+                
+                self.drag_offset_x = 0
+                self.drag_offset_y = 0
                 return True
         
         elif event.type == pygame.MOUSEMOTION and self.being_dragged:
@@ -611,9 +691,9 @@ class HandDisplay(UIComponent):
         self.hovered_card: Optional[int] = None
         self.hourglass: Optional[HourGlass] = None
         
-        # Layout settings (adaptive)
-        self.base_card_width = 120
-        self.base_card_height = 160
+        # Layout settings (adaptive) - Much larger cards to showcase AI artwork
+        self.base_card_width = 300
+        self.base_card_height = 420
         self.min_card_spacing = 5
         self.max_card_spacing = 20
         self.hover_elevation = -30
@@ -722,6 +802,7 @@ class HandDisplay(UIComponent):
             card_display = CardDisplay(0, 0, card_width, self.base_card_height, card)
             # Add event handlers for new card interactions
             card_display.add_event_handler("card_played", self._on_card_played)
+            card_display.add_event_handler("card_play_failed", self._on_card_play_failed)
             card_display.add_event_handler("card_drag_start", self._on_card_drag_start)
             card_display.add_event_handler("card_drag_end", self._on_card_drag_end)
             self.card_displays.append(card_display)
@@ -812,6 +893,11 @@ class HandDisplay(UIComponent):
     def _on_card_drag_end(self, component: UIComponent, event_data: Dict[str, Any]) -> None:
         """Handle card drag end."""
         self._trigger_event("card_drag_end", event_data)
+    
+    def _on_card_play_failed(self, component: UIComponent, event_data: Dict[str, Any]) -> None:
+        """Handle card play failure (e.g., not enough sand)."""
+        # Trigger parent event to let CombatScreen handle the failure
+        self._trigger_event("card_play_failed", event_data)
 
 
 class CombatScreen(UIScreen):
@@ -833,6 +919,11 @@ class CombatScreen(UIScreen):
         # Combat system
         self.combat_manager = CombatManager()
         
+        # Professional sprite characters
+        self.player_sprite: Optional[CharacterSprite] = None
+        self.enemy_sprite: Optional[CharacterSprite] = None
+        self._setup_character_sprites()
+        
         # Visual settings
         self.font = pygame.font.Font(None, 24)
         self.text_color = (255, 248, 220)  # Cornsilk
@@ -840,11 +931,54 @@ class CombatScreen(UIScreen):
         # Visual effects
         self.damage_numbers: List[Dict[str, Any]] = []
         self.effect_animations: List[Dict[str, Any]] = []
-        self.particle_system = ParticleSystem(max_particles=800)
+        self.particle_system = ParticleSystem(max_particles=50)
         
         # UI state
         self.selected_card_index: Optional[int] = None
         self.end_turn_button: Optional[UIComponent] = None
+    
+    def _setup_character_sprites(self) -> None:
+        """Setup professional character sprites from asset pipeline"""
+        try:
+            # Player sprite (Egyptian warrior)
+            self.player_sprite = create_character_sprite("player_character", "game_assets")
+            if not self.player_sprite:
+                self.player_sprite = create_character_sprite("anubis_guardian", "game_assets")  # Fallback
+            
+            if self.player_sprite:
+                # Position dynamically based on screen size
+                screen_width = pygame.display.get_surface().get_width() if pygame.display.get_surface() else 1920
+                screen_height = pygame.display.get_surface().get_height() if pygame.display.get_surface() else 1080
+                
+                # Player on left side, prominent position
+                player_x = min(300, screen_width // 6)
+                player_y = screen_height // 2 - 50
+                
+                self.player_sprite.set_position(player_x, player_y)
+                self.player_sprite.set_scale(3.0)  # Larger for better visibility
+                self.player_sprite.set_state(AnimationState.IDLE)
+            
+            # Enemy sprite (Anubis Guardian for demo)
+            self.enemy_sprite = create_character_sprite("anubis_guardian", "game_assets")
+            if self.enemy_sprite:
+                # Enemy on right side, prominent position
+                screen_width = pygame.display.get_surface().get_width() if pygame.display.get_surface() else 1920
+                screen_height = pygame.display.get_surface().get_height() if pygame.display.get_surface() else 1080
+                
+                enemy_x = max(screen_width - 300, screen_width * 5 // 6)
+                enemy_y = screen_height // 2 - 50
+                
+                self.enemy_sprite.set_position(enemy_x, enemy_y)
+                self.enemy_sprite.set_scale(3.0)  # Larger for better visibility
+                self.enemy_sprite.set_flip(True)  # Face player
+                self.enemy_sprite.set_state(AnimationState.IDLE)
+            
+            self.logger.info("Professional character sprites loaded successfully")
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to load professional sprites: {e}")
+            self.player_sprite = None
+            self.enemy_sprite = None
     
     def on_enter(self) -> None:
         """Initialize combat screen."""
@@ -987,6 +1121,7 @@ class CombatScreen(UIScreen):
         
         # Enhanced card interactions with Egyptian feedback
         self.hand_display.add_event_handler("card_played", self._on_card_played)
+        self.hand_display.add_event_handler("card_play_failed", self._on_card_play_failed)
         self.hand_display.add_event_handler("card_drag_start", self._on_card_drag_start)
         self.hand_display.add_event_handler("card_drag_end", self._on_card_drag_end)
         self.add_component(self.hand_display)
@@ -1130,14 +1265,17 @@ class CombatScreen(UIScreen):
         # Draw themed health bars
         self._draw_themed_health_bars(surface)
         
-        # Draw enemy visualization
-        self._draw_enemy_character(surface)
+        # Draw professional character sprites
+        self._draw_character_sprites(surface)
         
         # Draw combat status with better styling
         self._draw_enhanced_combat_status(surface)
         
         # Draw visual effects
         self._draw_visual_effects(surface)
+        
+        # Draw AI magical effects
+        self._draw_ai_effects(surface)
         
         # Draw enemy intent with better styling
         self._draw_enhanced_enemy_intent(surface)
@@ -1150,6 +1288,38 @@ class CombatScreen(UIScreen):
         
         # Draw particle count debug info (if enabled)
         self._draw_debug_info(surface)
+        
+        # Draw failure message if active
+        self._draw_failure_message(surface)
+    
+    def _draw_failure_message(self, surface: pygame.Surface) -> None:
+        """Draw failure message when card cannot be played."""
+        if hasattr(self, 'failure_message_timer') and self.failure_message_timer > 0 and hasattr(self, 'failure_message'):
+            font = pygame.font.Font(None, 36)
+            
+            # Calculate alpha based on remaining time
+            alpha = min(255, int(self.failure_message_timer * 85))  # Fade out
+            
+            # Create text surface
+            text_surface = font.render(self.failure_message, True, (255, 100, 100))
+            
+            # Add background for better readability
+            bg_rect = text_surface.get_rect()
+            bg_rect.inflate_ip(20, 10)
+            bg_rect.centerx = surface.get_width() // 2
+            bg_rect.y = surface.get_height() // 2 - 100
+            
+            # Draw semi-transparent background
+            bg_surface = pygame.Surface((bg_rect.width, bg_rect.height))
+            bg_surface.set_alpha(alpha // 2)
+            bg_surface.fill((50, 20, 20))
+            surface.blit(bg_surface, bg_rect)
+            
+            # Draw text
+            text_surface.set_alpha(alpha)
+            text_rect = text_surface.get_rect()
+            text_rect.center = bg_rect.center
+            surface.blit(text_surface, text_rect)
     
     def _draw_battlefield_elements(self, surface: pygame.Surface) -> None:
         """Draw Egyptian battlefield atmospheric elements in the central sanctuary."""
@@ -1573,6 +1743,17 @@ class CombatScreen(UIScreen):
             
             surface.blit(alpha_surface, (effect['x'], effect['y']))
     
+    def _draw_ai_effects(self, surface: pygame.Surface) -> None:
+        """Draw AI magical effects"""
+        try:
+            from ..graphics.ai_effects_system import get_ai_effects
+            effects_system = get_ai_effects()
+            effects_system.update(1/60)  # Assume 60 FPS
+            effects_system.render(surface)
+        except Exception as e:
+            # Fail silently - effects are optional
+            pass
+    
     def _draw_enemy_intent(self, surface: pygame.Surface) -> None:
         """Draw enemy intent indicator."""
         if not self.combat_manager.enemy_intent:
@@ -1606,8 +1787,34 @@ class CombatScreen(UIScreen):
                 # Trigger visual effects
                 self._trigger_card_play_effects(card)
                 
+                # Trigger AI magical effects
+                self._trigger_ai_card_effects(card)
+                
+                # Trigger character animations
+                self._trigger_character_animations(card)
+                
             else:
                 self.logger.info(f"Cannot play card: {card.name} (cost: {card.sand_cost})")
+                # Show visual feedback for failed card play
+                self._show_card_play_failure_feedback(card)
+    
+    def _on_card_play_failed(self, component: UIComponent, event_data: Dict[str, Any]) -> None:
+        """Handle card play failure (e.g., not enough sand)."""
+        card = event_data.get("card")
+        if card:
+            self.logger.info(f"Card play failed: {card.name} (cost: {card.sand_cost})")
+            self._show_card_play_failure_feedback(card)
+    
+    def _show_card_play_failure_feedback(self, card: Card) -> None:
+        """Show visual feedback when card cannot be played."""
+        # Add a temporary message showing why the card couldn't be played
+        if hasattr(self, 'failure_message_timer'):
+            self.failure_message_timer = 3.0  # Show for 3 seconds
+        else:
+            self.failure_message_timer = 3.0
+        
+        current_sand = self.combat_manager.player.hourglass.current_sand if self.combat_manager.player else 0
+        self.failure_message = f"Need {card.sand_cost} sand, have {current_sand}"
     
     def _on_card_drag_start(self, component: UIComponent, event_data: Dict[str, Any]) -> None:
         """Handle card drag start."""
@@ -1632,7 +1839,54 @@ class CombatScreen(UIScreen):
             pass
         
         # Log for now (in future could trigger particle systems)
+    
+    def _trigger_ai_card_effects(self, card: Card) -> None:
+        """Trigger AI magical effects when card is played"""
+        try:
+            from ..graphics.ai_effects_system import get_ai_effects
+            effects_system = get_ai_effects()
+            
+            # Get screen center for effect positioning
+            screen_center_x = self.rect.width // 2
+            screen_center_y = self.rect.height // 2
+            
+            # Create card-specific magical effect
+            effects_system.create_card_cast_effect(screen_center_x, screen_center_y, card.name)
+            
+            self.logger.debug(f"Triggered AI effects for card: {card.name}")
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to trigger AI card effects: {e}")
         self.logger.debug(f"Triggered visual effects for {card.card_type.value} card")
+    
+    def _trigger_character_animations(self, card: Card) -> None:
+        """Trigger character sprite animations based on card type."""
+        if not self.player_sprite:
+            return
+        
+        # Determine animation based on card type
+        if card.card_type == CardType.ATTACK:
+            # Player attacks
+            self.player_sprite.set_state(AnimationState.ATTACK, force_restart=True)
+            
+            # Enemy takes damage (could add hurt animation later)
+            if self.enemy_sprite:
+                # For now, just make enemy flash or step back slightly
+                pass
+                
+        elif card.card_type == CardType.DEFENSE:
+            # Defensive stance
+            self.player_sprite.set_state(AnimationState.IDLE, force_restart=True)
+            
+        elif card.card_type == CardType.MAGIC:
+            # Casting animation (use attack for now, could add cast later)
+            self.player_sprite.set_state(AnimationState.ATTACK, force_restart=True)
+            
+        elif card.card_type == CardType.SUPPORT:
+            # Support gesture
+            self.player_sprite.set_state(AnimationState.IDLE, force_restart=True)
+        
+        self.logger.debug(f"Triggered character animation for {card.card_type.value} card")
     
     def update(self, delta_time: float) -> None:
         """Update combat screen and all systems."""
@@ -1640,6 +1894,12 @@ class CombatScreen(UIScreen):
         
         # Update combat manager
         self.combat_manager.update(delta_time)
+        
+        # Update professional character sprites
+        if self.player_sprite:
+            self.player_sprite.update(delta_time)
+        if self.enemy_sprite:
+            self.enemy_sprite.update(delta_time)
         
         # Update particle system
         self.particle_system.update(delta_time)
@@ -1655,6 +1915,10 @@ class CombatScreen(UIScreen):
         
         # Update sand particle effects based on hourglass states
         self._update_sand_particles(delta_time)
+        
+        # Update failure message timer
+        if hasattr(self, 'failure_message_timer') and self.failure_message_timer > 0:
+            self.failure_message_timer -= delta_time
     
     def _update_visual_effects(self, delta_time: float) -> None:
         """Update visual effects like damage numbers."""
@@ -1789,10 +2053,67 @@ class CombatScreen(UIScreen):
         victory = data['victory']
         turns = data['turns']
         
+        # Get game flow manager
+        game_flow = getattr(self.ui_manager, 'game_flow', None) if self.ui_manager else None
+        
         if victory:
             self.logger.info(f"Victory! Combat lasted {turns} turns")
+            
+            # Create basic rewards
+            rewards = {
+                'gold': 20 + (turns * 2),  # Base gold + turn bonus
+                'cards': [],  # No card rewards for now
+                'health': 0   # No healing by default
+            }
+            
+            # Prepare victory data
+            victory_data = {
+                'turns': turns,
+                'gold_earned': rewards['gold'],
+                'total_gold': 120 + rewards['gold'],  # Base + earned
+                'run_completed': False  # Regular combat, not final boss
+            }
+            
+            if game_flow:
+                game_flow.handle_combat_victory(rewards)
+                
+                # Set victory data on victory screen
+                victory_screen = self.ui_manager.screens.get("victory") if self.ui_manager else None
+                if victory_screen:
+                    victory_screen.set_victory_data(victory_data)
+            else:
+                # Fallback: show victory screen directly
+                if self.ui_manager:
+                    victory_screen = self.ui_manager.screens.get("victory")
+                    if victory_screen:
+                        victory_screen.set_victory_data(victory_data)
+                    self.ui_manager.switch_to_screen_with_transition("victory", "fade")
         else:
             self.logger.info(f"Defeat! Combat lasted {turns} turns")
+            
+            # Prepare defeat data
+            defeat_data = {
+                'turns_survived': turns,
+                'damage_dealt': 50,  # Could track this in combat manager
+                'cards_played': 10,  # Could track this too
+                'hours_reached': 1,
+                'cause_of_death': 'Desert Mummy'
+            }
+            
+            if game_flow:
+                game_flow.handle_combat_defeat()
+                
+                # Set defeat data on defeat screen
+                defeat_screen = self.ui_manager.screens.get("defeat") if self.ui_manager else None
+                if defeat_screen:
+                    defeat_screen.set_defeat_data(defeat_data)
+            else:
+                # Fallback: show defeat screen directly
+                if self.ui_manager:
+                    defeat_screen = self.ui_manager.screens.get("defeat")
+                    if defeat_screen:
+                        defeat_screen.set_defeat_data(defeat_data)
+                    self.ui_manager.switch_to_screen_with_transition("defeat", "fade")
     
     def set_player_cards(self, cards: List[Card]) -> None:
         """Set the player's hand (legacy method - now handled by combat manager)."""
@@ -2288,8 +2609,22 @@ Current Settings:
             status_y = enemy_y + enemy_height + 10
             self._draw_enemy_status_effects(surface, enemy_x, status_y, state['enemy']['status_effects'])
     
-    def _draw_enemy_character(self, surface: pygame.Surface) -> None:
-        """Draw a visual representation of the enemy."""
+    def _draw_character_sprites(self, surface: pygame.Surface) -> None:
+        """Draw professional character sprites from asset pipeline."""
+        # Render player sprite
+        if self.player_sprite:
+            self.player_sprite.render(surface)
+        
+        # Render enemy sprite
+        if self.enemy_sprite:
+            self.enemy_sprite.render(surface)
+        
+        # Fallback to old method if sprites not available
+        if not self.player_sprite or not self.enemy_sprite:
+            self._draw_enemy_character_fallback(surface)
+    
+    def _draw_enemy_character_fallback(self, surface: pygame.Surface) -> None:
+        """Fallback enemy drawing method."""
         screen_width = surface.get_width()
         screen_height = surface.get_height()
         

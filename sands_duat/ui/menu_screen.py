@@ -1,62 +1,52 @@
 """
-Menu Screen
-
-Main menu interface with game options, settings, and navigation.
+Menu Screen - Fixed Version
+Main menu interface with Hades-style Egyptian theming.
 """
 
 import pygame
 import math
 import random
-from typing import Dict, Any, Optional, List, Callable
+from typing import Dict, Any, Optional, List, Callable, Tuple
 from .base import UIScreen, UIComponent
 from .theme import get_theme
+from .hades_theme import HadesEgyptianTheme
 from .animation_system import EasingType
 from sands_duat.audio.sound_effects import play_button_sound
 
 
-class MenuButton(UIComponent):
-    """
-    Stylized button component for menu navigation.
-    """
+class HadesMenuButton(UIComponent):
+    """Hades-style ornate button component for menu navigation."""
     
-    def __init__(self, x: int, y: int, width: int, height: int, text: str, callback: Optional[Callable] = None):
+    def __init__(self, x: int, y: int, width: int, height: int, text: str, hades_theme: HadesEgyptianTheme, callback: Optional[Callable] = None):
         super().__init__(x, y, width, height)
         self.text = text
         self.callback = callback
-        self.font = pygame.font.Font(None, 32)
+        self.hades_theme = hades_theme
         
         # Visual states
+        self.state = 'normal'  # normal, hover, active, disabled
         self.scale = 1.0
         self.target_scale = 1.0
-        self.glow_alpha = 0
-        self.target_glow = 0
-        
-        # Colors
-        self.button_color = (60, 45, 30)
-        self.button_hover_color = (80, 60, 40)
-        self.button_border_color = (139, 117, 93)
-        self.glow_color = (255, 215, 0)
+        self.animation_time = 0.0
     
     def update(self, delta_time: float) -> None:
         """Update button animations."""
-        # Scale animation
+        self.animation_time += delta_time
+        
+        # Update state based on interaction
+        if self.hovered:
+            self.state = 'hover'
+            self.target_scale = 1.05
+        else:
+            self.state = 'normal'
+            self.target_scale = 1.0
+        
+        # Smooth scale animation
         if abs(self.scale - self.target_scale) > 0.01:
             self.scale += (self.target_scale - self.scale) * delta_time * 8
-        
-        # Glow animation
-        if abs(self.glow_alpha - self.target_glow) > 1:
-            self.glow_alpha += (self.target_glow - self.glow_alpha) * delta_time * 10
-        
-        # Update targets based on hover state
-        if self.hovered:
-            self.target_scale = 1.05
-            self.target_glow = 100
-        else:
-            self.target_scale = 1.0
-            self.target_glow = 0
     
     def render(self, surface: pygame.Surface) -> None:
-        """Render the menu button."""
+        """Render the Hades-style menu button."""
         if not self.visible:
             return
         
@@ -70,26 +60,8 @@ class MenuButton(UIComponent):
             scaled_height
         )
         
-        # Draw glow effect
-        if self.glow_alpha > 0:
-            glow_rect = scaled_rect.inflate(10, 10)
-            glow_surface = pygame.Surface(glow_rect.size, pygame.SRCALPHA)
-            glow_color = (*self.glow_color, int(self.glow_alpha))
-            pygame.draw.rect(glow_surface, glow_color, glow_surface.get_rect(), border_radius=8)
-            surface.blit(glow_surface, glow_rect.topleft)
-        
-        # Draw button background
-        button_color = self.button_hover_color if self.hovered else self.button_color
-        pygame.draw.rect(surface, button_color, scaled_rect, border_radius=5)
-        
-        # Draw button border
-        pygame.draw.rect(surface, self.button_border_color, scaled_rect, 3, border_radius=5)
-        
-        # Draw button text
-        text_color = self.glow_color if self.hovered else self.text_color
-        text_surface = self.font.render(self.text, True, text_color)
-        text_rect = text_surface.get_rect(center=scaled_rect.center)
-        surface.blit(text_surface, text_rect)
+        # Use Hades theme to draw ornate button
+        self.hades_theme.draw_ornate_button(surface, scaled_rect, self.text, self.state)
     
     def handle_event(self, event: pygame.event.Event) -> bool:
         """Handle button interaction with audio feedback."""
@@ -98,159 +70,157 @@ class MenuButton(UIComponent):
         
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.rect.collidepoint(event.pos):
-                # Play click sound (with error handling)
-                try:
-                    play_button_sound("click")
-                except Exception as e:
-                    print(f"Audio error: {e}")
-                
-                print(f"Button clicked: {self.text}")
+                self.state = 'active'
                 if self.callback:
-                    print(f"Executing callback for: {self.text}")
+                    play_button_sound()
                     self.callback()
-                else:
-                    print(f"No callback set for button: {self.text}")
-                self._trigger_event("button_clicked", {"text": self.text})
                 return True
-        
-        elif event.type == pygame.MOUSEMOTION:
-            # Handle hover with audio
-            mouse_over = self.rect.collidepoint(event.pos)
-            if mouse_over and not self.hovered:
-                self.hovered = True
-                # Play hover sound (with error handling)
-                try:
-                    play_button_sound("hover")
-                except Exception as e:
-                    print(f"Audio error: {e}")
-                self._trigger_event("hover_start", {"pos": event.pos})
-            elif not mouse_over and self.hovered:
-                self.hovered = False
-                self._trigger_event("hover_end", {"pos": event.pos})
         
         return False
 
 
-class TitleDisplay(UIComponent):
-    """
-    Animated title display for the main menu.
-    """
+class HadesTitleDisplay(UIComponent):
+    """Hades-style animated title display for the main menu."""
     
-    def __init__(self, x: int, y: int, width: int, height: int):
+    def __init__(self, x: int, y: int, width: int, height: int, hades_theme: HadesEgyptianTheme):
         super().__init__(x, y, width, height)
+        self.hades_theme = hades_theme
         self.title_text = "SANDS OF DUAT"
-        self.subtitle_text = "Hour-Glass Initiative"
-        
-        self.title_font = pygame.font.Font(None, 72)
-        self.subtitle_font = pygame.font.Font(None, 32)
+        self.subtitle_text = "Egyptian Underworld"
         
         # Animation properties
         self.glow_time = 0.0
-        self.particle_time = 0.0
-        self.particles = []
+        self.hieroglyph_time = 0.0
+        self.sand_particles = []
         
-        # Colors
-        self.title_color = (255, 215, 0)  # Gold
-        self.subtitle_color = (255, 248, 220)  # Cornsilk
-        self.glow_color = (255, 215, 0)
+        # Initialize sand particles for atmospheric effect
+        self._create_sand_particles()
+    
+    def _create_sand_particles(self):
+        """Create floating sand particles for atmosphere."""
+        import random
+        for _ in range(20):
+            particle = {
+                'x': random.randint(self.rect.left, self.rect.right),
+                'y': random.randint(self.rect.top, self.rect.bottom),
+                'vx': random.uniform(-0.5, 0.5),
+                'vy': random.uniform(-0.2, 0.2),
+                'size': random.randint(1, 3),
+                'alpha': random.randint(30, 80)
+            }
+            self.sand_particles.append(particle)
     
     def update(self, delta_time: float) -> None:
-        """Update title animations."""
+        """Update Hades-style title animations."""
         self.glow_time += delta_time
-        self.particle_time += delta_time
+        self.hieroglyph_time += delta_time
         
-        # Update particles (sand grains)
-        self._update_particles(delta_time)
-        
-        # Spawn new particles occasionally
-        if self.particle_time > 0.1:  # Every 100ms
-            self._spawn_particle()
-            self.particle_time = 0.0
+        # Update sand particles
+        for particle in self.sand_particles:
+            particle['x'] += particle['vx'] * delta_time * 60
+            particle['y'] += particle['vy'] * delta_time * 60
+            
+            # Wrap particles around screen
+            if particle['x'] < self.rect.left - 10:
+                particle['x'] = self.rect.right + 10
+            elif particle['x'] > self.rect.right + 10:
+                particle['x'] = self.rect.left - 10
+            
+            if particle['y'] < self.rect.top - 10:
+                particle['y'] = self.rect.bottom + 10
+            elif particle['y'] > self.rect.bottom + 10:
+                particle['y'] = self.rect.top - 10
     
     def render(self, surface: pygame.Surface) -> None:
-        """Render the animated title."""
+        """Render the Hades-style animated title."""
         if not self.visible:
             return
         
-        # Draw particles
-        for particle in self.particles:
-            if particle['alpha'] > 0:
-                color = (*self.glow_color, int(particle['alpha']))
-                particle_surface = pygame.Surface((3, 3), pygame.SRCALPHA)
-                particle_surface.fill(color)
-                surface.blit(particle_surface, (particle['x'], particle['y']))
+        # Draw floating sand particles
+        for particle in self.sand_particles:
+            color = (*self.hades_theme.get_color('desert_amber'), particle['alpha'])
+            particle_surface = pygame.Surface((particle['size']*2, particle['size']*2), pygame.SRCALPHA)
+            pygame.draw.circle(particle_surface, color, (particle['size'], particle['size']), particle['size'])
+            surface.blit(particle_surface, (int(particle['x']), int(particle['y'])))
         
-        # Calculate glow intensity
-        glow_intensity = int(50 + 30 * abs(math.sin(self.glow_time * 2)))
-        
-        # Draw title with glow
-        title_surface = self.title_font.render(self.title_text, True, self.title_color)
-        title_rect = title_surface.get_rect()
-        title_rect.centerx = self.rect.centerx
-        title_rect.centery = self.rect.centery - 30
-        
-        # Glow effect
-        glow_surface = self.title_font.render(self.title_text, True, (*self.glow_color, glow_intensity))
-        for offset in [(-2, -2), (-2, 2), (2, -2), (2, 2)]:
-            glow_rect = title_rect.copy()
-            glow_rect.x += offset[0]
-            glow_rect.y += offset[1]
-            surface.blit(glow_surface, glow_rect)
-        
-        surface.blit(title_surface, title_rect)
+        # Draw main title with Hades styling
+        title_pos = (self.rect.centerx, self.rect.centery - 20)
+        self.hades_theme.draw_title_text(surface, self.title_text, title_pos, 'title')
         
         # Draw subtitle
-        subtitle_surface = self.subtitle_font.render(self.subtitle_text, True, self.subtitle_color)
-        subtitle_rect = subtitle_surface.get_rect()
-        subtitle_rect.centerx = self.rect.centerx
-        subtitle_rect.top = title_rect.bottom + 10
-        surface.blit(subtitle_surface, subtitle_rect)
-    
-    def _update_particles(self, delta_time: float) -> None:
-        """Update sand particle animations."""
-        for particle in self.particles[:]:
-            particle['x'] += particle['vx'] * delta_time * 60
-            particle['y'] += particle['vy'] * delta_time * 60
-            particle['life'] -= delta_time
-            particle['alpha'] = max(0, 255 * (particle['life'] / particle['max_life']))
-            
-            if particle['life'] <= 0:
-                self.particles.remove(particle)
-    
-    def _spawn_particle(self) -> None:
-        """Spawn a new sand particle."""
-        import random
+        subtitle_pos = (self.rect.centerx, self.rect.centery + 40)
+        self.hades_theme.draw_title_text(surface, self.subtitle_text, subtitle_pos, 'body')
         
-        particle = {
-            'x': self.rect.centerx + random.randint(-200, 200),
-            'y': self.rect.top - 10,
-            'vx': random.uniform(-20, 20),
-            'vy': random.uniform(20, 50),
-            'life': random.uniform(2.0, 4.0),
-            'max_life': 0,
-            'alpha': 255
-        }
-        particle['max_life'] = particle['life']
-        self.particles.append(particle)
+        # Draw decorative hieroglyphs around title
+        self._draw_decorative_hieroglyphs(surface)
+    
+    def _draw_decorative_hieroglyphs(self, surface: pygame.Surface):
+        """Draw animated Egyptian hieroglyphs around the title."""
+        # Simple hieroglyph-like decorations
+        gold_color = self.hades_theme.get_color('duat_gold')
+        
+        # Animated glow effect
+        glow_alpha = int(50 + 30 * abs(math.sin(self.hieroglyph_time * 1.5)))
+        glow_color = (*gold_color, min(glow_alpha, 255))
+        
+        # Left side ankh
+        left_x = self.rect.centerx - 200
+        left_y = self.rect.centery
+        self._draw_ankh_symbol(surface, (left_x, left_y), 20, glow_color)
+        
+        # Right side eye of horus
+        right_x = self.rect.centerx + 200  
+        right_y = self.rect.centery
+        self._draw_eye_of_horus(surface, (right_x, right_y), 15, glow_color)
+    
+    def _draw_ankh_symbol(self, surface: pygame.Surface, center: Tuple[int, int], size: int, color: Tuple[int, int, int, int]):
+        """Draw an ankh symbol."""
+        x, y = center
+        
+        # Create surface for ankh with alpha
+        ankh_surface = pygame.Surface((size*2, size*2), pygame.SRCALPHA)
+        
+        # Ankh loop (oval at top)
+        pygame.draw.ellipse(ankh_surface, color, (size//2, 0, size, size//2), 3)
+        
+        # Ankh vertical line
+        pygame.draw.line(ankh_surface, color, (size, size//4), (size, size*1.8), 4)
+        
+        # Ankh horizontal line
+        pygame.draw.line(ankh_surface, color, (size//2, size//2), (size*1.5, size//2), 4)
+        
+        surface.blit(ankh_surface, (x - size, y - size))
+    
+    def _draw_eye_of_horus(self, surface: pygame.Surface, center: Tuple[int, int], size: int, color: Tuple[int, int, int, int]):
+        """Draw Eye of Horus symbol."""
+        x, y = center
+        
+        # Create surface for eye
+        eye_surface = pygame.Surface((size*2, size*2), pygame.SRCALPHA)
+        
+        # Eye outline
+        pygame.draw.arc(eye_surface, color, (0, size//2, size*2, size), 0, math.pi, 3)
+        
+        # Eye pupil
+        pygame.draw.circle(eye_surface, color, (size, size//2 + size//4), size//4)
+        
+        # Eye decoration line
+        pygame.draw.line(eye_surface, color, (size*1.2, size), (size*1.5, size*1.3), 3)
+        
+        surface.blit(eye_surface, (x - size, y - size))
 
 
 class VersionInfo(UIComponent):
-    """
-    Displays version and development information.
-    """
+    """Display version and development information."""
     
     def __init__(self, x: int, y: int, width: int, height: int):
         super().__init__(x, y, width, height)
-        self.version_text = "Alpha v0.1.0"
-        self.dev_text = "Sand of Duat Development Team"
-        self.font = pygame.font.Font(None, 20)
-    
-    def handle_event(self, event: pygame.event.Event) -> bool:
-        """Version info should not consume mouse events."""
-        return False
+        self.version_text = "v1.0.0"
+        self.dev_text = "Development Build"
+        self.font = pygame.font.Font(None, 24)
     
     def update(self, delta_time: float) -> None:
-        """Update version info."""
+        """Update version info (no animation needed)."""
         pass
     
     def render(self, surface: pygame.Surface) -> None:
@@ -259,39 +229,37 @@ class VersionInfo(UIComponent):
             return
         
         # Version text
-        version_surface = self.font.render(self.version_text, True, (150, 150, 150))
+        version_surface = self.font.render(self.version_text, True, (139, 117, 93))
         version_rect = version_surface.get_rect()
-        version_rect.bottomright = (self.rect.right, self.rect.bottom - 20)
+        version_rect.bottomright = (self.rect.right, self.rect.bottom)
         surface.blit(version_surface, version_rect)
         
-        # Development team text
-        dev_surface = self.font.render(self.dev_text, True, (120, 120, 120))
+        # Development text
+        dev_surface = self.font.render(self.dev_text, True, (100, 85, 70))
         dev_rect = dev_surface.get_rect()
         dev_rect.bottomright = (self.rect.right, version_rect.top - 5)
         surface.blit(dev_surface, dev_rect)
 
 
 class MenuScreen(UIScreen):
-    """
-    Main menu screen with navigation options.
-    
-    Provides access to different game modes, settings, and utilities.
-    Features animated Egyptian-themed background and typography.
-    """
+    """Main menu screen with Hades-style Egyptian theming."""
     
     def __init__(self):
         super().__init__("menu")
         
+        # Initialize Hades-style theme
+        display_size = pygame.display.get_surface().get_size() if pygame.display.get_surface() else (1920, 1080)
+        self.hades_theme = HadesEgyptianTheme(display_size)
+        
         # UI components
-        self.title_display: Optional[TitleDisplay] = None
-        self.buttons: List[MenuButton] = []
+        self.title_display: Optional[HadesTitleDisplay] = None
+        self.buttons: List[HadesMenuButton] = []
         self.version_info: Optional[VersionInfo] = None
         self.ui_manager = None  # Will be set by the UI manager
         
         # Background animation
         self.background_time = 0.0
         self.sand_dunes = []
-    
         
     def on_enter(self) -> None:
         """Initialize main menu."""
@@ -326,15 +294,13 @@ class MenuScreen(UIScreen):
         screen_width = theme.display.base_width
         screen_height = theme.display.base_height
         
-# Debug removed
-        
         # Title display (top center, scaled for screen)
         title_width = min(screen_width - 200, 1000)
         title_height = max(120, int(screen_height * 0.15))
         title_x = (screen_width - title_width) // 2
         title_y = max(50, int(screen_height * 0.08))
         
-        self.title_display = TitleDisplay(title_x, title_y, title_width, title_height)
+        self.title_display = HadesTitleDisplay(title_x, title_y, title_width, title_height, self.hades_theme)
         self.add_component(self.title_display)
         
         # Menu buttons (center, scaled for screen)
@@ -355,133 +321,98 @@ class MenuScreen(UIScreen):
             button_x = screen_width // 2 - button_width // 2
             button_y = start_y + i * (button_height + button_spacing)
             
-            button = MenuButton(
+            button = HadesMenuButton(
                 button_x,
                 button_y,
                 button_width,
                 button_height,
                 text,
+                self.hades_theme,
                 callback
             )
             self.buttons.append(button)
             self.add_component(button)
         
         # Version info (bottom right)
-        self.version_info = VersionInfo(0, 0, screen_width, screen_height)
+        version_width = 200
+        version_height = 50
+        version_x = screen_width - version_width - 20
+        version_y = screen_height - version_height - 20
+        
+        self.version_info = VersionInfo(version_x, version_y, version_width, version_height)
         self.add_component(self.version_info)
     
     def _generate_background(self) -> None:
-        """Generate animated background elements."""
-        import random
-        
-        # Generate sand dunes
-        for _ in range(5):
+        """Generate animated sand dune background."""
+        for i in range(5):
             dune = {
-                'x': random.randint(0, 800),
-                'y': random.randint(400, 550),
-                'width': random.randint(100, 200),
-                'height': random.randint(30, 60),
-                'speed': random.uniform(5, 15)
+                'x': random.randint(0, 1920),
+                'y': random.randint(800, 1000),
+                'width': random.randint(200, 400),
+                'height': random.randint(50, 100),
+                'speed': random.uniform(0.1, 0.3)
             }
             self.sand_dunes.append(dune)
     
     def _update_background(self, delta_time: float) -> None:
         """Update background animations."""
-        # Move sand dunes slowly
         for dune in self.sand_dunes:
-            dune['x'] -= dune['speed'] * delta_time
-            if dune['x'] + dune['width'] < 0:
-                dune['x'] = 800 + dune['width']
+            dune['x'] += dune['speed'] * delta_time * 60
+            if dune['x'] > 2000:
+                dune['x'] = -dune['width']
     
     def _draw_background(self, surface: pygame.Surface) -> None:
         """Draw animated background."""
-        # Gradient sky
-        for y in range(surface.get_height()):
-            # Create a gradient from dark blue at top to warm brown at bottom
-            ratio = y / surface.get_height()
-            r = int(15 + ratio * 45)  # 15 to 60
-            g = int(10 + ratio * 35)  # 10 to 45
-            b = int(5 + ratio * 25)   # 5 to 30
-            
-            pygame.draw.line(surface, (r, g, b), (0, y), (surface.get_width(), y))
+        # Apply background overlay for atmosphere
+        self.hades_theme.draw_background_overlay(surface, 80)
         
         # Draw sand dunes
         for dune in self.sand_dunes:
-            # Create elliptical dune shape
-            dune_rect = pygame.Rect(dune['x'], dune['y'], dune['width'], dune['height'])
-            pygame.draw.ellipse(surface, (80, 60, 40), dune_rect)
-            
-            # Add highlight
-            highlight_rect = pygame.Rect(dune['x'], dune['y'], dune['width'], dune['height'] // 3)
-            pygame.draw.ellipse(surface, (100, 80, 60), highlight_rect)
-        
-        # Draw stars (simplified)
-        import random
-        random.seed(42)  # Fixed seed for consistent star positions
-        for _ in range(50):
-            x = random.randint(0, surface.get_width())
-            y = random.randint(0, 200)  # Only in upper portion
-            brightness = random.randint(100, 255)
-            star_color = (brightness, brightness, brightness)
-            
-            # Twinkling effect
-            twinkle = abs(math.sin(self.background_time * 3 + x + y)) * 0.5 + 0.5
-            final_brightness = int(brightness * twinkle)
-            final_color = (final_brightness, final_brightness, final_brightness)
-            
-            pygame.draw.circle(surface, final_color, (x, y), 1)
+            color = self.hades_theme.get_color('desert_sand')
+            points = [
+                (dune['x'], dune['y'] + dune['height']),
+                (dune['x'] + dune['width'] // 3, dune['y']),
+                (dune['x'] + 2 * dune['width'] // 3, dune['y']),
+                (dune['x'] + dune['width'], dune['y'] + dune['height'])
+            ]
+            pygame.draw.polygon(surface, color, points)
     
     # Button callback methods
     def _start_new_game(self) -> None:
-        """Start a new game - begins with tutorial for new players."""
+        """Start a new game."""
         self.logger.info("Starting new game")
-        # For new players, start with tutorial which will then lead to progression
         if self.ui_manager:
-            # Set tutorial context for new game flow
-            tutorial_screen = self.ui_manager.screens.get("tutorial")
-            if tutorial_screen and hasattr(tutorial_screen, 'set_game_flow_context'):
-                tutorial_screen.set_game_flow_context(is_new_game=True, return_screen="progression")
-            self.ui_manager.switch_to_screen_with_transition("tutorial", "slide_left")
-        else:
-            self._trigger_event("switch_screen", {"screen": "tutorial"})
+            self.ui_manager.transition_to("progression")
     
     def _continue_game(self) -> None:
-        """Continue existing game - goes to progression hub."""
-        self.logger.info("Continue game")
-        # For now, take players to progression screen where they can choose their path
-        if self.ui_manager:
-            self.ui_manager.switch_to_screen_with_transition("progression", "slide_left")
-        else:
-            self._trigger_event("switch_screen", {"screen": "progression"})
-    
+        """Continue existing game."""
+        self.logger.info("Continue game requested")
+        # TODO: Implement save loading
     
     def _open_tutorial(self) -> None:
-        """Open tutorial system."""
-        self.logger.info("Opening tutorial system")
-        # Switch to tutorial with fade transition
+        """Open tutorial screen."""
+        self.logger.info("Opening tutorial")
         if self.ui_manager:
-            # Set tutorial context for standalone tutorial access
-            tutorial_screen = self.ui_manager.screens.get("tutorial")
-            if tutorial_screen and hasattr(tutorial_screen, 'set_game_flow_context'):
-                tutorial_screen.set_game_flow_context(is_new_game=False, return_screen="menu")
-            self.ui_manager.switch_to_screen_with_transition("tutorial", "fade")
-        else:
-            self._trigger_event("switch_screen", {"screen": "tutorial"})
+            self.ui_manager.transition_to("tutorial")
     
     def _open_deck_builder(self) -> None:
-        """Open deck builder."""
+        """Open deck builder screen."""
         self.logger.info("Opening deck builder")
-        # Switch to deck builder with fade transition
         if self.ui_manager:
-            self.ui_manager.switch_to_screen_with_transition("deck_builder", "fade")
-        else:
-            self._trigger_event("switch_screen", {"screen": "deck_builder"})
-    
+            self.ui_manager.transition_to("deck_builder")
     
     def _exit_game(self) -> None:
         """Exit the game."""
-        self.logger.info("Exiting game")
-        import pygame
-        pygame.quit()
-        import sys
-        sys.exit()
+        self.logger.info("Exit game requested")
+        pygame.event.post(pygame.event.Event(pygame.QUIT))
+
+
+# Compatibility wrapper for other screens that still use MenuButton
+class MenuButton(HadesMenuButton):
+    """Compatibility wrapper for HadesMenuButton."""
+    
+    def __init__(self, x: int, y: int, width: int, height: int, text: str, callback: Optional[Callable] = None):
+        # Create a default theme if none provided
+        display_size = (1920, 1080)
+        default_theme = HadesEgyptianTheme(display_size)
+        super().__init__(x, y, width, height, text, default_theme, callback)

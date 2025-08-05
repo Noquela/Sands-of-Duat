@@ -39,15 +39,21 @@ class UIManager(BaseUIManager):
         super().add_screen(screen)
         # Always set self-reference for navigation and transitions
         screen.ui_manager = self
+        
+        # Load AI background for the screen
+        screen.load_background(self.surface.get_size())
+        self.logger.info(f"Added screen: {screen.name}")
     
     def switch_to_screen_with_transition(self, screen_name: str, 
-                                       transition_type: str = "slide_left") -> bool:
+                                       transition_type: str = "slide_left",
+                                       context: Optional[Dict[str, Any]] = None) -> bool:
         """
         Switch to a different screen with enhanced animated transition.
         
         Args:
             screen_name: Name of the screen to switch to
             transition_type: Type of transition effect
+            context: Optional context data to pass to the new screen
             
         Returns:
             True if switch was successful
@@ -58,6 +64,14 @@ class UIManager(BaseUIManager):
         
         # Store previous screen for context-aware animations
         self.previous_screen = self.current_screen
+        
+        # Store context data for screen activation
+        if context:
+            target_screen = self.screens[screen_name]
+            if hasattr(target_screen, 'set_context_data'):
+                target_screen.set_context_data(context)
+            elif hasattr(target_screen, 'set_victory_data') and 'victory_data' in context:
+                target_screen.set_victory_data(context['victory_data'])
         
         # Use enhanced transition from base class
         return super().switch_to_screen(screen_name, transition_type, 0.6)
@@ -91,26 +105,7 @@ def get_combat_screen():
 
 def get_map_screen():
     """Get map screen class (delayed import)."""
-    # Placeholder - create a simple map screen
-    class MapScreen(UIScreen):
-        def __init__(self):
-            super().__init__("map")
-        
-        def on_enter(self):
-            self.logger.info("Entering map screen (placeholder)")
-        
-        def on_exit(self):
-            self.logger.info("Exiting map screen (placeholder)")
-        
-        def render(self, surface: pygame.Surface):
-            theme = get_theme()
-            surface.fill(theme.colors.background)
-            
-            font = pygame.font.Font(None, 48)
-            text = font.render("MAP SCREEN - COMING SOON", True, (255, 255, 255))
-            text_rect = text.get_rect(center=(surface.get_width()//2, surface.get_height()//2))
-            surface.blit(text, text_rect)
-    
+    from .map_screen import MapScreen
     return MapScreen
 
 
@@ -130,3 +125,21 @@ def get_progression_screen():
     """Get progression screen class (delayed import)."""
     from .progression_screen import ProgressionScreen
     return ProgressionScreen
+
+
+def get_victory_screen():
+    """Get victory screen class (delayed import)."""
+    from .victory_screen import VictoryScreen
+    return VictoryScreen
+
+
+def get_defeat_screen():
+    """Get defeat screen class (delayed import)."""
+    from .defeat_screen import DefeatScreen
+    return DefeatScreen
+
+
+def get_dynamic_combat_screen():
+    """Get dynamic combat screen class (delayed import)."""
+    from .dynamic_combat_screen import DynamicCombatScreen
+    return DynamicCombatScreen

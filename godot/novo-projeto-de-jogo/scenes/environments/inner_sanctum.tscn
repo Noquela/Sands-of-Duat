@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3 uid="uid://generate_unique_id"]
+
+[ext_resource type="Texture2D" uid="uid://placeholder" path="res://environments/inner_sanctum.png" id="1_placeholder"]
+
+[node name="InnerSanctum" type="Node2D"]
+
+[node name="Background" type="Sprite2D" parent="."]
+texture = ExtResource("1_placeholder")
+centered = false
+
+[node name="ParallaxBackground" type="ParallaxBackground" parent="."]
+
+[node name="ParallaxLayer" type="ParallaxLayer" parent="ParallaxBackground"]
+motion_scale = Vector2(0.5, 0.5)
+
+[node name="BackgroundSprite" type="Sprite2D" parent="ParallaxBackground/ParallaxLayer"]
+texture = ExtResource("1_placeholder")
+centered = false
