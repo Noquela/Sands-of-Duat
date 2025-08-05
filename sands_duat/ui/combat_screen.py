@@ -20,6 +20,16 @@ from ..audio.sound_effects import play_card_interaction_sound, play_combat_feedb
 from ..graphics.sprite_animator import CharacterSprite, AnimationState, create_character_sprite
 from ..graphics.card_art_loader import load_card_art
 
+# Import parallax and atmospheric systems
+try:
+    from sands_duat.graphics.interactive_parallax_system import (
+        get_interactive_parallax_system, InteractionType, trigger_ui_interaction, handle_mouse_parallax
+    )
+    from sands_duat.graphics.egyptian_atmospheric_effects import get_atmospheric_manager
+    PARALLAX_AVAILABLE = True
+except ImportError:
+    PARALLAX_AVAILABLE = False
+
 
 class AccessibilitySettings:
     """Accessibility settings for improved usability."""
@@ -924,6 +934,23 @@ class CombatScreen(UIScreen):
         self.enemy_sprite: Optional[CharacterSprite] = None
         self._setup_character_sprites()
         
+        # Initialize parallax and atmospheric systems
+        self.parallax_system = None
+        self.atmospheric_manager = None
+        
+        if PARALLAX_AVAILABLE:
+            try:
+                display_size = pygame.display.get_surface().get_size() if pygame.display.get_surface() else (1920, 1080)
+                self.parallax_system = get_interactive_parallax_system(display_size[0], display_size[1])
+                self.parallax_system.set_current_screen("combat")
+                
+                self.atmospheric_manager = get_atmospheric_manager(display_size[0], display_size[1])
+                self.atmospheric_manager.setup_screen_atmosphere("combat")
+            except Exception as e:
+                print(f"Combat parallax initialization failed: {e}")
+                self.parallax_system = None
+                self.atmospheric_manager = None
+        
         # Visual settings
         self.font = pygame.font.Font(None, 24)
         self.text_color = (255, 248, 220)  # Cornsilk
@@ -994,6 +1021,13 @@ class CombatScreen(UIScreen):
     
     def handle_event(self, event: pygame.event.Event) -> bool:
         """Handle combat screen events including button clicks and accessibility shortcuts."""
+        # Handle mouse movement for parallax effects
+        if event.type == pygame.MOUSEMOTION and self.parallax_system:
+            try:
+                handle_mouse_parallax(event.pos[0], event.pos[1])
+            except:
+                pass  # Fallback if parallax not available
+        
         # Handle accessibility keyboard shortcuts
         if event.type == pygame.KEYDOWN:
             # Toggle colorblind mode (Ctrl+C)
@@ -1250,8 +1284,25 @@ class CombatScreen(UIScreen):
     
     def render(self, surface: pygame.Surface) -> None:
         """Render the combat screen with enhanced theming."""
-        # Draw themed background instead of basic clear
-        self._draw_themed_background(surface)
+        # Render parallax background first
+        if self.parallax_system:
+            try:
+                camera_rect = pygame.Rect(0, 0, surface.get_width(), surface.get_height())
+                self.parallax_system.render(surface, camera_rect)
+            except Exception as e:
+                print(f"Combat parallax render error: {e}")
+                # Fallback: Draw themed background
+                self._draw_themed_background(surface)
+        else:
+            # Fallback: Draw themed background instead of basic clear
+            self._draw_themed_background(surface)
+        
+        # Render atmospheric effects
+        if self.atmospheric_manager:
+            try:
+                self.atmospheric_manager.render(surface)
+            except Exception as e:
+                print(f"Combat atmospheric render error: {e}")
         
         # Render particle effects (behind other UI elements)
         self.particle_system.render(surface)
@@ -1906,6 +1957,20 @@ class CombatScreen(UIScreen):
         
         # Update visual effects
         self._update_visual_effects(delta_time)
+        
+        # Update parallax system
+        if self.parallax_system:
+            try:
+                self.parallax_system.update(delta_time)
+            except Exception as e:
+                print(f"Combat parallax update error: {e}")
+        
+        # Update atmospheric effects
+        if self.atmospheric_manager:
+            try:
+                self.atmospheric_manager.update(delta_time)
+            except Exception as e:
+                print(f"Combat atmospheric update error: {e}")
         
         # Process pending combat effects
         self._process_combat_effects()

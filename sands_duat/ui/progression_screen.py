@@ -20,6 +20,16 @@ except ImportError:
         pass
 from .menu_screen import MenuButton
 
+# Import parallax and atmospheric systems
+try:
+    from sands_duat.graphics.interactive_parallax_system import (
+        get_interactive_parallax_system, InteractionType, trigger_ui_interaction, handle_mouse_parallax
+    )
+    from sands_duat.graphics.egyptian_atmospheric_effects import get_atmospheric_manager
+    PARALLAX_AVAILABLE = True
+except ImportError:
+    PARALLAX_AVAILABLE = False
+
 
 class TempleChambersMap(UIComponent):
     """
@@ -393,6 +403,23 @@ class ProgressionScreen(UIScreen):
         super().__init__("progression")
         self.temple_map: Optional[TempleChambersMap] = None
         self.ui_manager = None
+        
+        # Initialize parallax and atmospheric systems
+        self.parallax_system = None
+        self.atmospheric_manager = None
+        
+        if PARALLAX_AVAILABLE:
+            try:
+                display_size = pygame.display.get_surface().get_size() if pygame.display.get_surface() else (1920, 1080)
+                self.parallax_system = get_interactive_parallax_system(display_size[0], display_size[1])
+                self.parallax_system.set_current_screen("progression")
+                
+                self.atmospheric_manager = get_atmospheric_manager(display_size[0], display_size[1])
+                self.atmospheric_manager.setup_screen_atmosphere("progression")
+            except Exception as e:
+                print(f"Progression parallax initialization failed: {e}")
+                self.parallax_system = None
+                self.atmospheric_manager = None
     
     def on_enter(self) -> None:
         """Initialize progression screen."""
@@ -567,11 +594,65 @@ class ProgressionScreen(UIScreen):
     def update(self, delta_time: float) -> None:
         """Update progression screen."""
         super().update(delta_time)
+        
+        # Update parallax system
+        if self.parallax_system:
+            try:
+                self.parallax_system.update(delta_time)
+            except Exception as e:
+                print(f"Progression parallax update error: {e}")
+        
+        # Update atmospheric effects
+        if self.atmospheric_manager:
+            try:
+                self.atmospheric_manager.update(delta_time)
+            except Exception as e:
+                print(f"Progression atmospheric update error: {e}")
     
     def render(self, surface: pygame.Surface) -> None:
         """Render progression screen."""
-        # Fill background with temple atmosphere
-        surface.fill((30, 20, 10))  # Very dark brown
+        # Render parallax background first
+        if self.parallax_system:
+            try:
+                camera_rect = pygame.Rect(0, 0, surface.get_width(), surface.get_height())
+                self.parallax_system.render(surface, camera_rect)
+            except Exception as e:
+                print(f"Progression parallax render error: {e}")
+                # Fallback: Fill background with temple atmosphere
+                surface.fill((30, 20, 10))  # Very dark brown
+        else:
+            # Fallback: Fill background with temple atmosphere
+            surface.fill((30, 20, 10))  # Very dark brown
+        
+        # Render atmospheric effects
+        if self.atmospheric_manager:
+            try:
+                self.atmospheric_manager.render(surface)
+            except Exception as e:
+                print(f"Progression atmospheric render error: {e}")
         
         # Render components
         super().render(surface)
+    
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        """Handle progression screen events including mouse movement for parallax."""
+        # Handle mouse movement for parallax effects
+        if event.type == pygame.MOUSEMOTION and self.parallax_system:
+            try:
+                handle_mouse_parallax(event.pos[0], event.pos[1])
+            except:
+                pass  # Fallback if parallax not available
+        
+        # Handle chamber hover effects
+        if event.type == pygame.MOUSEMOTION and self.temple_map:
+            # Check if hovering over chambers and trigger effects
+            for chamber_id, chamber in self.temple_map.chambers.items():
+                chamber_rect = pygame.Rect(chamber["x"] - 25, chamber["y"] - 25, 50, 50)
+                if chamber_rect.collidepoint(event.pos):
+                    try:
+                        trigger_ui_interaction(InteractionType.BUTTON_HOVER, event.pos[0], event.pos[1])
+                    except:
+                        pass
+        
+        # Let base class handle other events
+        return super().handle_event(event)

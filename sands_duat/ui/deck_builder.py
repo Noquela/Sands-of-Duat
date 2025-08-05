@@ -15,6 +15,16 @@ from .menu_screen import MenuButton
 from .theme import get_theme
 from .animation_system import AnimationManager, EgyptianAnimationRenderer
 
+# Import parallax and atmospheric systems
+try:
+    from sands_duat.graphics.interactive_parallax_system import (
+        get_interactive_parallax_system, InteractionType, trigger_ui_interaction, handle_mouse_parallax
+    )
+    from sands_duat.graphics.egyptian_atmospheric_effects import get_atmospheric_manager
+    PARALLAX_AVAILABLE = True
+except ImportError:
+    PARALLAX_AVAILABLE = False
+
 
 class CardDisplay(UIComponent):
     """Enhanced card display component for deck builder with drag-and-drop support."""
@@ -1453,6 +1463,23 @@ class DeckBuilderScreen(UIScreen):
         self.deck_view: Optional[DeckView] = None
         self.filter_panel: Optional[FilterPanel] = None
         
+        # Initialize parallax and atmospheric systems
+        self.parallax_system = None
+        self.atmospheric_manager = None
+        
+        if PARALLAX_AVAILABLE:
+            try:
+                display_size = pygame.display.get_surface().get_size() if pygame.display.get_surface() else (1920, 1080)
+                self.parallax_system = get_interactive_parallax_system(display_size[0], display_size[1])
+                self.parallax_system.set_current_screen("deck_builder")
+                
+                self.atmospheric_manager = get_atmospheric_manager(display_size[0], display_size[1])
+                self.atmospheric_manager.setup_screen_atmosphere("deck_builder")
+            except Exception as e:
+                print(f"Deck builder parallax initialization failed: {e}")
+                self.parallax_system = None
+                self.atmospheric_manager = None
+        
         # State
         self.current_deck: Optional[Deck] = None
         self.available_cards: List[Card] = []
@@ -1885,3 +1912,63 @@ class DeckBuilderScreen(UIScreen):
         if self.deck_view:
             self.deck_view.set_deck(deck)
         self.logger.info(f"Loaded deck: {deck.name}")
+    
+    def update(self, delta_time: float) -> None:
+        """Update deck builder screen with parallax and atmospheric effects."""
+        super().update(delta_time)
+        
+        # Update parallax system
+        if self.parallax_system:
+            try:
+                self.parallax_system.update(delta_time)
+            except Exception as e:
+                print(f"Deck builder parallax update error: {e}")
+        
+        # Update atmospheric effects
+        if self.atmospheric_manager:
+            try:
+                self.atmospheric_manager.update(delta_time)
+            except Exception as e:
+                print(f"Deck builder atmospheric update error: {e}")
+    
+    def render(self, surface: pygame.Surface) -> None:
+        """Render deck builder screen with parallax background."""
+        # Render parallax background first
+        if self.parallax_system:
+            try:
+                camera_rect = pygame.Rect(0, 0, surface.get_width(), surface.get_height())
+                self.parallax_system.render(surface, camera_rect)
+            except Exception as e:
+                print(f"Deck builder parallax render error: {e}")
+        
+        # Render atmospheric effects
+        if self.atmospheric_manager:
+            try:
+                self.atmospheric_manager.render(surface)
+            except Exception as e:
+                print(f"Deck builder atmospheric render error: {e}")
+        
+        # Render UI components
+        super().render(surface)
+    
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        """Handle deck builder events including mouse movement for parallax."""
+        # Handle mouse movement for parallax effects
+        if event.type == pygame.MOUSEMOTION and self.parallax_system:
+            try:
+                handle_mouse_parallax(event.pos[0], event.pos[1])
+            except:
+                pass  # Fallback if parallax not available
+        
+        # Handle card hover and interaction effects
+        if event.type == pygame.MOUSEMOTION and self.card_collection:
+            # Check if hovering over cards and trigger effects
+            for card_display in self.card_collection.card_displays:
+                if card_display.rect.collidepoint(event.pos) and not card_display.hovered:
+                    try:
+                        trigger_ui_interaction(InteractionType.CARD_HOVER, event.pos[0], event.pos[1])
+                    except:
+                        pass
+        
+        # Let base class handle other events
+        return super().handle_event(event)

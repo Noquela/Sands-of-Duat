@@ -37,7 +37,8 @@
       "Bash(kill:*)",
       "Bash(powershell:*)",
       "Bash(start:*)",
-      "Bash(copy:*)"
+      "Bash(copy:*)",
+      "Bash(awk:*)"
     ],
     "deny": []
   }

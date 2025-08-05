@@ -28,6 +28,7 @@ import logging
 from .enhanced_asset_streaming import get_asset_streaming_manager, LoadPriority
 from .lighting_system import get_lighting_system
 from ..core.performance_profiler import profile_operation
+from .performance_optimizer import get_performance_optimizer, optimize_for_performance
 
 
 class ParallaxLayer(Enum):
@@ -334,6 +335,9 @@ class ParallaxRenderer:
             "render_time_ms": 0.0
         }
         
+        # Performance optimization
+        self.performance_optimizer = get_performance_optimizer()
+        
         # Threading for background processing
         self.background_executor = ThreadPoolExecutor(max_workers=2)
         
@@ -625,9 +629,13 @@ class ParallaxRenderer:
                     if hasattr(tile, 'needs_update') and tile.needs_update:
                         tile.get_processed_surface(current_time)
     
+    @optimize_for_performance
     def render(self, target_surface: pygame.Surface, camera_rect: Optional[pygame.Rect] = None):
         """Render parallax background with all effects."""
         start_time = time.time()
+        
+        # Get current quality settings
+        quality_settings = self.performance_optimizer.get_current_settings()
         
         with profile_operation("parallax_render"):
             if camera_rect is None:

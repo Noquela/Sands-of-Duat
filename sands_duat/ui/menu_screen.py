@@ -6,6 +6,7 @@ Main menu interface with Hades-style Egyptian theming.
 import pygame
 import math
 import random
+import time
 from typing import Dict, Any, Optional, List, Callable, Tuple
 from .base import UIScreen, UIComponent
 from .theme import get_theme
@@ -13,9 +14,13 @@ from .hades_theme import HadesEgyptianTheme
 from .animation_system import EasingType
 from sands_duat.audio.sound_effects import play_button_sound
 
-# Import advanced visual effects
+# Import advanced visual effects and parallax systems
 try:
     from sands_duat.graphics.master_visual_effects import get_visual_effects_manager, ScreenType
+    from sands_duat.graphics.interactive_parallax_system import (
+        get_interactive_parallax_system, InteractionType, trigger_ui_interaction, handle_mouse_parallax
+    )
+    from sands_duat.graphics.egyptian_atmospheric_effects import get_atmospheric_manager
     VFX_AVAILABLE = True
 except ImportError:
     VFX_AVAILABLE = False
@@ -71,13 +76,27 @@ class HadesMenuButton(UIComponent):
         self.hades_theme.draw_ornate_button(surface, scaled_rect, self.text, self.state)
     
     def handle_event(self, event: pygame.event.Event) -> bool:
-        """Handle button interaction with audio feedback."""
+        """Handle button interaction with audio feedback and parallax effects."""
         if not self.visible or not self.enabled:
             return False
+        
+        # Handle mouse motion for hover effects
+        if event.type == pygame.MOUSEMOTION:
+            if self.rect.collidepoint(event.pos) and not self.hovered:
+                # Button hover effect
+                try:
+                    trigger_ui_interaction(InteractionType.BUTTON_HOVER, event.pos[0], event.pos[1])
+                except:
+                    pass  # Fallback if parallax not available
         
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.rect.collidepoint(event.pos):
                 self.state = 'active'
+                # Button click effect
+                try:
+                    trigger_ui_interaction(InteractionType.BUTTON_CLICK, event.pos[0], event.pos[1])
+                except:
+                    pass  # Fallback if parallax not available
                 if self.callback:
                     play_button_sound()
                     self.callback()
@@ -258,15 +277,29 @@ class MenuScreen(UIScreen):
         display_size = pygame.display.get_surface().get_size() if pygame.display.get_surface() else (1920, 1080)
         self.hades_theme = HadesEgyptianTheme(display_size)
         
-        # Initialize advanced visual effects
+        # Initialize advanced visual effects and parallax
         self.vfx_manager = None
+        self.parallax_system = None
+        self.atmospheric_manager = None
+        
         if VFX_AVAILABLE:
             try:
                 self.vfx_manager = get_visual_effects_manager(display_size[0], display_size[1])
                 self.vfx_manager.initialize_screen_effects("menu", {"time_of_day": "dusk", "atmosphere": "mystical"})
+                
+                # Initialize interactive parallax system
+                self.parallax_system = get_interactive_parallax_system(display_size[0], display_size[1])
+                self.parallax_system.set_current_screen("menu")
+                
+                # Initialize atmospheric effects
+                self.atmospheric_manager = get_atmospheric_manager(display_size[0], display_size[1])
+                self.atmospheric_manager.setup_screen_atmosphere("menu")
+                
             except Exception as e:
                 print(f"VFX initialization failed: {e}")
                 self.vfx_manager = None
+                self.parallax_system = None
+                self.atmospheric_manager = None
         
         # UI components
         self.title_display: Optional[HadesTitleDisplay] = None
@@ -283,11 +316,40 @@ class MenuScreen(UIScreen):
         self.logger.info("Entering main menu")
         self._setup_ui_components()
         self._generate_background()
+        
+        # Setup parallax for menu screen
+        if self.parallax_system:
+            self.parallax_system.set_current_screen("menu")
+        if self.atmospheric_manager:
+            self.atmospheric_manager.setup_screen_atmosphere("menu")
     
     def on_exit(self) -> None:
         """Clean up main menu."""
         self.logger.info("Exiting main menu")
         self.clear_components()
+    
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        """Handle screen-level events including mouse movement for parallax."""
+        # Handle mouse movement for parallax effects
+        if event.type == pygame.MOUSEMOTION and self.parallax_system:
+            try:
+                handle_mouse_parallax(event.pos[0], event.pos[1])
+            except:
+                pass  # Fallback if parallax not available
+        
+        # Let base class handle other events
+        return super().handle_event(event)
+    
+    def on_frame_start(self):
+        """Called at the start of each frame for performance tracking."""
+        if self.parallax_system:
+            self.frame_start_time = time.time()
+    
+    def on_frame_end(self):
+        """Called at the end of each frame for performance tracking."""
+        if self.parallax_system and hasattr(self, 'frame_start_time'):
+            frame_time = time.time() - self.frame_start_time
+            self.parallax_system.performance_optimizer.record_frame_time(frame_time)
     
     def update(self, delta_time: float) -> None:
         """Update menu animations and visual effects."""
@@ -301,20 +363,48 @@ class MenuScreen(UIScreen):
                 self.vfx_manager.update(delta_time)
             except Exception as e:
                 print(f"VFX update error: {e}")
+        
+        # Update parallax system
+        if self.parallax_system:
+            try:
+                self.parallax_system.update(delta_time)
+            except Exception as e:
+                print(f"Parallax update error: {e}")
+        
+        # Update atmospheric effects
+        if self.atmospheric_manager:
+            try:
+                self.atmospheric_manager.update(delta_time)
+            except Exception as e:
+                print(f"Atmospheric update error: {e}")
     
     def render(self, surface: pygame.Surface) -> None:
         """Render the main menu with advanced visual effects."""
-        # Draw animated background
-        self._draw_background(surface)
+        # Render parallax background first
+        if self.parallax_system:
+            try:
+                camera_rect = pygame.Rect(0, 0, surface.get_width(), surface.get_height())
+                self.parallax_system.render(surface, camera_rect)
+            except Exception as e:
+                print(f"Parallax render error: {e}")
+                # Fallback: Draw simple animated background
+                self._draw_background(surface)
+        else:
+            # Fallback: Draw simple animated background
+            self._draw_background(surface)
+        
+        # Render atmospheric effects
+        if self.atmospheric_manager:
+            try:
+                self.atmospheric_manager.render(surface)
+            except Exception as e:
+                print(f"Atmospheric render error: {e}")
         
         # Render advanced visual effects (background layers)
         if self.vfx_manager:
             try:
-                # Render parallax background
                 camera_rect = pygame.Rect(0, 0, surface.get_width(), surface.get_height())
                 self.vfx_manager.render_background_layers(surface, camera_rect)
-                
-                # Render atmospheric particles
                 self.vfx_manager.render_atmospheric_effects(surface)
             except Exception as e:
                 print(f"VFX background render error: {e}")
@@ -325,10 +415,7 @@ class MenuScreen(UIScreen):
         # Render advanced visual effects (foreground layers)
         if self.vfx_manager:
             try:
-                # Render lighting effects
                 self.vfx_manager.render_lighting_effects(surface)
-                
-                # Render screen effects (glow, bloom, etc.)
                 self.vfx_manager.render_screen_effects(surface)
             except Exception as e:
                 print(f"VFX foreground render error: {e}")
