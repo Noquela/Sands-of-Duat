@@ -15,8 +15,9 @@ import pygame
 import random
 import math
 import time
-from typing import List, Tuple, Optional, Dict, Any
-from dataclasses import dataclass
+import colorsys
+from typing import List, Tuple, Optional, Dict, Any, Callable
+from dataclasses import dataclass, field
 from enum import Enum
 
 
@@ -39,6 +40,25 @@ class ParticleType(Enum):
     EMBER_TRAIL = "ember_trail"      # Trailing fire particles
     ENERGY_ORB = "energy_orb"        # Floating energy spheres
     SAND_SPIRAL = "sand_spiral"      # Swirling sand patterns
+    
+    # Egyptian mystical effects
+    ANKH_GLOW = "ankh_glow"          # Ankh symbol with divine energy
+    HIEROGLYPH_MAGIC = "hieroglyph_magic"  # Glowing hieroglyphs
+    MUMMY_BANDAGES = "mummy_bandages"      # Floating mummy wrappings
+    SCARAB_SWARM = "scarab_swarm"          # Flying scarab beetles
+    PYRAMID_ENERGY = "pyramid_energy"      # Triangular energy beams
+    CANOPIC_MIST = "canopic_mist"          # Ethereal preservation mist
+    DESERT_MIRAGE = "desert_mirage"        # Heat shimmer effects
+    PAPYRUS_SCROLL = "papyrus_scroll"      # Floating papyrus fragments
+    PHARAOH_CROWN = "pharaoh_crown"        # Golden pharaoh energy
+    UNDERWORLD_FLAME = "underworld_flame"  # Blue-green underworld fire
+    
+    # Atmospheric cinematic effects
+    DUST_MOTE = "dust_mote"               # Floating dust in light beams
+    TORCH_FLICKER = "torch_flicker"       # Torch flame particles
+    SPIRIT_WISP = "spirit_wisp"           # Ghostly spirit particles
+    SHADOW_TENDRIL = "shadow_tendril"     # Dark shadow effects
+    CRYSTAL_SPARKLE = "crystal_sparkle"   # Crystalline light effects
 
 
 @dataclass
@@ -57,8 +77,26 @@ class Particle:
     fade_rate: float = 1.0
     particle_type: ParticleType = ParticleType.SAND_GRAIN
     
+    # Enhanced properties for cinematic effects
+    rotation: float = 0.0
+    rotation_speed: float = 0.0
+    scale: float = 1.0
+    scale_speed: float = 0.0
+    pulse_frequency: float = 0.0
+    pulse_amplitude: float = 0.0
+    trail_length: int = 0
+    trail_positions: List[Tuple[float, float]] = field(default_factory=list)
+    custom_data: Dict[str, Any] = field(default_factory=dict)
+    update_function: Optional[Callable] = None
+    
     def update(self, delta_time: float) -> bool:
         """Update particle physics. Returns True if particle is still alive."""
+        # Store previous position for trails
+        if self.trail_length > 0:
+            self.trail_positions.append((self.x, self.y))
+            if len(self.trail_positions) > self.trail_length:
+                self.trail_positions.pop(0)
+        
         # Update position
         self.x += self.vel_x * delta_time
         self.y += self.vel_y * delta_time
@@ -66,9 +104,26 @@ class Particle:
         # Apply gravity
         self.vel_y += self.gravity * delta_time
         
+        # Update rotation
+        self.rotation += self.rotation_speed * delta_time
+        
+        # Update scale
+        self.scale += self.scale_speed * delta_time
+        
         # Update life and alpha
         self.life -= delta_time * self.fade_rate
-        self.alpha = int(255 * max(0, min(1, self.life / self.max_life)))
+        life_ratio = max(0, min(1, self.life / self.max_life))
+        
+        # Apply pulse effect to alpha
+        if self.pulse_frequency > 0:
+            pulse = math.sin(time.time() * self.pulse_frequency) * self.pulse_amplitude
+            life_ratio = max(0, min(1, life_ratio + pulse))
+        
+        self.alpha = int(255 * life_ratio)
+        
+        # Custom update function
+        if self.update_function:
+            self.update_function(self, delta_time)
         
         return self.life > 0
     
@@ -184,9 +239,184 @@ class Particle:
                 point_y = int(self.y + offset_y)
                 pygame.draw.circle(surface, self.color, (point_x, point_y), max(1, int(self.size // 2)))
         
+        elif self.particle_type == ParticleType.ANKH_GLOW:
+            # Ankh symbol with divine energy
+            size = int(self.size * self.scale)
+            # Draw ankh shape with glowing effect
+            center_x, center_y = int(self.x), int(self.y)
+            
+            # Cross part
+            pygame.draw.line(surface, self.color, 
+                           (center_x, center_y - size), (center_x, center_y + size), 3)
+            pygame.draw.line(surface, self.color, 
+                           (center_x - size//2, center_y - size//3), 
+                           (center_x + size//2, center_y - size//3), 3)
+            
+            # Loop part
+            loop_radius = size // 3
+            pygame.draw.circle(surface, self.color, (center_x, center_y - size//2), loop_radius, 2)
+            
+            # Glow effect
+            glow_color = tuple(min(255, c + 50) for c in self.color)
+            pygame.draw.circle(surface, glow_color, (center_x, center_y), size + 5, 1)
+        
+        elif self.particle_type == ParticleType.HIEROGLYPH_MAGIC:
+            # Glowing hieroglyphs
+            size = int(self.size * self.scale)
+            center_x, center_y = int(self.x), int(self.y)
+            
+            # Draw simplified hieroglyph pattern
+            points = [
+                (center_x - size, center_y - size),
+                (center_x, center_y - size//2),
+                (center_x + size, center_y),
+                (center_x, center_y + size),
+                (center_x - size//2, center_y + size//2)
+            ]
+            
+            if len(points) >= 2:
+                pygame.draw.lines(surface, self.color, False, points, 2)
+            
+            # Add mystical glow
+            pulse = math.sin(time.time() * 4 + self.x * 0.1) * 0.3 + 0.7
+            glow_alpha = int(self.alpha * pulse * 0.5)
+            if glow_alpha > 0:
+                glow_color = (*self.color, glow_alpha)
+                pygame.draw.circle(surface, self.color, (center_x, center_y), size + 3, 1)
+        
+        elif self.particle_type == ParticleType.SCARAB_SWARM:
+            # Flying scarab beetles
+            size = int(self.size * self.scale)
+            center_x, center_y = int(self.x), int(self.y)
+            
+            # Wing animation based on velocity
+            wing_angle = math.sin(time.time() * 10 + self.x * 0.1) * 0.3
+            
+            # Body
+            pygame.draw.ellipse(surface, self.color, 
+                              (center_x - size//2, center_y - size//3, size, size//2))
+            
+            # Wings
+            wing_color = tuple(c // 2 for c in self.color)
+            wing_points_left = [
+                (center_x - size//4, center_y),
+                (center_x - size + int(wing_angle * size), center_y - size//2),
+                (center_x - size//2, center_y + size//4)
+            ]
+            wing_points_right = [
+                (center_x + size//4, center_y),
+                (center_x + size - int(wing_angle * size), center_y - size//2),
+                (center_x + size//2, center_y + size//4)
+            ]
+            
+            if len(wing_points_left) >= 3:
+                pygame.draw.polygon(surface, wing_color, wing_points_left)
+            if len(wing_points_right) >= 3:
+                pygame.draw.polygon(surface, wing_color, wing_points_right)
+        
+        elif self.particle_type == ParticleType.PYRAMID_ENERGY:
+            # Triangular energy beams
+            size = int(self.size * self.scale)
+            center_x, center_y = int(self.x), int(self.y)
+            
+            # Draw energy pyramid/triangle
+            points = [
+                (center_x, center_y - size),
+                (center_x - size, center_y + size),
+                (center_x + size, center_y + size)
+            ]
+            
+            # Inner bright triangle
+            pygame.draw.polygon(surface, self.color, points)
+            
+            # Outer glow
+            glow_color = tuple(min(255, c + 30) for c in self.color)
+            pygame.draw.polygon(surface, glow_color, points, 2)
+        
+        elif self.particle_type == ParticleType.UNDERWORLD_FLAME:
+            # Blue-green underworld fire
+            size = int(self.size * self.scale)
+            center_x, center_y = int(self.x), int(self.y)
+            
+            # Flame flicker
+            flicker = math.sin(time.time() * 8 + self.x * 0.1) * 0.2 + 0.8
+            flame_height = int(size * flicker * 2)
+            
+            # Multiple flame layers for depth
+            for i in range(3):
+                layer_size = size - i
+                layer_height = flame_height - i * 2
+                if layer_size > 0 and layer_height > 0:
+                    layer_alpha = self.alpha - i * 30
+                    if layer_alpha > 0:
+                        # Create flame shape
+                        flame_points = [
+                            (center_x, center_y - layer_height),
+                            (center_x - layer_size//2, center_y - layer_height//2),
+                            (center_x - layer_size, center_y),
+                            (center_x + layer_size, center_y),
+                            (center_x + layer_size//2, center_y - layer_height//2)
+                        ]
+                        
+                        # Vary color for each layer
+                        layer_color = (
+                            max(0, self.color[0] - i * 20),
+                            min(255, self.color[1] + i * 10),
+                            min(255, self.color[2] + i * 30)
+                        )
+                        
+                        if len(flame_points) >= 3:
+                            pygame.draw.polygon(surface, layer_color, flame_points)
+        
+        elif self.particle_type == ParticleType.DUST_MOTE:
+            # Floating dust in light beams
+            size = max(1, int(self.size * self.scale))
+            # Simple dust particle with subtle movement
+            float_offset = math.sin(time.time() * 2 + self.x * 0.01) * 2
+            pygame.draw.circle(surface, self.color, 
+                             (int(self.x + float_offset), int(self.y)), size)
+        
+        elif self.particle_type == ParticleType.SPIRIT_WISP:
+            # Ghostly spirit particles
+            size = int(self.size * self.scale)
+            center_x, center_y = int(self.x), int(self.y)
+            
+            # Wispy trail effect
+            if self.trail_positions:
+                for i, (trail_x, trail_y) in enumerate(self.trail_positions):
+                    trail_alpha = int(self.alpha * (i + 1) / len(self.trail_positions) * 0.3)
+                    if trail_alpha > 0:
+                        trail_size = max(1, size - (len(self.trail_positions) - i))
+                        pygame.draw.circle(surface, self.color, 
+                                         (int(trail_x), int(trail_y)), trail_size)
+            
+            # Main wisp
+            pygame.draw.circle(surface, self.color, (center_x, center_y), size)
+            
+            # Ethereal glow
+            glow_size = size + 3
+            glow_alpha = max(0, self.alpha // 3)
+            if glow_alpha > 0:
+                glow_color = tuple(min(255, c + 20) for c in self.color)
+                pygame.draw.circle(surface, glow_color, (center_x, center_y), glow_size, 1)
+        
         else:
-            # Default circular particle
-            pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), max(1, int(self.size)))
+            # Default circular particle with enhanced rendering
+            size = max(1, int(self.size * self.scale))
+            center_x, center_y = int(self.x), int(self.y)
+            
+            # Draw trail if enabled
+            if self.trail_positions:
+                for i, (trail_x, trail_y) in enumerate(self.trail_positions):
+                    trail_alpha = int(self.alpha * (i + 1) / len(self.trail_positions) * 0.5)
+                    if trail_alpha > 0:
+                        trail_size = max(1, size - (len(self.trail_positions) - i))
+                        trail_color = tuple(c // 2 for c in self.color)
+                        pygame.draw.circle(surface, trail_color, 
+                                         (int(trail_x), int(trail_y)), trail_size)
+            
+            # Main particle
+            pygame.draw.circle(surface, self.color, (center_x, center_y), size)
 
 
 class ParticleEmitter:
@@ -578,6 +808,121 @@ class ParticleSystem:
             )
             
             self.particles.append(particle)
+    
+    def create_egyptian_mystical_effect(self, x: float, y: float, effect_type: str, intensity: float = 1.0) -> None:
+        """Create Egyptian mystical effects."""
+        if effect_type == "ankh_blessing":
+            self.create_ankh_blessing_effect(x, y, intensity)
+        elif effect_type == "hieroglyph_magic":
+            self.create_hieroglyph_magic_effect(x, y, intensity)
+        elif effect_type == "scarab_swarm":
+            self.create_scarab_swarm_effect(x, y, intensity)
+        elif effect_type == "pyramid_energy":
+            self.create_pyramid_energy_effect(x, y, intensity)
+        elif effect_type == "underworld_flame":
+            self.create_underworld_flame_effect(x, y, intensity)
+        elif effect_type == "spirit_wisp":
+            self.create_spirit_wisp_effect(x, y, intensity)
+        else:
+            # Default to golden aura
+            self.create_power_card_effect(x, y, intensity)
+    
+    def create_ankh_blessing_effect(self, x: float, y: float, intensity: float = 1.0) -> None:
+        """Create ankh blessing with divine energy."""
+        particle_count = int(8 * intensity)
+        
+        for _ in range(particle_count):
+            angle = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(20, 60) * intensity
+            
+            particle = Particle(
+                x=x + random.uniform(-10, 10),
+                y=y + random.uniform(-10, 10),
+                vel_x=math.cos(angle) * speed,
+                vel_y=math.sin(angle) * speed - 20,  # Upward bias
+                size=random.uniform(8, 15),
+                life=random.uniform(2.0, 4.0),
+                max_life=3.0,
+                color=(255, 215, 0),  # Divine gold
+                alpha=255,
+                gravity=-10.0,  # Float upward
+                particle_type=ParticleType.ANKH_GLOW,
+                scale=random.uniform(0.8, 1.2),
+                pulse_frequency=2.0,
+                pulse_amplitude=0.3
+            )
+            
+            self.particles.append(particle)
+    
+    def create_hieroglyph_magic_effect(self, x: float, y: float, intensity: float = 1.0) -> None:
+        """Create glowing hieroglyph magic."""
+        particle_count = int(12 * intensity)
+        
+        for _ in range(particle_count):
+            # Create circular pattern
+            angle = random.uniform(0, 2 * math.pi)
+            radius = random.uniform(20, 80) * intensity
+            
+            particle_x = x + math.cos(angle) * radius
+            particle_y = y + math.sin(angle) * radius
+            
+            particle = Particle(
+                x=particle_x,
+                y=particle_y,
+                vel_x=random.uniform(-10, 10),
+                vel_y=random.uniform(-30, -10),  # Float upward
+                size=random.uniform(6, 12),
+                life=random.uniform(2.5, 4.5),
+                max_life=3.5,
+                color=(138, 43, 226),  # Mystical purple
+                alpha=255,
+                gravity=0.0,
+                particle_type=ParticleType.HIEROGLYPH_MAGIC,
+                scale=random.uniform(0.6, 1.0),
+                rotation_speed=random.uniform(-2, 2),
+                pulse_frequency=3.0,
+                pulse_amplitude=0.4
+            )
+            
+            self.particles.append(particle)
+    
+    def create_atmospheric_dust_motes(self, x: float, y: float, width: float, height: float, intensity: float = 1.0) -> None:
+        """Create floating dust motes in light beams."""
+        particle_count = int(30 * intensity)
+        
+        for _ in range(particle_count):
+            particle = Particle(
+                x=x + random.uniform(-width/2, width/2),
+                y=y + random.uniform(-height/2, height/2),
+                vel_x=random.uniform(-5, 5),
+                vel_y=random.uniform(-10, 5),
+                size=random.uniform(1, 3),
+                life=random.uniform(10.0, 20.0),  # Long-lived atmospheric effect
+                max_life=15.0,
+                color=(255, 248, 220),  # Warm dust color
+                alpha=120,  # Subtle
+                gravity=2.0,  # Very light gravity
+                particle_type=ParticleType.DUST_MOTE,
+                scale=random.uniform(0.8, 1.2)
+            )
+            
+            self.particles.append(particle)
+    
+    def create_cinematic_card_effect(self, card_type: str, x: float, y: float, rarity: str = "common", intensity: float = 1.0) -> None:
+        """Create cinematic card effects based on type and rarity."""
+        # Base effect based on card type
+        self.create_card_type_effect(card_type, x, y, intensity)
+        
+        # Additional effects based on rarity
+        if rarity == "rare":
+            # Add golden sparkles
+            self.create_power_card_effect(x, y, intensity * 0.5)
+        elif rarity == "epic":
+            # Add purple mystical effects
+            self.create_hieroglyph_magic_effect(x, y, intensity * 0.7)
+        elif rarity == "legendary":
+            # Add divine ankh blessing
+            self.create_ankh_blessing_effect(x, y, intensity * 0.8)
     
     def clear_all(self) -> None:
         """Clear all particles and emitters."""

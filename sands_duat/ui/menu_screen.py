@@ -13,6 +13,13 @@ from .hades_theme import HadesEgyptianTheme
 from .animation_system import EasingType
 from sands_duat.audio.sound_effects import play_button_sound
 
+# Import advanced visual effects
+try:
+    from sands_duat.graphics.master_visual_effects import get_visual_effects_manager, ScreenType
+    VFX_AVAILABLE = True
+except ImportError:
+    VFX_AVAILABLE = False
+
 
 class HadesMenuButton(UIComponent):
     """Hades-style ornate button component for menu navigation."""
@@ -251,6 +258,16 @@ class MenuScreen(UIScreen):
         display_size = pygame.display.get_surface().get_size() if pygame.display.get_surface() else (1920, 1080)
         self.hades_theme = HadesEgyptianTheme(display_size)
         
+        # Initialize advanced visual effects
+        self.vfx_manager = None
+        if VFX_AVAILABLE:
+            try:
+                self.vfx_manager = get_visual_effects_manager(display_size[0], display_size[1])
+                self.vfx_manager.initialize_screen_effects("menu", {"time_of_day": "dusk", "atmosphere": "mystical"})
+            except Exception as e:
+                print(f"VFX initialization failed: {e}")
+                self.vfx_manager = None
+        
         # UI components
         self.title_display: Optional[HadesTitleDisplay] = None
         self.buttons: List[HadesMenuButton] = []
@@ -273,18 +290,48 @@ class MenuScreen(UIScreen):
         self.clear_components()
     
     def update(self, delta_time: float) -> None:
-        """Update menu animations."""
+        """Update menu animations and visual effects."""
         super().update(delta_time)
         self.background_time += delta_time
         self._update_background(delta_time)
+        
+        # Update advanced visual effects
+        if self.vfx_manager:
+            try:
+                self.vfx_manager.update(delta_time)
+            except Exception as e:
+                print(f"VFX update error: {e}")
     
     def render(self, surface: pygame.Surface) -> None:
-        """Render the main menu."""
+        """Render the main menu with advanced visual effects."""
         # Draw animated background
         self._draw_background(surface)
         
+        # Render advanced visual effects (background layers)
+        if self.vfx_manager:
+            try:
+                # Render parallax background
+                camera_rect = pygame.Rect(0, 0, surface.get_width(), surface.get_height())
+                self.vfx_manager.render_background_layers(surface, camera_rect)
+                
+                # Render atmospheric particles
+                self.vfx_manager.render_atmospheric_effects(surface)
+            except Exception as e:
+                print(f"VFX background render error: {e}")
+        
         # Render UI components
         super().render(surface)
+        
+        # Render advanced visual effects (foreground layers)
+        if self.vfx_manager:
+            try:
+                # Render lighting effects
+                self.vfx_manager.render_lighting_effects(surface)
+                
+                # Render screen effects (glow, bloom, etc.)
+                self.vfx_manager.render_screen_effects(surface)
+            except Exception as e:
+                print(f"VFX foreground render error: {e}")
     
     def _setup_ui_components(self) -> None:
         """Set up all menu UI components using responsive layout."""
@@ -382,7 +429,7 @@ class MenuScreen(UIScreen):
         """Start a new game."""
         self.logger.info("Starting new game")
         if self.ui_manager:
-            self.ui_manager.transition_to("progression")
+            self.ui_manager.switch_to_screen("progression")
     
     def _continue_game(self) -> None:
         """Continue existing game."""
@@ -393,13 +440,13 @@ class MenuScreen(UIScreen):
         """Open tutorial screen."""
         self.logger.info("Opening tutorial")
         if self.ui_manager:
-            self.ui_manager.transition_to("tutorial")
+            self.ui_manager.switch_to_screen("tutorial")
     
     def _open_deck_builder(self) -> None:
         """Open deck builder screen."""
         self.logger.info("Opening deck builder")
         if self.ui_manager:
-            self.ui_manager.transition_to("deck_builder")
+            self.ui_manager.switch_to_screen("deck_builder")
     
     def _exit_game(self) -> None:
         """Exit the game."""

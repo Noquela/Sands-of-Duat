@@ -396,18 +396,183 @@ class LightingSystem:
             # Early night
             self.set_ambient_lighting((30, 20, 60), 0.2)  # Deep purple
             self.create_moonlight(-30)
+            # Add mystical temple lighting
+            self.create_temple_brazier_lighting()
         elif hour <= 6:
             # Deep night
             self.set_ambient_lighting((15, 15, 40), 0.1)  # Very dark blue
             self.create_moonlight(-45)
+            # More dramatic lighting for deep night
+            self.create_underworld_lighting()
         elif hour <= 9:
             # Late night
             self.set_ambient_lighting((20, 15, 30), 0.15)  # Dark purple-brown
             self.create_moonlight(-60)
+            # Ethereal spirit lighting
+            self.create_spirit_realm_lighting()
         else:
             # Pre-dawn
             self.set_ambient_lighting((40, 30, 20), 0.25)  # Warm brown
             self.create_moonlight(-75)
+            # Dawn approaching - add warm hints
+            self.create_dawn_lighting()
+    
+    def create_temple_brazier_lighting(self) -> None:
+        """Create atmospheric temple brazier lighting"""
+        # Multiple braziers around the scene
+        brazier_positions = [
+            (200, 300), (self.screen_width - 200, 300),
+            (400, 500), (self.screen_width - 400, 500)
+        ]
+        
+        for x, y in brazier_positions:
+            brazier_light = Light(
+                x=x, y=y,
+                color=(255, 147, 41),  # Warm orange
+                intensity=0.6,
+                radius=120,
+                light_type=LightType.POINT,
+                flicker_intensity=0.4,
+                flicker_speed=3.5,
+                pulse_speed=1.2,
+                pulse_amplitude=0.25
+            )
+            self.add_light(brazier_light)
+    
+    def create_underworld_lighting(self) -> None:
+        """Create dramatic underworld lighting"""
+        # Eerie blue-green underworld flames
+        flame_positions = [
+            (300, 200), (self.screen_width - 300, 200),
+            (150, 400), (self.screen_width - 150, 400)
+        ]
+        
+        for x, y in flame_positions:
+            underworld_flame = Light(
+                x=x, y=y,
+                color=(0, 255, 150),  # Blue-green
+                intensity=0.5,
+                radius=100,
+                light_type=LightType.POINT,
+                flicker_intensity=0.6,
+                flicker_speed=4.0,
+                pulse_speed=2.5,
+                pulse_amplitude=0.4
+            )
+            self.add_light(underworld_flame)
+    
+    def create_spirit_realm_lighting(self) -> None:
+        """Create ethereal spirit realm lighting"""
+        # Floating spirit orbs
+        spirit_positions = [
+            (250, 150), (self.screen_width - 250, 150),
+            (self.screen_width // 2, 100),
+            (100, 350), (self.screen_width - 100, 350)
+        ]
+        
+        for i, (x, y) in enumerate(spirit_positions):
+            spirit_light = Light(
+                x=x, y=y,
+                color=(200, 200, 255),  # Ethereal blue-white
+                intensity=0.4,
+                radius=80,
+                light_type=LightType.POINT,
+                pulse_speed=1.5 + i * 0.3,  # Varied pulsing
+                pulse_amplitude=0.5
+            )
+            self.add_light(spirit_light)
+    
+    def create_dawn_lighting(self) -> None:
+        """Create pre-dawn lighting with warm hints"""
+        # Warm light from the horizon
+        dawn_light = Light(
+            x=self.screen_width,
+            y=self.screen_height // 2,
+            color=(255, 200, 100),  # Warm dawn light
+            intensity=0.3,
+            radius=self.screen_width,
+            light_type=LightType.DIRECTIONAL,
+            angle=math.radians(180),  # Coming from the right
+            pulse_speed=0.5,
+            pulse_amplitude=0.2
+        )
+        self.add_light(dawn_light)
+    
+    def create_card_play_lighting(self, x: int, y: int, card_type: str = "attack") -> Light:
+        """Create dramatic lighting for card play effects"""
+        if card_type == "attack":
+            color = (255, 100, 50)  # Fiery
+            intensity = 0.8
+        elif card_type == "skill":
+            color = (100, 150, 255)  # Electric blue
+            intensity = 0.7
+        elif card_type == "power":
+            color = (255, 215, 0)  # Golden
+            intensity = 1.0
+        else:
+            color = (150, 50, 200)  # Mystical purple
+            intensity = 0.6
+        
+        card_light = Light(
+            x=x, y=y,
+            color=color,
+            intensity=intensity,
+            radius=200,
+            light_type=LightType.POINT,
+            flicker_intensity=0.3,
+            flicker_speed=8.0,
+            pulse_speed=5.0,
+            pulse_amplitude=0.4
+        )
+        
+        self.add_light(card_light)
+        return card_light
+    
+    def create_cinematic_lighting_sequence(self, sequence_type: str) -> None:
+        """Create cinematic lighting sequences"""
+        if sequence_type == "boss_entrance":
+            # Dramatic boss entrance lighting
+            self.set_ambient_lighting((10, 5, 5), 0.05)  # Very dark
+            
+            # Spotlight on boss area
+            boss_light = Light(
+                x=self.screen_width - 300, y=self.screen_height // 2,
+                color=(200, 100, 100),
+                intensity=1.5,
+                radius=250,
+                light_type=LightType.SPOT,
+                cone_angle=60.0,
+                angle=math.radians(225),  # Angled toward center
+                flicker_intensity=0.5,
+                flicker_speed=2.0
+            )
+            self.add_light(boss_light)
+        
+        elif sequence_type == "treasure_discovery":
+            # Golden treasure lighting
+            treasure_light = Light(
+                x=self.screen_width // 2, y=self.screen_height // 2,
+                color=(255, 215, 0),
+                intensity=1.0,
+                radius=200,
+                light_type=LightType.POINT,
+                pulse_speed=2.0,
+                pulse_amplitude=0.4
+            )
+            self.add_light(treasure_light)
+        
+        elif sequence_type == "mystical_event":
+            # Purple mystical lighting
+            mystical_light = Light(
+                x=self.screen_width // 2, y=self.screen_height // 3,
+                color=(150, 50, 200),
+                intensity=0.8,
+                radius=300,
+                light_type=LightType.POINT,
+                pulse_speed=1.5,
+                pulse_amplitude=0.6
+            )
+            self.add_light(mystical_light)
 
 
 # Global lighting system

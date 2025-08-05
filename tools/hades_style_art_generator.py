@@ -43,18 +43,17 @@ class HadesStyleArtGenerator:
         else:
             self.device = "cpu"
         
-        # HADES-STYLE Egyptian Underworld Prompts
+        # Optimized Hades-Style Egyptian Prompts (CLIP token-efficient)
         self.art_style_base = (
-            "Hades game art style, cel-shaded illustration, highly detailed, "
-            "dramatic lighting, rich colors, professional game art, "
-            "Egyptian mythology, underworld aesthetic, "
-            "intricate lineart, painted illustration style"
+            "Hades game style, masterpiece illustration, cel-shaded, "
+            "dramatic chiaroscuro lighting, painterly brushwork, "
+            "Egyptian mythology, underworld atmosphere, "
+            "professional concept art, rich details"
         )
         
         self.duat_atmosphere = (
-            "Sands of Duat, Egyptian underworld, mystical atmosphere, "
-            "golden hieroglyphs, ancient magic, shadowy depths, "
-            "ornate Egyptian decorations, burial chamber aesthetic"
+            "Egyptian underworld, golden hieroglyphs, ancient magic, "
+            "dramatic shadows, ornate decorations, burial chamber"
         )
         
         # Ultra-detailed prompts for each asset type
@@ -62,84 +61,179 @@ class HadesStyleArtGenerator:
             "cards": {
                 # Attack Cards
                 "sand_strike": f"{self.art_style_base}, {self.duat_atmosphere}, "
-                             "swirling sand tornado attack, magical sand particles with golden glow, "
-                             "desert warrior casting spell, intricate sand magic symbols, "
-                             "dramatic action pose, Egyptian armor details, card frame border",
+                             "magnificent swirling sand tornado with supernatural force, "
+                             "thousands of golden sand particles dancing with ethereal energy, "
+                             "powerful desert sorcerer in dynamic casting pose, flowing robes, "
+                             "intricate hieroglyphic sand magic circles glowing with ancient power, "
+                             "detailed Egyptian bronze armor with scarab motifs, "
+                             "dramatic lighting creating strong shadows and highlights, "
+                             "painterly texture showing individual brush strokes, card art composition",
                 
                 "tomb_strike": f"{self.art_style_base}, {self.duat_atmosphere}, "
-                             "undead mummy warrior emerging from sarcophagus, ancient bandages flowing, "
-                             "golden death mask, ceremonial khopesh sword, tomb interior background, "
-                             "dramatic shadows, Egyptian burial treasures, intimidating pose",
+                             "menacing undead mummy pharaoh emerging from ornate golden sarcophagus, "
+                             "ancient linen bandages unwrapping dramatically in supernatural wind, "
+                             "exquisite golden death mask with precious stone inlays, "
+                             "ceremonial khopesh sword with hieroglyphic engravings glowing, "
+                             "richly detailed tomb interior with painted wall murals, "
+                             "flickering torch light creating deep chiaroscuro shadows, "
+                             "scattered burial treasures and canopic jars, imposing intimidating presence, "
+                             "hand-painted details in clothing and armor textures",
                 
                 "ra_solar_flare": f"{self.art_style_base}, {self.duat_atmosphere}, "
-                                "Ra the sun god casting solar magic, falcon-headed deity, "
-                                "intense golden solar flare energy, sun disk crown, "
-                                "hieroglyphic spell circles, blazing solar powers, divine presence",
+                                "mighty Ra the sun god in all his divine glory, majestic falcon head, "
+                                "casting devastating solar magic with supernatural intensity, "
+                                "brilliant golden solar flare energy radiating outward, "
+                                "ornate sun disk crown with intricate astronomical symbols, "
+                                "complex layered hieroglyphic spell circles floating in the air, "
+                                "blazing solar powers creating lens flares and energy distortions, "
+                                "divine authoritative presence commanding respect and awe, "
+                                "rich Egyptian regalia with gold and precious stone details, "
+                                "painterly brush work emphasizing the divine nature",
                 
                 "scarab_swarm": f"{self.art_style_base}, {self.duat_atmosphere}, "
-                              "massive swarm of golden scarab beetles, jeweled carapaces, "
-                              "mystical insect magic, ancient Egyptian burial scarabs, "
-                              "swirling cloud formation, desert tomb environment, ominous atmosphere",
+                              "spectacular massive swarm of hundreds of golden scarab beetles, "
+                              "each beetle with individually detailed jeweled carapaces, "
+                              "iridescent wing sheaths catching supernatural light, "
+                              "mystical insect magic creating ethereal energy trails, "
+                              "ancient Egyptian sacred burial scarabs with hieroglyphic markings, "
+                              "dramatic swirling cloud formation with perfect composition, "
+                              "desert tomb environment with sandstone architecture, "
+                              "ominous yet beautiful atmosphere, rich environmental details, "
+                              "hand-painted texture work showing individual scarab details",
                 
                 # Defense Cards  
                 "ankh_blessing": f"{self.art_style_base}, {self.duat_atmosphere}, "
-                               "ornate golden ankh symbol radiating healing light, "
-                               "divine protection aura, intricate Egyptian engravings, "
-                               "peaceful healing energy, sacred temple background, blessed atmosphere",
+                               "magnificent ornate golden ankh symbol as centerpiece, "
+                               "radiating pure healing light with supernatural luminescence, "
+                               "divine protection aura with ethereal energy waves, "
+                               "incredibly intricate Egyptian engravings and hieroglyphs, "
+                               "peaceful healing energy creating warm golden glow, "
+                               "sacred temple background with painted murals and columns, "
+                               "blessed atmosphere filled with floating light particles, "
+                               "museum-quality detail in metalwork and stone carving, "
+                               "painterly technique emphasizing the sacred nature",
                 
                 "isis_grace": f"{self.art_style_base}, {self.duat_atmosphere}, "
-                            "Isis goddess with outstretched winged arms, protective divine aura, "
-                            "elegant Egyptian dress and jewelry, golden headdress, "
-                            "healing magic emanating from hands, temple of Isis background",
+                            "divine Isis goddess in all her maternal glory, magnificent winged arms outstretched, "
+                            "protective divine aura radiating motherly love and power, "
+                            "elegant flowing Egyptian dress with intricate pleating and embroidery, "
+                            "elaborate jewelry with precious stones and gold filigree work, "
+                            "ornate golden headdress with sacred symbols and feathers, "
+                            "healing magic emanating from graceful hands with visible energy streams, "
+                            "majestic temple of Isis background with towering columns, "
+                            "serene yet powerful expression, hand-painted facial details, "
+                            "rich fabric textures and jewelry craftsmanship",
                 
                 "pyramid_power": f"{self.art_style_base}, {self.duat_atmosphere}, "
-                               "ancient pyramid channeling mystical energy, golden capstone glowing, "
-                               "geometric sacred patterns, powerful ley lines, "
-                               "desert night sky with stars, monumental architecture",
+                               "colossal ancient pyramid channeling immense mystical energy, "
+                               "brilliant golden capstone glowing with supernatural power, "
+                               "complex geometric sacred patterns covering the stone blocks, "
+                               "visible energy ley lines crackling with electric power, "
+                               "magnificent desert night sky filled with constellations, "
+                               "monumental architecture emphasizing massive scale and grandeur, "
+                               "atmospheric perspective showing the pyramid's imposing presence, "
+                               "detailed stone block textures with archaeological accuracy, "
+                               "dramatic lighting creating strong architectural shadows",
                 
                 # Utility Cards
                 "papyrus_scroll": f"{self.art_style_base}, {self.duat_atmosphere}, "
-                                "ancient papyrus with glowing hieroglyphs, magical writing appearing, "
-                                "Thoth's wisdom magic, ibis feather quill, "
-                                "scholarly spells, library of Alexandria atmosphere, knowledge power",
+                                "ancient papyrus scroll with aged texture and worn edges, "
+                                "luminous hieroglyphs magically appearing and glowing with wisdom, "
+                                "Thoth's divine wisdom magic creating floating symbols, "
+                                "elegant ibis feather quill with gold nib and intricate details, "
+                                "scholarly magical spells written in flowing hieroglyphic script, "
+                                "great library of Alexandria atmosphere with towering shelves, "
+                                "knowledge power manifesting as floating books and scrolls, "
+                                "warm candlelight illuminating the scholarly environment, "
+                                "hand-painted texture work on papyrus and parchment materials",
                 
                 "desert_whisper": f"{self.art_style_base}, {self.duat_atmosphere}, "
-                                "mysterious figure in desert robes, sand magic swirling around, "
-                                "hidden face with glowing eyes, ancient secrets, "
-                                "whispered incantations, mystical desert winds, ethereal presence",
+                                "enigmatic mysterious figure shrouded in flowing desert robes, "
+                                "intricate sand magic swirling in complex patterns around them, "
+                                "face hidden in shadow with only luminous eyes visible, "
+                                "ancient secrets whispered through supernatural wind, "
+                                "magical incantations creating visible sound waves, "
+                                "mystical desert winds carrying sand particles in spirals, "
+                                "ethereal ghostly presence with translucent qualities, "
+                                "dramatic fabric textures flowing in supernatural breeze, "
+                                "atmospheric depth creating sense of otherworldly mystery",
                 
                 "thoths_wisdom": f"{self.art_style_base}, {self.duat_atmosphere}, "
-                               "Thoth the ibis-headed god of knowledge, sacred scrolls floating, "
-                               "hieroglyphic magic circles, divine wisdom emanating, "
-                               "hall of two truths background, scales of justice, scholarly magic",
+                               "majestic Thoth the ibis-headed god of knowledge and wisdom, "
+                               "numerous sacred scrolls and tablets floating around him magically, "
+                               "complex multi-layered hieroglyphic magic circles glowing, "
+                               "divine wisdom emanating as visible energy and light, "
+                               "grand hall of two truths with towering columns and murals, "
+                               "ornate scales of justice with feather of Ma'at, "
+                               "scholarly magic creating floating equations and symbols, "
+                               "rich architectural details in Egyptian temple design, "
+                               "wise and knowing expression with hand-painted detail",
                 
                 "anubis_judgment": f"{self.art_style_base}, {self.duat_atmosphere}, "
-                                 "Anubis jackal-headed god weighing heart against feather, "
-                                 "sacred scales of justice, weighing of the heart ceremony, "
-                                 "judgment hall of the dead, solemn divine presence, afterlife trial",
+                                 "imposing Anubis jackal-headed god of the afterlife, "
+                                 "carefully weighing a human heart against the feather of Ma'at, "
+                                 "ornate sacred scales of justice with intricate metalwork, "
+                                 "solemn weighing of the heart ceremony with divine gravity, "
+                                 "magnificent judgment hall of the dead with painted walls, "
+                                 "solemn divine presence commanding respect and awe, "
+                                 "afterlife trial atmosphere with supernatural lighting, "
+                                 "detailed Egyptian ceremonial regalia and decorations, "
+                                 "hand-painted facial features showing divine authority",
                 
                 "pharaohs_resurrection": f"{self.art_style_base}, {self.duat_atmosphere}, "
-                                       "pharaoh rising from golden sarcophagus, royal burial mask, "
-                                       "resurrection magic swirling, undead royal power, "
-                                       "treasure-filled tomb chamber, regal undead presence",
+                                       "mighty pharaoh rising dramatically from ornate golden sarcophagus, "
+                                       "magnificent royal burial mask with precious stone inlays, "
+                                       "supernatural resurrection magic swirling with divine energy, "
+                                       "undead royal power radiating authority and majesty, "
+                                       "treasure-filled tomb chamber with piles of gold and artifacts, "
+                                       "regal undead presence commanding respect despite death, "
+                                       "dramatic lighting emphasizing the resurrection moment, "
+                                       "rich details in royal regalia and burial goods, "
+                                       "hand-painted textures on mummy wrappings and gold",
                 
                 "mummys_wrath": f"{self.art_style_base}, {self.duat_atmosphere}, "
-                              "enraged mummy warrior, ancient bandages unwrapping, "
-                              "cursed burial magic, tomb guardian fury, "
-                              "egyptian weapons and armor, vengeful undead spirit"
+                              "terrifying enraged mummy warrior in full battle fury, "
+                              "ancient linen bandages dramatically unwrapping and flowing, "
+                              "dark cursed burial magic emanating dark energy, "
+                              "tomb guardian fury with glowing angry eyes, "
+                              "ornate Egyptian weapons and ceremonial armor, "
+                              "vengeful undead spirit radiating supernatural malevolence, "
+                              "dynamic action pose showing imminent attack, "
+                              "detailed texture work on aged bandages and metal, "
+                              "dramatic shadows creating menacing atmosphere",
+                
+                # Missing utility card
+                "sand_grain": f"{self.art_style_base}, {self.duat_atmosphere}, "
+                             "elemental sand manipulation magic in its purest form, "
+                             "individual grains of sand glowing with golden energy, "
+                             "simple yet elegant magical gesture creating sand patterns, "
+                             "desert mage focusing mystical power through fingertips, "
+                             "swirling sand forming geometric magical symbols, "
+                             "basic but beautiful sand magic with visible energy flow, "
+                             "minimalist composition emphasizing the magic's elegance, "
+                             "hand-painted details showing individual sand particles"
             },
             
             "characters": {
                 "player_character": f"{self.art_style_base}, {self.duat_atmosphere}, "
-                                  "heroic Egyptian adventurer, detailed character design, "
-                                  "bronze and gold armor with hieroglyphic details, confident stance, "
-                                  "ancient Egyptian weapons, determined expression, "
-                                  "protagonist energy, ready for adventure pose",
+                                  "heroic Egyptian adventurer with commanding presence, "
+                                  "incredibly detailed character design with personality, "
+                                  "ornate bronze and gold armor featuring intricate hieroglyphic engravings, "
+                                  "confident heroic stance radiating determination and courage, "
+                                  "ancient Egyptian weapons with ceremonial details and craftsmanship, "
+                                  "determined expression showing inner strength and resolve, "
+                                  "protagonist energy with natural leadership qualities, "
+                                  "dynamic ready-for-adventure pose, hand-painted armor textures",
                 
                 "anubis_guardian": f"{self.art_style_base}, {self.duat_atmosphere}, "
-                                 "imposing Anubis temple guardian, jackal-headed warrior, "
-                                 "ceremonial Egyptian armor, staff of judgment, "
-                                 "divine authority presence, guardian of the dead, intimidating pose",
+                                 "towering imposing Anubis temple guardian with divine authority, "
+                                 "majestic jackal-headed warrior radiating supernatural power, "
+                                 "elaborate ceremonial Egyptian armor with sacred symbols, "
+                                 "ornate staff of judgment topped with divine hieroglyphs, "
+                                 "commanding divine authority presence inspiring awe and respect, "
+                                 "eternal guardian of the dead with unwavering vigilance, "
+                                 "intimidating yet noble pose showing protective nature, "
+                                 "rich details in armor craftsmanship and divine regalia",
                 
                 "desert_scorpion": f"{self.art_style_base}, {self.duat_atmosphere}, "
                                  "giant desert scorpion creature, chitinous exoskeleton with golden markings, "
@@ -158,10 +252,14 @@ class HadesStyleArtGenerator:
             },
             
             "environments": {
-                "menu_background": f"{self.art_style_base}, cinematic Egyptian underworld landscape, "
-                                 "vast desert with ancient pyramids silhouetted against twilight sky, "
-                                 "golden sand dunes, mysterious atmosphere, "
-                                 "entrance to the underworld, epic scale, dramatic lighting",
+                "menu_background": f"{self.art_style_base}, breathtaking cinematic Egyptian underworld landscape, "
+                                 "vast endless desert with colossal ancient pyramids silhouetted majestically, "
+                                 "rolling golden sand dunes stretching to the horizon, "
+                                 "mysterious otherworldly atmosphere with supernatural lighting, "
+                                 "dramatic entrance portal to the underworld realm, "
+                                 "epic monumental scale emphasizing the journey ahead, "
+                                 "dramatic atmospheric lighting with deep shadows and golden highlights, "
+                                 "rich environmental storytelling through ancient monuments",
                 
                 "combat_background": f"{self.art_style_base}, {self.duat_atmosphere}, "
                                    "ancient Egyptian tomb chamber interior, stone pillars with hieroglyphs, "
@@ -198,12 +296,17 @@ class HadesStyleArtGenerator:
             }
         }
         
-        # Negative prompts for quality control
+        # Comprehensive negative prompts for museum-quality control
         self.negative_prompt = (
-            "blurry, low quality, distorted, watermark, signature, text, "
-            "bad anatomy, deformed, ugly, amateur art, simple drawing, "
-            "cartoon style, anime style, low detail, boring composition, "
-            "modern elements, contemporary clothing, photography, realistic photo"
+            "blurry, low quality, distorted, pixelated, noisy, watermark, signature, text, "
+            "bad anatomy, deformed, ugly, amateur art, simple drawing, rushed artwork, "
+            "cartoon style, anime style, manga style, low detail, boring composition, "
+            "modern elements, contemporary clothing, photography, realistic photo, "
+            "AI-generated look, artificial appearance, plastic textures, "
+            "flat lighting, no depth, no shadows, oversaturated, undersaturated, "
+            "generic, boring, uninspired, copy-paste, template-like, "
+            "low resolution, compression artifacts, jpeg artifacts, "
+            "symmetrical composition, centered subject, predictable layout"
         )
         
         # Egyptian color palette
@@ -302,7 +405,7 @@ class HadesStyleArtGenerator:
     
     def generate_professional_image(self, prompt: str, output_path: str,
                                   width: int = 1024, height: int = 1024,
-                                  steps: int = 50, cfg: float = 7.5,
+                                  steps: int = 80, cfg: float = 8.5,
                                   seed: Optional[int] = None) -> bool:
         """Generate a professional-quality Hades-style image."""
         try:
@@ -313,8 +416,8 @@ class HadesStyleArtGenerator:
             
             self.logger.info(f"Generating Hades-style art: {prompt[:60]}...")
             
-            # Enhanced prompt for Hades style
-            enhanced_prompt = f"{prompt}, masterpiece, best quality, highly detailed, professional illustration"
+            # Ultra-enhanced prompt for museum-quality Hades style
+            enhanced_prompt = f"{prompt}, masterpiece, museum quality, best quality, highly detailed, professional concept art, hand-painted illustration, rich textures, dramatic lighting, painterly brushwork, artistic excellence"
             
             generator = None
             if seed is not None:
