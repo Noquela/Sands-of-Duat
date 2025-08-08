@@ -11,8 +11,8 @@ from typing import Dict, Optional, Any
 
 from .state_manager import StateManager, GameState
 from .constants import (
-    SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_SIZE,
-    Colors, Timing, FontSizes, Dev
+    SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_SIZE, SCREEN_CENTER,
+    Colors, Timing, FontSizes, Dev, Layout
 )
 
 class GameEngine:
@@ -48,6 +48,11 @@ class GameEngine:
         
         # Logger
         self.logger = logging.getLogger("game_engine")
+        
+        # Log display information
+        self.logger.info(f"Display: {SCREEN_WIDTH}x{SCREEN_HEIGHT}")
+        if Layout.IS_ULTRAWIDE:
+            self.logger.info("🖥️ Ultrawide display detected - using centered layout")
         
         # Initialize systems
         self._initialize_systems()
@@ -274,97 +279,140 @@ class GameEngine:
     
     # Placeholder rendering methods (will be replaced with actual screens)
     def _render_main_menu_placeholder(self, surface: pygame.Surface):
-        """Placeholder main menu rendering."""
+        """Placeholder main menu rendering with ultrawide support."""
         surface.fill(Colors.DARK_BLUE)
+        
+        # Draw ultrawide background bars if needed
+        if Layout.IS_ULTRAWIDE:
+            # Draw darker bars on the sides for cinematic effect
+            left_bar = pygame.Rect(0, 0, Layout.CONTENT_X_OFFSET, SCREEN_HEIGHT)
+            right_bar = pygame.Rect(Layout.UI_SAFE_RIGHT, 0, Layout.CONTENT_X_OFFSET, SCREEN_HEIGHT)
+            pygame.draw.rect(surface, (15, 15, 50), left_bar)
+            pygame.draw.rect(surface, (15, 15, 50), right_bar)
         
         title_font = self.fonts['default'][FontSizes.TITLE_HUGE]
         subtitle_font = self.fonts['default'][FontSizes.SUBTITLE]
         body_font = self.fonts['default'][FontSizes.BODY]
         
+        # Center content in safe area
+        center_x = SCREEN_CENTER[0]
+        
         # Title
         title = title_font.render("SANDS OF DUAT", True, Colors.GOLD)
-        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 150))
+        title_rect = title.get_rect(center=(center_x, 150))
         surface.blit(title, title_rect)
         
         # Subtitle
         subtitle = subtitle_font.render("Egyptian Underworld Card Game", True, Colors.PAPYRUS)
-        subtitle_rect = subtitle.get_rect(center=(SCREEN_WIDTH // 2, 220))
+        subtitle_rect = subtitle.get_rect(center=(center_x, 220))
         surface.blit(subtitle, subtitle_rect)
+        
+        # Display info for ultrawide
+        if Layout.IS_ULTRAWIDE:
+            res_info = f"Ultrawide {SCREEN_WIDTH}x{SCREEN_HEIGHT} Display Optimized"
+            res_font = self.fonts['default'][FontSizes.CARD_TEXT]
+            res_text = res_font.render(res_info, True, Colors.GOLD)
+            res_rect = res_text.get_rect(center=(center_x, 270))
+            surface.blit(res_text, res_rect)
         
         # Instructions
         instructions = [
             "Press 1 for Deck Builder",
             "Press 2 for Combat",
-            "Press 3 for Settings",
+            "Press 3 for Settings", 
             "Press ESC to Quit"
         ]
         
-        y = 350
+        y = 350 if not Layout.IS_ULTRAWIDE else 380
         for instruction in instructions:
             text = body_font.render(instruction, True, Colors.DESERT_SAND)
-            text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, y))
+            text_rect = text.get_rect(center=(center_x, y))
             surface.blit(text, text_rect)
             y += 40
         
         # Version info
         version_font = self.fonts['default'][FontSizes.DEBUG]
         version = version_font.render("SPRINT 1: Foundation & Core Architecture", True, Colors.DESERT_SAND)
-        version_rect = version.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 30))
+        version_rect = version.get_rect(center=(center_x, SCREEN_HEIGHT - 30))
         surface.blit(version, version_rect)
     
     def _render_deck_builder_placeholder(self, surface: pygame.Surface):
-        """Placeholder deck builder rendering."""
+        """Placeholder deck builder rendering with ultrawide support."""
         surface.fill(Colors.LAPIS_LAZULI)
+        
+        # Ultrawide side bars
+        if Layout.IS_ULTRAWIDE:
+            left_bar = pygame.Rect(0, 0, Layout.CONTENT_X_OFFSET, SCREEN_HEIGHT)
+            right_bar = pygame.Rect(Layout.UI_SAFE_RIGHT, 0, Layout.CONTENT_X_OFFSET, SCREEN_HEIGHT)
+            pygame.draw.rect(surface, (15, 35, 75), left_bar)
+            pygame.draw.rect(surface, (15, 35, 75), right_bar)
         
         title_font = self.fonts['default'][FontSizes.TITLE_LARGE]
         body_font = self.fonts['default'][FontSizes.BODY]
+        center_x = SCREEN_CENTER[0]
         
         title = title_font.render("DECK BUILDER", True, Colors.GOLD)
-        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 100))
+        title_rect = title.get_rect(center=(center_x, 100))
         surface.blit(title, title_rect)
         
         info = body_font.render("Deck Builder will be implemented in SPRINT 4", True, Colors.PAPYRUS)
-        info_rect = info.get_rect(center=(SCREEN_WIDTH // 2, 300))
+        info_rect = info.get_rect(center=(center_x, 300))
         surface.blit(info, info_rect)
         
         back = body_font.render("Press ESC to return to Main Menu", True, Colors.DESERT_SAND)
-        back_rect = back.get_rect(center=(SCREEN_WIDTH // 2, 400))
+        back_rect = back.get_rect(center=(center_x, 400))
         surface.blit(back, back_rect)
     
     def _render_combat_placeholder(self, surface: pygame.Surface):
-        """Placeholder combat rendering."""
+        """Placeholder combat rendering with ultrawide support."""
         surface.fill((64, 32, 32))  # Dark red
+        
+        # Ultrawide side bars  
+        if Layout.IS_ULTRAWIDE:
+            left_bar = pygame.Rect(0, 0, Layout.CONTENT_X_OFFSET, SCREEN_HEIGHT)
+            right_bar = pygame.Rect(Layout.UI_SAFE_RIGHT, 0, Layout.CONTENT_X_OFFSET, SCREEN_HEIGHT)
+            pygame.draw.rect(surface, (30, 15, 15), left_bar)
+            pygame.draw.rect(surface, (30, 15, 15), right_bar)
         
         title_font = self.fonts['default'][FontSizes.TITLE_LARGE]
         body_font = self.fonts['default'][FontSizes.BODY]
+        center_x = SCREEN_CENTER[0]
         
         title = title_font.render("COMBAT", True, Colors.GOLD)
-        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 100))
+        title_rect = title.get_rect(center=(center_x, 100))
         surface.blit(title, title_rect)
         
         info = body_font.render("Combat System will be implemented in SPRINT 5", True, Colors.PAPYRUS)
-        info_rect = info.get_rect(center=(SCREEN_WIDTH // 2, 300))
+        info_rect = info.get_rect(center=(center_x, 300))
         surface.blit(info, info_rect)
         
         back = body_font.render("Press ESC to return to Main Menu", True, Colors.DESERT_SAND)
-        back_rect = back.get_rect(center=(SCREEN_WIDTH // 2, 400))
+        back_rect = back.get_rect(center=(center_x, 400))
         surface.blit(back, back_rect)
     
     def _render_default_placeholder(self, surface: pygame.Surface, state: GameState):
-        """Default placeholder for unimplemented states."""
+        """Default placeholder for unimplemented states with ultrawide support."""
         surface.fill(Colors.BLACK)
+        
+        # Ultrawide side bars
+        if Layout.IS_ULTRAWIDE:
+            left_bar = pygame.Rect(0, 0, Layout.CONTENT_X_OFFSET, SCREEN_HEIGHT)
+            right_bar = pygame.Rect(Layout.UI_SAFE_RIGHT, 0, Layout.CONTENT_X_OFFSET, SCREEN_HEIGHT)
+            pygame.draw.rect(surface, (20, 20, 20), left_bar)
+            pygame.draw.rect(surface, (20, 20, 20), right_bar)
         
         title_font = self.fonts['default'][FontSizes.TITLE_LARGE]
         body_font = self.fonts['default'][FontSizes.BODY]
+        center_x = SCREEN_CENTER[0]
         
         title = title_font.render(state.name.replace('_', ' '), True, Colors.GOLD)
-        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 200))
+        title_rect = title.get_rect(center=(center_x, 200))
         surface.blit(title, title_rect)
         
         info = body_font.render("This screen will be implemented in a future sprint", True, Colors.PAPYRUS)
-        info_rect = info.get_rect(center=(SCREEN_WIDTH // 2, 300))
+        info_rect = info.get_rect(center=(center_x, 300))
         surface.blit(info, info_rect)
         
         back = body_font.render("Press ESC to return to Main Menu", True, Colors.DESERT_SAND)
-        back_rect = back.get_rect(center=(SCREEN_WIDTH // 2, 400))
+        back_rect = back.get_rect(center=(center_x, 400))
         surface.blit(back, back_rect)

@@ -6,10 +6,36 @@ Defines colors, dimensions, timing, and Egyptian-themed values.
 import pygame
 from typing import Tuple, Dict, Any
 
-# SCREEN DIMENSIONS (Golden Ratio for Egyptian Aesthetic)
-SCREEN_WIDTH = 1400
-SCREEN_HEIGHT = 900
+# SCREEN DIMENSIONS (Multiple Resolution Support)
+# Default resolution (16:10 golden ratio for Egyptian aesthetic)
+DEFAULT_WIDTH = 1400
+DEFAULT_HEIGHT = 900
+
+# Ultrawide support (21:9 aspect ratio)
+ULTRAWIDE_WIDTH = 3440
+ULTRAWIDE_HEIGHT = 1440
+
+# Auto-detect best resolution
+import pygame
+pygame.init()
+info = pygame.display.Info()
+NATIVE_WIDTH = info.current_w
+NATIVE_HEIGHT = info.current_h
+NATIVE_ASPECT = NATIVE_WIDTH / NATIVE_HEIGHT
+
+# Choose appropriate resolution based on screen
+if NATIVE_ASPECT >= 2.3:  # Ultrawide 21:9 or wider
+    SCREEN_WIDTH = min(ULTRAWIDE_WIDTH, NATIVE_WIDTH)
+    SCREEN_HEIGHT = min(ULTRAWIDE_HEIGHT, NATIVE_HEIGHT)
+elif NATIVE_WIDTH >= 2560:  # High resolution displays
+    SCREEN_WIDTH = min(2560, NATIVE_WIDTH)
+    SCREEN_HEIGHT = min(1440, NATIVE_HEIGHT)
+else:  # Standard displays
+    SCREEN_WIDTH = min(DEFAULT_WIDTH, NATIVE_WIDTH)
+    SCREEN_HEIGHT = min(DEFAULT_HEIGHT, NATIVE_HEIGHT)
+
 SCREEN_SIZE = (SCREEN_WIDTH, SCREEN_HEIGHT)
+SCREEN_CENTER = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
 
 # EGYPTIAN COLOR PALETTE
 class Colors:
@@ -66,10 +92,10 @@ class Timing:
 
 # LAYOUT CONSTANTS
 class Layout:
-    """UI layout and spacing constants."""
+    """UI layout and spacing constants with ultrawide support."""
     
-    # Margins and Padding
-    SCREEN_MARGIN = 20
+    # Dynamic margins based on screen width
+    SCREEN_MARGIN = max(20, SCREEN_WIDTH // 70)  # Scales with screen size
     COMPONENT_PADDING = 10
     BUTTON_PADDING = 15
     CARD_SPACING = 8
@@ -89,6 +115,23 @@ class Layout:
     BAR_WIDTH = 200
     BAR_HEIGHT = 20
     BAR_BORDER = 2
+    
+    # Ultrawide-specific layouts
+    IS_ULTRAWIDE = SCREEN_WIDTH >= 2560
+    
+    # Content area (centered for ultrawide)
+    if IS_ULTRAWIDE:
+        CONTENT_WIDTH = min(2400, SCREEN_WIDTH - (SCREEN_MARGIN * 4))
+        CONTENT_X_OFFSET = (SCREEN_WIDTH - CONTENT_WIDTH) // 2
+    else:
+        CONTENT_WIDTH = SCREEN_WIDTH - (SCREEN_MARGIN * 2)
+        CONTENT_X_OFFSET = SCREEN_MARGIN
+    
+    # Safe areas for UI elements
+    UI_SAFE_LEFT = CONTENT_X_OFFSET
+    UI_SAFE_RIGHT = CONTENT_X_OFFSET + CONTENT_WIDTH
+    UI_SAFE_TOP = SCREEN_MARGIN
+    UI_SAFE_BOTTOM = SCREEN_HEIGHT - SCREEN_MARGIN
 
 # EGYPTIAN MYTHOLOGY CONSTANTS
 class Egyptian:
