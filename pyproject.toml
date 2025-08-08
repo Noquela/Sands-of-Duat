@@ -1,0 +1,254 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sands-of-duat"
+version = "0.1.0"
+description = "Premium Egyptian underworld-themed card game with Hades-level artistic excellence"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Bruno", email = "bruno@sansofduat.com"}
+]
+maintainers = [
+    {name = "Bruno", email = "bruno@sansofduat.com"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Developers", 
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11", 
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Games/Entertainment",
+    "Topic :: Games/Entertainment :: Turn Based Strategy",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Software Development :: Libraries :: pygame",
+]
+keywords = [
+    "game", "cards", "egyptian", "mythology", "strategy", "pygame",
+    "hades", "roguelike", "underworld", "ai-art", "premium"
+]
+requires-python = ">=3.10"
+
+dependencies = [
+    # Core Game Engine
+    "pygame>=2.5.2",
+    "pygame-gui>=0.6.9",
+    
+    # Data Handling & Validation
+    "PyYAML>=6.0.1",
+    "Pillow>=10.0.1",
+    "numpy>=1.24.3",
+    "pydantic>=2.4.2",
+    
+    # Async & Networking
+    "asyncio-mqtt>=0.13.0",
+    "websockets>=11.0.3",
+    "aiohttp>=3.8.6",
+    
+    # Machine Learning & AI
+    "torch>=2.1.0",
+    "diffusers>=0.21.4", 
+    "transformers>=4.35.0",
+    "accelerate>=0.24.1",
+    "xformers>=0.0.22",
+    
+    # Image Processing
+    "opencv-python>=4.8.1.78",
+    "imageio>=2.31.5",
+    "scikit-image>=0.21.0",
+    
+    # Audio Processing
+    "pygame-mixer>=2.0.2",
+    "pydub>=0.25.1",
+    
+    # Development Tools
+    "click>=8.1.7",
+    "rich>=13.6.0", 
+    "structlog>=23.2.0",
+    
+    # Performance & Monitoring
+    "psutil>=5.9.6",
+    "memory-profiler>=0.61.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.3",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "pytest-benchmark>=4.0.0",
+    "black>=23.10.1",
+    "isort>=5.12.0",
+    "flake8>=6.1.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.5.0",
+]
+ai = [
+    "comfyui>=1.0.0",
+    "controlnet-aux>=0.4.0",
+    "diffusers[training]>=0.21.4",
+    "accelerate>=0.24.1",
+]
+audio = [
+    "librosa>=0.10.1",
+    "soundfile>=0.12.1",
+    "music21>=9.1.0",
+]
+build = [
+    "pyinstaller>=6.2.0", 
+    "cx-Freeze>=6.15.10",
+    "nuitka>=1.8.4",
+]
+
+[project.urls]
+Homepage = "https://github.com/bruno/sands-of-duat"
+Documentation = "https://sands-of-duat.readthedocs.io/"
+Repository = "https://github.com/bruno/sands-of-duat"
+"Bug Reports" = "https://github.com/bruno/sands-of-duat/issues"
+Changelog = "https://github.com/bruno/sands-of-duat/blob/main/CHANGELOG.md"
+
+[project.scripts]
+sands-of-duat = "sands_of_duat.main:main"
+sod = "sands_of_duat.main:main"
+sands-dev = "sands_of_duat.dev_tools:main"
+sands-art = "sands_of_duat.art.art_generator:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = false
+
+[tool.setuptools.package-data]
+sands_of_duat = [
+    "assets/**/*",
+    "data/**/*", 
+    "config/*.json",
+    "config/*.yaml",
+]
+
+# Black code formatting
+[tool.black]
+line-length = 88
+target-version = ['py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | __pycache__
+)/
+'''
+
+# isort import sorting  
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["sands_of_duat"]
+known_third_party = ["pygame", "numpy", "PIL", "torch"]
+
+# MyPy type checking
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "pygame.*",
+    "pygame_gui.*", 
+    "torch.*",
+    "diffusers.*",
+    "transformers.*",
+    "cv2.*",
+    "comfyui.*",
+]
+ignore_missing_imports = true
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "-ra",
+    "--strict-markers", 
+    "--strict-config",
+    "--cov=sands_of_duat",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "ai: marks tests that require AI models",
+    "gpu: marks tests that require GPU",
+]
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["src/sands_of_duat"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/site-packages/*",
+    "*/examples/*",
+    "*/benchmarks/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+# Flake8 linting (via setup.cfg would be used, but keeping for reference)
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503", "E501"]
+exclude = [
+    ".git",
+    "__pycache__", 
+    "build",
+    "dist",
+    ".eggs",
+    "*.egg",
+    ".venv",
+    "venv",
+]

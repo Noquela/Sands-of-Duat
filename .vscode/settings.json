@@ -1,0 +1,21 @@
+{
+  // habilita MCP
+  "claude.code.enableMCP": true,
+
+  // aponta para o seu servidor WebSocket
+  "claude.code.mcpServers": [
+    {
+      "name": "Godot MCP",
+      "endpoint": "ws://localhost:9080"
+    }
+  ],
+
+  // registra o driver MCP como ferramenta
+  "claude.code.tools": {
+    "godotMCP": {
+      "type": "mcp",
+      "prefix": "mcp.godot"
+    }
+  }
+}
+
