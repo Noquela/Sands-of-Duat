@@ -41,9 +41,18 @@ if errorlevel 1 (
     echo Python found and ready!
 )
 
-REM Check if main game exists
+REM Check if launcher exists
 echo Verifying game files...
-if not exist "src\sands_of_duat\main.py" (
+if not exist "launch.py" (
+    echo.
+    echo ERROR: Game launcher not found
+    echo Expected: launch.py
+    echo.
+    echo Please ensure all game files are present
+    echo.
+    pause
+    exit /b 1
+) else if not exist "src\sands_of_duat\main.py" (
     echo.
     echo ERROR: Main game script not found
     echo Expected: src\sands_of_duat\main.py
@@ -97,15 +106,18 @@ echo.
 echo Starting Sands of Duat...
 echo.
 
-python src\sands_of_duat\main.py
+echo Launching game...
+python launch.py
+set GAME_EXIT_CODE=%ERRORLEVEL%
+echo Game exited with code: %GAME_EXIT_CODE%
 
-REM Check exit code and provide feedback
-if errorlevel 2 (
+REM Check exit code and provide feedback  
+if %GAME_EXIT_CODE% GEQ 2 (
     echo.
     echo CRITICAL ERROR: Emergency shutdown occurred
     echo Check the console output above for error details
     echo If problems persist, check your Python/pygame installation
-) else if errorlevel 1 (
+) else if %GAME_EXIT_CODE% EQU 1 (
     echo.
     echo The underworld journey encountered some challenges
     echo Check the console output above for details
@@ -117,4 +129,4 @@ if errorlevel 2 (
 
 echo.
 echo Press any key to return to the mortal world...
-pause >nul
+pause
