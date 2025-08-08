@@ -42,12 +42,7 @@ class EgyptianCard:
         self.is_selected = False
         self.click_animation = 0
         
-        # Load artwork
-        self.artwork = self._load_artwork()
-        self.card_surface = None
-        self._render_card()
-        
-        # Egyptian colors
+        # Egyptian colors (must be defined before loading artwork)
         self.colors = {
             'GOLD': (255, 215, 0),
             'GOLD_DARK': (184, 134, 11),
@@ -66,6 +61,11 @@ class EgyptianCard:
             'rare': self.colors['RARE_PURPLE'],
             'legendary': self.colors['LEGENDARY_ORANGE']
         }
+        
+        # Load artwork (after colors are defined)
+        self.artwork = self._load_artwork()
+        self.card_surface = None
+        self._render_card()
     
     def _load_artwork(self) -> Optional[pygame.Surface]:
         """Load the authentic Egyptian god artwork."""
