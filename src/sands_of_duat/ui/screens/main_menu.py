@@ -1,313 +1,289 @@
-#!/usr/bin/env python3
 """
-SANDS OF DUAT - MAIN MENU SCREEN
-===============================
-
-Main menu with authentic Egyptian temple background and premium UI elements.
-Uses high-quality assets from final_dataset for temple scenes.
+Professional Main Menu Screen - Hades-level polish with Egyptian theming.
+Features animated buttons, particle effects, and smooth transitions.
 """
 
 import pygame
-import sys
-from pathlib import Path
-from typing import Optional, Tuple
+import math
+from typing import List, Optional, Callable
+from enum import Enum, auto
 
-# Asset paths
-ASSETS_ROOT = Path(__file__).parent.parent.parent.parent.parent / "assets"
-FINAL_DATASET_PATH = ASSETS_ROOT / "images" / "lora_training" / "final_dataset"
+from ...core.constants import (
+    Colors, Layout, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER,
+    FontSizes
+)
+from ...core.state_manager import GameState
+from ..components.animated_button import AnimatedButton
+from ..components.title_animation import TitleAnimation
+
+class MenuAction(Enum):
+    """Main menu actions."""
+    START_GAME = auto()
+    DECK_BUILDER = auto()
+    COLLECTION = auto()
+    SETTINGS = auto()
+    QUIT = auto()
 
 class MainMenuScreen:
-    """Premium Egyptian-themed main menu with temple background."""
+    """
+    Professional main menu with Hades-level animations and Egyptian theming.
+    Features smooth button animations, particle effects, and ultrawide support.
+    """
     
-    def __init__(self, screen: pygame.Surface):
-        self.screen = screen
-        self.screen_width, self.screen_height = screen.get_size()
+    def __init__(self, on_menu_action: Optional[Callable[[MenuAction], None]] = None):
+        """
+        Initialize main menu screen.
         
-        # Egyptian color palette
-        self.colors = {
-            'GOLD': (255, 215, 0),
-            'GOLD_DARK': (184, 134, 11),
-            'LAPIS_LAZULI': (26, 81, 171),
-            'PAPYRUS': (245, 245, 220),
-            'DESERT_SAND': (238, 203, 173),
-            'DARK_BLUE': (25, 25, 112),
-            'BLACK': (0, 0, 0),
-            'WHITE': (255, 255, 255),
-            'HOVER_GLOW': (255, 255, 255, 100)
-        }
+        Args:
+            on_menu_action: Callback for menu actions
+        """
+        self.on_menu_action = on_menu_action
         
-        # Load high-quality temple background
-        self.background = self._load_temple_background()
+        # Background gradient
+        self.background_surface = self._create_background()
         
-        # Initialize fonts
-        self._init_fonts()
+        # Title animation system
+        self.title_animation = TitleAnimation()
         
-        # Menu buttons
-        self.buttons = self._create_menu_buttons()
-        self.selected_button = 0
-        self.button_hover_alpha = 0
+        # Button system
+        self.buttons = self._create_buttons()
+        self.selected_button_index = 0
         
-        # Title animation
-        self.title_glow = 0
-        self.title_glow_direction = 1
+        # Animation state
+        self.menu_animation_time = 0.0
+        self.fade_in_progress = 0.0
+        self.fade_in_complete = False
         
-    def _load_temple_background(self) -> pygame.Surface:
-        """Load the highest quality Egyptian temple background."""
-        # Try to load the temple scene backgrounds in quality order
-        temple_assets = [
-            "egyptian_god_scene_06_q82.png",  # Specified high-quality temple
-            "egyptian_myth_09_q84.png",       # Highest quality background
-            "egyptian_god_scene_02_q78.png",
-            "egyptian_god_scene_09_q76.png",
-            "egyptian_god_scene_10_q73.png"
+        # Input handling
+        self.key_repeat_time = 0.0
+        self.last_mouse_pos = (0, 0)
+    
+    def _create_background(self) -> pygame.Surface:
+        """Create animated background with Egyptian theming."""
+        background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        
+        # Create gradient effect
+        for y in range(SCREEN_HEIGHT):
+            # Egyptian night sky gradient
+            ratio = y / SCREEN_HEIGHT
+            
+            # Interpolate between dark blue (top) and darker blue (bottom)
+            r = int(Colors.DARK_BLUE[0] * (1 - ratio * 0.3))
+            g = int(Colors.DARK_BLUE[1] * (1 - ratio * 0.3))
+            b = int(Colors.DARK_BLUE[2] * (1 + ratio * 0.2))
+            
+            color = (max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)))
+            pygame.draw.line(background, color, (0, y), (SCREEN_WIDTH, y))
+        
+        return background
+    
+    def _create_buttons(self) -> List[AnimatedButton]:
+        """Create animated menu buttons with Egyptian styling."""
+        buttons = []
+        
+        # Button configuration
+        button_configs = [
+            ("ENTER THE UNDERWORLD", MenuAction.START_GAME),
+            ("BUILD YOUR DECK", MenuAction.DECK_BUILDER), 
+            ("HALL OF GODS", MenuAction.COLLECTION),
+            ("TEMPLE SETTINGS", MenuAction.SETTINGS),
+            ("RETURN TO MORTAL REALM", MenuAction.QUIT)
         ]
         
-        for asset_name in temple_assets:
-            asset_path = FINAL_DATASET_PATH / asset_name
-            if asset_path.exists():
-                try:
-                    bg_image = pygame.image.load(str(asset_path))
-                    # Scale to fit screen while maintaining aspect ratio
-                    return self._scale_background(bg_image)
-                except pygame.error as e:
-                    print(f"Could not load {asset_name}: {e}")
-                    continue
+        # Layout calculation
+        button_width = Layout.BUTTON_WIDTH_WIDE
+        button_height = Layout.BUTTON_HEIGHT
+        button_spacing = 20
         
-        # Fallback to solid Egyptian background
-        print("Warning: Could not load temple background, using solid color")
-        fallback = pygame.Surface((self.screen_width, self.screen_height))
-        fallback.fill(self.colors['DARK_BLUE'])
-        return fallback
-    
-    def _scale_background(self, image: pygame.Surface) -> pygame.Surface:
-        """Scale background image to fit screen while maintaining aspect ratio."""
-        img_width, img_height = image.get_size()
-        scale_x = self.screen_width / img_width
-        scale_y = self.screen_height / img_height
-        scale = max(scale_x, scale_y)  # Scale to cover entire screen
+        # Center buttons in content area
+        total_height = len(button_configs) * button_height + (len(button_configs) - 1) * button_spacing
+        start_y = SCREEN_CENTER[1] + 50  # Below title
         
-        new_width = int(img_width * scale)
-        new_height = int(img_height * scale)
+        # Adjust for ultrawide
+        center_x = SCREEN_CENTER[0]
         
-        scaled_image = pygame.transform.scale(image, (new_width, new_height))
-        
-        # Center the image
-        final_surface = pygame.Surface((self.screen_width, self.screen_height))
-        x_offset = (self.screen_width - new_width) // 2
-        y_offset = (self.screen_height - new_height) // 2
-        final_surface.blit(scaled_image, (x_offset, y_offset))
-        
-        return final_surface
-    
-    def _init_fonts(self):
-        """Initialize Egyptian-themed fonts."""
-        try:
-            # Try to use a more Egyptian-style font if available
-            self.title_font = pygame.font.Font(None, 72)
-            self.subtitle_font = pygame.font.Font(None, 32)
-            self.button_font = pygame.font.Font(None, 36)
-            self.small_font = pygame.font.Font(None, 20)
-        except:
-            # Fallback to default fonts
-            self.title_font = pygame.font.Font(None, 72)
-            self.subtitle_font = pygame.font.Font(None, 32)
-            self.button_font = pygame.font.Font(None, 36)
-            self.small_font = pygame.font.Font(None, 20)
-    
-    def _create_menu_buttons(self) -> list:
-        """Create main menu buttons with Egyptian styling."""
-        button_width = 300
-        button_height = 60
-        button_spacing = 80
-        start_y = self.screen_height // 2
-        
-        buttons = [
-            {
-                'text': 'ENTER THE UNDERWORLD',
-                'action': 'start_game',
-                'rect': pygame.Rect(
-                    self.screen_width // 2 - button_width // 2,
-                    start_y,
-                    button_width,
-                    button_height
-                )
-            },
-            {
-                'text': 'BUILD YOUR DECK',
-                'action': 'deck_builder',
-                'rect': pygame.Rect(
-                    self.screen_width // 2 - button_width // 2,
-                    start_y + button_spacing,
-                    button_width,
-                    button_height
-                )
-            },
-            {
-                'text': 'HALL OF GODS',
-                'action': 'collection',
-                'rect': pygame.Rect(
-                    self.screen_width // 2 - button_width // 2,
-                    start_y + button_spacing * 2,
-                    button_width,
-                    button_height
-                )
-            },
-            {
-                'text': 'SETTINGS',
-                'action': 'settings',
-                'rect': pygame.Rect(
-                    self.screen_width // 2 - button_width // 2,
-                    start_y + button_spacing * 3,
-                    button_width,
-                    button_height
-                )
-            },
-            {
-                'text': 'EXIT TO MORTAL REALM',
-                'action': 'quit',
-                'rect': pygame.Rect(
-                    self.screen_width // 2 - button_width // 2,
-                    start_y + button_spacing * 4,
-                    button_width,
-                    button_height
-                )
-            }
-        ]
+        for i, (text, action) in enumerate(button_configs):
+            y = start_y + i * (button_height + button_spacing)
+            x = center_x - button_width // 2
+            
+            button = AnimatedButton(
+                x, y, button_width, button_height,
+                text, FontSizes.BUTTON,
+                action=lambda a=action: self._handle_button_action(a)
+            )
+            buttons.append(button)
         
         return buttons
     
-    def handle_event(self, event: pygame.event.Event) -> Optional[str]:
-        """Handle input events and return action if button clicked."""
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
-                self.selected_button = (self.selected_button - 1) % len(self.buttons)
-            elif event.key == pygame.K_DOWN:
-                self.selected_button = (self.selected_button + 1) % len(self.buttons)
-            elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                return self.buttons[self.selected_button]['action']
-            elif event.key == pygame.K_ESCAPE:
-                return 'quit'
-                
-        elif event.type == pygame.MOUSEMOTION:
-            mouse_pos = event.pos
-            for i, button in enumerate(self.buttons):
-                if button['rect'].collidepoint(mouse_pos):
-                    self.selected_button = i
-                    break
-                    
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:  # Left click
-                mouse_pos = event.pos
-                for button in self.buttons:
-                    if button['rect'].collidepoint(mouse_pos):
-                        return button['action']
-        
-        return None
+    def _handle_button_action(self, action: MenuAction):
+        """Handle button click actions."""
+        if self.on_menu_action:
+            self.on_menu_action(action)
     
-    def update(self, dt: float):
-        """Update animations and effects."""
-        # Title glow animation
-        self.title_glow += self.title_glow_direction * dt * 100
-        if self.title_glow >= 50:
-            self.title_glow = 50
-            self.title_glow_direction = -1
-        elif self.title_glow <= 0:
-            self.title_glow = 0
-            self.title_glow_direction = 1
+    def update(self, dt: float, events: List[pygame.event.Event], 
+               mouse_pos: tuple, mouse_pressed: bool):
+        """
+        Update menu animations and handle input.
         
-        # Button hover effect
-        if self.button_hover_alpha < 255:
-            self.button_hover_alpha = min(255, self.button_hover_alpha + dt * 500)
+        Args:
+            dt: Delta time in seconds
+            events: Pygame events this frame
+            mouse_pos: Current mouse position
+            mouse_pressed: Whether mouse is pressed
+        """
+        # Update animation timers
+        self.menu_animation_time += dt
+        
+        # Handle fade-in animation
+        if not self.fade_in_complete:
+            self.fade_in_progress = min(1.0, self.fade_in_progress + dt * 2.0)
+            if self.fade_in_progress >= 1.0:
+                self.fade_in_complete = True
+        
+        # Update title animation
+        self.title_animation.update(dt)
+        
+        # Update buttons
+        for i, button in enumerate(self.buttons):
+            button.update(dt, mouse_pos, mouse_pressed)
+            
+            # Update selected button based on mouse position
+            if button.rect.collidepoint(mouse_pos):
+                self.selected_button_index = i
+        
+        # Handle events
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                self._handle_keyboard_input(event.key)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # Left click
+                    for button in self.buttons:
+                        if button.handle_click(mouse_pos):
+                            break
+        
+        self.last_mouse_pos = mouse_pos
     
-    def _draw_egyptian_border(self, surface: pygame.Surface, rect: pygame.Rect, 
-                             color: Tuple[int, int, int], thickness: int = 3):
-        """Draw Egyptian-style decorative border."""
-        # Main border
-        pygame.draw.rect(surface, color, rect, thickness)
+    def _handle_keyboard_input(self, key: int):
+        """Handle keyboard navigation and actions."""
+        if key == pygame.K_UP:
+            self.selected_button_index = (self.selected_button_index - 1) % len(self.buttons)
+        elif key == pygame.K_DOWN:
+            self.selected_button_index = (self.selected_button_index + 1) % len(self.buttons)
+        elif key in (pygame.K_RETURN, pygame.K_SPACE):
+            # Simulate click on selected button
+            selected_button = self.buttons[self.selected_button_index]
+            if selected_button.action:
+                selected_button.action()
+        elif key == pygame.K_ESCAPE:
+            # Quick quit
+            self._handle_button_action(MenuAction.QUIT)
+    
+    def render(self, surface: pygame.Surface):
+        """
+        Render the main menu with all animations and effects.
         
-        # Corner decorations
-        corner_size = 10
-        corners = [
-            rect.topleft,
-            (rect.topright[0] - corner_size, rect.topright[1]),
-            (rect.bottomleft[0], rect.bottomleft[1] - corner_size),
-            (rect.bottomright[0] - corner_size, rect.bottomright[1] - corner_size)
+        Args:
+            surface: Surface to render to
+        """
+        # Clear surface
+        surface.blit(self.background_surface, (0, 0))
+        
+        # Draw ultrawide side bars with Egyptian pattern
+        if Layout.IS_ULTRAWIDE:
+            self._render_ultrawide_bars(surface)
+        
+        # Apply fade-in effect
+        if not self.fade_in_complete:
+            fade_surface = surface.copy()
+            fade_surface.set_alpha(int(255 * self.fade_in_progress))
+            surface.fill(Colors.BLACK)
+            surface.blit(fade_surface, (0, 0))
+        
+        # Render title animation
+        self.title_animation.render(surface)
+        
+        # Render version/sprint info
+        self._render_version_info(surface)
+        
+        # Render buttons
+        for i, button in enumerate(self.buttons):
+            # Highlight selected button for keyboard navigation
+            if i == self.selected_button_index and self.last_mouse_pos != pygame.mouse.get_pos():
+                # Draw selection indicator
+                indicator_rect = button.rect.inflate(8, 8)
+                pygame.draw.rect(surface, Colors.GOLD, indicator_rect, 2)
+            
+            button.render(surface)
+        
+        # Render control hints
+        self._render_control_hints(surface)
+    
+    def _render_ultrawide_bars(self, surface: pygame.Surface):
+        """Render Egyptian-themed side bars for ultrawide displays."""
+        if not Layout.IS_ULTRAWIDE:
+            return
+        
+        # Left and right bar areas
+        left_bar = pygame.Rect(0, 0, Layout.CONTENT_X_OFFSET, SCREEN_HEIGHT)
+        right_bar = pygame.Rect(Layout.UI_SAFE_RIGHT, 0, Layout.CONTENT_X_OFFSET, SCREEN_HEIGHT)
+        
+        # Fill with darker Egyptian pattern
+        pattern_color = (15, 15, 50)
+        pygame.draw.rect(surface, pattern_color, left_bar)
+        pygame.draw.rect(surface, pattern_color, right_bar)
+        
+        # Add subtle Egyptian border pattern
+        border_color = Colors.GOLD
+        border_alpha = int(100 + 50 * abs(math.sin(self.menu_animation_time)))
+        
+        # Create pattern surface
+        pattern_surface = pygame.Surface((4, SCREEN_HEIGHT))
+        pattern_surface.set_alpha(border_alpha)
+        pattern_surface.fill(border_color)
+        
+        # Draw pattern lines
+        surface.blit(pattern_surface, (Layout.CONTENT_X_OFFSET - 4, 0))
+        surface.blit(pattern_surface, (Layout.UI_SAFE_RIGHT, 0))
+    
+    def _render_version_info(self, surface: pygame.Surface):
+        """Render version and sprint information."""
+        font = pygame.font.Font(None, FontSizes.DEBUG)
+        
+        # Version info
+        version_text = "SPRINT 3: Game State Flow & Transitions - IN PROGRESS"
+        version_surface = font.render(version_text, True, Colors.DESERT_SAND)
+        version_rect = version_surface.get_rect(center=(SCREEN_CENTER[0], SCREEN_HEIGHT - 50))
+        surface.blit(version_surface, version_rect)
+        
+        # Resolution info
+        if Layout.IS_ULTRAWIDE:
+            res_text = f"Optimized for Ultrawide {SCREEN_WIDTH}x{SCREEN_HEIGHT}"
+            res_surface = font.render(res_text, True, Colors.GOLD)
+            res_rect = res_surface.get_rect(center=(SCREEN_CENTER[0], SCREEN_HEIGHT - 30))
+            surface.blit(res_surface, res_rect)
+    
+    def _render_control_hints(self, surface: pygame.Surface):
+        """Render control hints for better UX."""
+        font = pygame.font.Font(None, FontSizes.CARD_TEXT)
+        
+        hints = [
+            "↑↓ Navigate  ENTER Select  ESC Quit",
+            "F11 Fullscreen  F1 Debug Info"
         ]
         
-        for corner in corners:
-            pygame.draw.lines(surface, color, False, [
-                (corner[0], corner[1] + corner_size),
-                corner,
-                (corner[0] + corner_size, corner[1])
-            ], thickness)
+        y_offset = 20
+        for hint in hints:
+            hint_surface = font.render(hint, True, Colors.DESERT_SAND)
+            surface.blit(hint_surface, (20, y_offset))
+            y_offset += 25
     
-    def draw(self):
-        """Draw the main menu screen with Egyptian theming."""
-        # Draw temple background
-        self.screen.blit(self.background, (0, 0))
+    def reset_animations(self):
+        """Reset all animations for clean menu entry."""
+        self.fade_in_progress = 0.0
+        self.fade_in_complete = False
+        self.menu_animation_time = 0.0
         
-        # Add dark overlay for better text readability
-        overlay = pygame.Surface((self.screen_width, self.screen_height))
-        overlay.set_alpha(120)
-        overlay.fill(self.colors['BLACK'])
-        self.screen.blit(overlay, (0, 0))
-        
-        # Draw title with glow effect
-        title_text = "SANDS OF DUAT"
-        title_surface = self.title_font.render(title_text, True, self.colors['GOLD'])
-        
-        # Glow effect
-        glow_color = (*self.colors['GOLD'], int(self.title_glow))
-        glow_surface = self.title_font.render(title_text, True, self.colors['GOLD'])
-        glow_surface.set_alpha(int(self.title_glow))
-        
-        title_x = self.screen_width // 2 - title_surface.get_width() // 2
-        title_y = 80
-        
-        # Draw glow
-        for offset in range(1, 4):
-            for dx, dy in [(-offset, -offset), (offset, -offset), 
-                          (-offset, offset), (offset, offset)]:
-                self.screen.blit(glow_surface, (title_x + dx, title_y + dy))
-        
-        # Draw main title
-        self.screen.blit(title_surface, (title_x, title_y))
-        
-        # Draw subtitle
-        subtitle_text = "EGYPTIAN UNDERWORLD CARD GAME"
-        subtitle_surface = self.subtitle_font.render(subtitle_text, True, self.colors['PAPYRUS'])
-        subtitle_x = self.screen_width // 2 - subtitle_surface.get_width() // 2
-        self.screen.blit(subtitle_surface, (subtitle_x, title_y + 80))
-        
-        # Draw menu buttons
-        for i, button in enumerate(self.buttons):
-            is_selected = i == self.selected_button
-            
-            # Button background
-            if is_selected:
-                # Glowing selected button
-                glow_rect = button['rect'].inflate(10, 10)
-                pygame.draw.rect(self.screen, self.colors['GOLD_DARK'], glow_rect)
-                pygame.draw.rect(self.screen, self.colors['GOLD'], glow_rect, 3)
-            
-            # Draw Egyptian-style border
-            self._draw_egyptian_border(self.screen, button['rect'], 
-                                     self.colors['GOLD'] if is_selected else self.colors['DESERT_SAND'])
-            
-            # Button text
-            text_color = self.colors['PAPYRUS'] if is_selected else self.colors['DESERT_SAND']
-            text_surface = self.button_font.render(button['text'], True, text_color)
-            text_x = button['rect'].centerx - text_surface.get_width() // 2
-            text_y = button['rect'].centery - text_surface.get_height() // 2
-            self.screen.blit(text_surface, (text_x, text_y))
-        
-        # Draw version info
-        version_text = "Following Master Implementation Plan | Premium Egyptian Assets"
-        version_surface = self.small_font.render(version_text, True, self.colors['DESERT_SAND'])
-        version_x = self.screen_width // 2 - version_surface.get_width() // 2
-        self.screen.blit(version_surface, (version_x, self.screen_height - 30))
-
-
-def create_main_menu(screen: pygame.Surface) -> MainMenuScreen:
-    """Factory function to create main menu screen."""
-    return MainMenuScreen(screen)
+        # Reset button states
+        for button in self.buttons:
+            button.hover_progress = 0.0
+            button.press_progress = 0.0

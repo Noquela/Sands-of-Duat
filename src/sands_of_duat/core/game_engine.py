@@ -14,6 +14,9 @@ from .constants import (
     SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_SIZE, SCREEN_CENTER,
     Colors, Timing, FontSizes, Dev, Layout
 )
+from ..ui.screens.main_menu import MainMenuScreen, MenuAction
+from ..ui.screens.loading_screen import LoadingScreen, LoadingType
+from ..ui.screens.transition_screen import TransitionScreen, TransitionType
 
 class GameEngine:
     """
@@ -53,6 +56,14 @@ class GameEngine:
         self.logger.info(f"Display: {SCREEN_WIDTH}x{SCREEN_HEIGHT}")
         if Layout.IS_ULTRAWIDE:
             self.logger.info("🖥️ Ultrawide display detected - using centered layout")
+        
+        # UI Screens
+        self.main_menu_screen = MainMenuScreen(self._handle_menu_action)
+        self.current_loading_screen: Optional[LoadingScreen] = None
+        self.current_transition_screen: Optional[TransitionScreen] = None
+        
+        # Event storage for passing to screens
+        self.current_events = []
         
         # Initialize systems
         self._initialize_systems()
@@ -116,9 +127,19 @@ class GameEngine:
     
     def _on_state_render(self, state: GameState, surface: pygame.Surface):
         """Called to render a state."""
-        # Placeholder implementation - render based on state
+        # Handle transition screens first
+        if self.current_transition_screen:
+            self.current_transition_screen.render(surface)
+            return
+        
+        # Render based on state using new screen system
         if state == GameState.MAIN_MENU:
-            self._render_main_menu_placeholder(surface)
+            self.main_menu_screen.render(surface)
+        elif state == GameState.LOADING:
+            if self.current_loading_screen:
+                self.current_loading_screen.render(surface)
+            else:
+                self._render_loading_placeholder(surface)
         elif state == GameState.DECK_BUILDER:
             self._render_deck_builder_placeholder(surface)
         elif state == GameState.COMBAT:
@@ -133,6 +154,9 @@ class GameEngine:
         Args:
             event: Pygame event to handle
         """
+        # Store events for passing to screens
+        self.current_events.append(event)
+        
         if event.type == pygame.KEYDOWN:
             self.keys_pressed.add(event.key)
             self.keys_just_pressed.add(event.key)
@@ -157,24 +181,39 @@ class GameEngine:
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button <= 3:
                 self.mouse_buttons[event.button - 1] = False
+    
+    def _handle_menu_action(self, action: MenuAction):
+        """Handle actions from the main menu with enhanced transitions."""
+        if action == MenuAction.START_GAME:
+            self._start_transition(TransitionType.ENTERING_COMBAT, GameState.MAIN_MENU, GameState.COMBAT)
+        elif action == MenuAction.DECK_BUILDER:
+            self._start_transition(TransitionType.DECK_BUILDING, GameState.MAIN_MENU, GameState.DECK_BUILDER)
+        elif action == MenuAction.COLLECTION:
+            self._start_transition(TransitionType.COLLECTING_CARDS, GameState.MAIN_MENU, GameState.COLLECTION)
+        elif action == MenuAction.SETTINGS:
+            self._start_transition(TransitionType.SETTINGS_MENU, GameState.MAIN_MENU, GameState.SETTINGS)
+        elif action == MenuAction.QUIT:
+            self.running = False
+    
+    def _start_transition(self, transition_type: TransitionType, from_state: GameState, to_state: GameState):
+        """Start a transition between game states."""
+        self.current_transition_screen = TransitionScreen(
+            transition_type, from_state, to_state,
+            completion_callback=lambda: self._complete_transition(to_state)
+        )
         
-        # Pass event to current state (will be implemented per state)
-        # For now, just handle basic navigation
-        if event.type == pygame.KEYDOWN:
-            current_state = self.state_manager.get_current_state()
-            
-            if event.key == pygame.K_ESCAPE:
-                if current_state == GameState.MAIN_MENU:
-                    self.running = False
-                elif current_state != GameState.MAIN_MENU:
-                    self.state_manager.change_state(GameState.MAIN_MENU)
-            
-            elif event.key == pygame.K_1 and current_state == GameState.MAIN_MENU:
-                self.state_manager.change_state(GameState.DECK_BUILDER, "slide_left")
-            elif event.key == pygame.K_2 and current_state == GameState.MAIN_MENU:
-                self.state_manager.change_state(GameState.COMBAT, "slide_left")
-            elif event.key == pygame.K_3 and current_state == GameState.MAIN_MENU:
-                self.state_manager.change_state(GameState.SETTINGS, "slide_left")
+        # Set state manager to transitioning state
+        self.state_manager.change_state(GameState.LOADING, "fade", 0.5)
+    
+    def _complete_transition(self, target_state: GameState):
+        """Complete the transition to target state."""
+        self.current_transition_screen = None
+        
+        # Smooth transition to target state
+        if target_state == GameState.MAIN_MENU:
+            self.main_menu_screen.reset_animations()
+        
+        self.state_manager.change_state(target_state, "fade", 0.5)
     
     def update(self, dt: float):
         """
@@ -186,12 +225,26 @@ class GameEngine:
         # Update performance tracking
         self._update_performance_tracking(dt)
         
+        # Update current screen based on state
+        current_state = self.state_manager.get_current_state()
+        
+        # Handle transition screens
+        if self.current_transition_screen:
+            self.current_transition_screen.update(dt)
+        elif current_state == GameState.MAIN_MENU:
+            mouse_pressed = any(self.mouse_buttons)
+            self.main_menu_screen.update(dt, self.current_events, self.mouse_pos, mouse_pressed)
+        elif current_state == GameState.LOADING:
+            if self.current_loading_screen:
+                self.current_loading_screen.update(dt)
+        
         # Update state manager
         self.state_manager.update(dt)
         
         # Clear per-frame input state
         self.keys_just_pressed.clear()
         self.keys_just_released.clear()
+        self.current_events.clear()
     
     def render(self):
         """Render the current game state with debug overlays."""
@@ -221,18 +274,22 @@ class GameEngine:
     
     def handle_escape(self) -> bool:
         """
-        Handle escape key press based on current state.
+        Handle escape key press based on current state with enhanced transitions.
         
         Returns:
             True if escape was handled, False if game should quit
         """
         current_state = self.state_manager.get_current_state()
         
+        # Don't handle escape during transitions
+        if self.current_transition_screen:
+            return True
+        
         if current_state == GameState.MAIN_MENU:
             return False  # Quit game
         else:
-            # Return to main menu
-            self.state_manager.change_state(GameState.MAIN_MENU)
+            # Return to main menu with appropriate transition
+            self._start_transition(TransitionType.RETURNING_HOME, current_state, GameState.MAIN_MENU)
             return True
     
     def shutdown(self):
@@ -389,6 +446,39 @@ class GameEngine:
         back = body_font.render("Press ESC to return to Main Menu", True, Colors.DESERT_SAND)
         back_rect = back.get_rect(center=(center_x, 400))
         surface.blit(back, back_rect)
+    
+    def _render_loading_placeholder(self, surface: pygame.Surface):
+        """Placeholder loading screen for when no specific loading screen is active."""
+        surface.fill(Colors.DARK_BLUE)
+        
+        # Ultrawide side bars
+        if Layout.IS_ULTRAWIDE:
+            left_bar = pygame.Rect(0, 0, Layout.CONTENT_X_OFFSET, SCREEN_HEIGHT)
+            right_bar = pygame.Rect(Layout.UI_SAFE_RIGHT, 0, Layout.CONTENT_X_OFFSET, SCREEN_HEIGHT)
+            pygame.draw.rect(surface, (10, 10, 40), left_bar)
+            pygame.draw.rect(surface, (10, 10, 40), right_bar)
+        
+        title_font = self.fonts['default'][FontSizes.TITLE_LARGE]
+        body_font = self.fonts['default'][FontSizes.BODY]
+        center_x = SCREEN_CENTER[0]
+        
+        title = title_font.render("LOADING", True, Colors.GOLD)
+        title_rect = title.get_rect(center=(center_x, SCREEN_CENTER[1] - 50))
+        surface.blit(title, title_rect)
+        
+        info = body_font.render("Preparing the sacred chambers...", True, Colors.PAPYRUS)
+        info_rect = info.get_rect(center=(center_x, SCREEN_CENTER[1]))
+        surface.blit(info, info_rect)
+        
+        # Simple progress animation
+        import time
+        progress = (math.sin(time.time() * 2) + 1) * 0.5  # 0 to 1 sine wave
+        bar_width = 200
+        bar_x = center_x - bar_width // 2
+        bar_y = SCREEN_CENTER[1] + 50
+        
+        pygame.draw.rect(surface, Colors.PAPYRUS, (bar_x, bar_y, bar_width, 8), 2)
+        pygame.draw.rect(surface, Colors.GOLD, (bar_x, bar_y, int(bar_width * progress), 8))
     
     def _render_default_placeholder(self, surface: pygame.Surface, state: GameState):
         """Default placeholder for unimplemented states with ultrawide support."""
