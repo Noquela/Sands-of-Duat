@@ -7,6 +7,7 @@ import pygame
 import sys
 import logging
 import time
+import math
 from typing import Dict, Optional, Any
 
 from .state_manager import StateManager, GameState
@@ -471,7 +472,6 @@ class GameEngine:
         surface.blit(info, info_rect)
         
         # Simple progress animation
-        import time
         progress = (math.sin(time.time() * 2) + 1) * 0.5  # 0 to 1 sine wave
         bar_width = 200
         bar_x = center_x - bar_width // 2
