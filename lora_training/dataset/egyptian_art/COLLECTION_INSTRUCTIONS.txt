@@ -1,0 +1,18 @@
+DATASET COLLECTION FOR: EGYPTIAN_ART
+==================================================
+
+Collect HIGH-QUALITY images for:
+- Ancient Egyptian hieroglyphic art
+- Egyptian gods and goddesses artwork
+- Pharaonic portraits and royal imagery
+- Egyptian temple and pyramid art
+- Ancient Egyptian jewelry and artifacts
+
+QUALITY REQUIREMENTS:
+- Resolution: 1024x1024 minimum
+- Clear, sharp images
+- Consistent artistic quality
+- No watermarks or text overlays
+- Diverse poses and compositions
+
+Target: 15-25 images per category

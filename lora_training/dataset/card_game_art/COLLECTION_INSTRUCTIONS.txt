@@ -1,0 +1,17 @@
+DATASET COLLECTION FOR: CARD_GAME_ART
+==================================================
+
+Collect HIGH-QUALITY images for:
+- Magic The Gathering card art - Egyptian themed
+- Yu-Gi-Oh Egyptian god cards
+- Hearthstone card art style
+- Legends of Runeterra card frames
+
+QUALITY REQUIREMENTS:
+- Resolution: 1024x1024 minimum
+- Clear, sharp images
+- Consistent artistic quality
+- No watermarks or text overlays
+- Diverse poses and compositions
+
+Target: 15-25 images per category
