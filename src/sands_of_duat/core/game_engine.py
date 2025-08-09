@@ -21,8 +21,9 @@ from ..ui.screens.transition_screen import TransitionScreen, TransitionType
 from ..ui.screens.professional_deck_builder import ProfessionalDeckBuilder, DeckBuilderAction
 from ..ui.screens.professional_combat import ProfessionalCombat, CombatAction
 from ..ui.screens.collection_screen import CollectionScreen, CollectionAction
-from ..ui.screens.settings_screen import SettingsScreen, SettingsAction
+from ..ui.screens.enhanced_settings_screen import EnhancedSettingsScreen, SettingsAction
 from ..audio.simple_audio_manager import audio_manager
+from .settings_manager import settings_manager
 
 class GameEngine:
     """
@@ -68,7 +69,7 @@ class GameEngine:
         self.deck_builder_screen = ProfessionalDeckBuilder(self._handle_deck_builder_action)
         self.combat_screen = ProfessionalCombat(self._handle_combat_action)
         self.collection_screen = CollectionScreen(self._handle_collection_action)
-        self.settings_screen = SettingsScreen(self._handle_settings_action)
+        self.settings_screen = EnhancedSettingsScreen(self._handle_settings_action)
         self.current_loading_screen: Optional[LoadingScreen] = None
         self.current_transition_screen: Optional[TransitionScreen] = None
         
@@ -77,6 +78,9 @@ class GameEngine:
         
         # Initialize systems
         self._initialize_systems()
+        
+        # Apply saved settings
+        settings_manager.apply_audio_settings(audio_manager)
         
         self.logger.info("🏺 Game Engine initialized successfully")
     
@@ -241,6 +245,11 @@ class GameEngine:
         """Handle actions from the settings screen."""
         if action == SettingsAction.BACK_TO_MENU:
             self._start_transition(TransitionType.RETURNING_HOME, GameState.SETTINGS, GameState.MAIN_MENU)
+        elif action == SettingsAction.APPLY_SETTINGS:
+            # Settings are applied within the settings screen
+            self.logger.info("Settings applied successfully")
+        elif action == SettingsAction.RESET_DEFAULTS:
+            self.logger.info("Settings reset to defaults")
     
     def _start_transition(self, transition_type: TransitionType, from_state: GameState, to_state: GameState):
         """Start a transition between game states."""
