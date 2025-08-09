@@ -45,6 +45,7 @@ class AnimatedButton:
         self.hover_progress = 0.0
         self.press_progress = 0.0
         self.glow_intensity = 0.0
+        self.is_hovered = False
         
         # Animation timings
         self.hover_animation_time = 0.0
@@ -70,25 +71,25 @@ class AnimatedButton:
             mouse_pressed: Whether mouse button is pressed
         """
         # Check if mouse is over button
-        was_hovered = self.state == ButtonState.HOVERED
-        is_hovered = self.rect.collidepoint(mouse_pos)
+        was_hovered = self.is_hovered
+        self.is_hovered = self.rect.collidepoint(mouse_pos)
         
         # Update state
-        if mouse_pressed and is_hovered:
+        if mouse_pressed and self.is_hovered:
             self.state = ButtonState.PRESSED
-        elif is_hovered:
+        elif self.is_hovered:
             self.state = ButtonState.HOVERED
         else:
             self.state = ButtonState.NORMAL
         
         # Play hover sound effect (when audio system is ready)
-        if is_hovered and not was_hovered and self.hover_sound:
+        if self.is_hovered and not was_hovered and self.hover_sound:
             # self.hover_sound.play()
             pass
         
         # Update animations
-        self._update_hover_animation(dt, is_hovered)
-        self._update_press_animation(dt, mouse_pressed and is_hovered)
+        self._update_hover_animation(dt, self.is_hovered)
+        self._update_press_animation(dt, mouse_pressed and self.is_hovered)
         self._update_glow_animation(dt)
     
     def _update_hover_animation(self, dt: float, is_hovered: bool):

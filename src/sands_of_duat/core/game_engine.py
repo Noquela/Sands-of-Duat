@@ -22,6 +22,7 @@ from ..ui.screens.professional_deck_builder import ProfessionalDeckBuilder, Deck
 from ..ui.screens.professional_combat import ProfessionalCombat, CombatAction
 from ..ui.screens.collection_screen import CollectionScreen, CollectionAction
 from ..ui.screens.settings_screen import SettingsScreen, SettingsAction
+from ..audio.simple_audio_manager import audio_manager
 
 class GameEngine:
     """
@@ -307,6 +308,10 @@ class GameEngine:
         # Update state manager
         self.state_manager.update(dt)
         
+        # Update audio system
+        current_screen_name = current_state.name.lower()
+        audio_manager.update(dt, current_screen_name)
+        
         # Clear per-frame input state
         self.keys_just_pressed.clear()
         self.keys_just_released.clear()
@@ -361,6 +366,7 @@ class GameEngine:
     def shutdown(self):
         """Clean shutdown of game engine."""
         self.logger.info("🏺 Game Engine shutting down...")
+        audio_manager.shutdown()
         self.running = False
     
     def _update_performance_tracking(self, dt: float):

@@ -11,6 +11,7 @@ from ...core.constants import (
     Colors, Layout, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER,
     FontSizes, Timing
 )
+from ...audio.simple_audio_manager import audio_manager, SoundEffect
 from ..components.animated_button import AnimatedButton
 
 class SettingsAction(Enum):
@@ -31,8 +32,12 @@ class SettingsScreen:
         # Create background
         self.background_surface = self._create_background()
         
+        # Volume settings
+        self.volume_settings = audio_manager.get_volume_settings()
+        
         # Create buttons
         self.buttons = self._create_buttons()
+        self.volume_buttons = self._create_volume_buttons()
         
         print("Settings Screen initialized - Temple configurations ready")
     
@@ -63,6 +68,99 @@ class SettingsScreen:
         
         return buttons
     
+    def _create_volume_buttons(self) -> List[AnimatedButton]:
+        """Create volume control buttons."""
+        buttons = []
+        
+        # Master volume buttons
+        master_down = AnimatedButton(
+            300, 200, 40, 30, "-", FontSizes.BUTTON,
+            action=lambda: self._adjust_volume("master", -0.1)
+        )
+        master_up = AnimatedButton(
+            500, 200, 40, 30, "+", FontSizes.BUTTON,
+            action=lambda: self._adjust_volume("master", 0.1)
+        )
+        buttons.extend([master_down, master_up])
+        
+        # Music volume buttons
+        music_down = AnimatedButton(
+            300, 260, 40, 30, "-", FontSizes.BUTTON,
+            action=lambda: self._adjust_volume("music", -0.1)
+        )
+        music_up = AnimatedButton(
+            500, 260, 40, 30, "+", FontSizes.BUTTON,
+            action=lambda: self._adjust_volume("music", 0.1)
+        )
+        buttons.extend([music_down, music_up])
+        
+        # SFX volume buttons
+        sfx_down = AnimatedButton(
+            300, 320, 40, 30, "-", FontSizes.BUTTON,
+            action=lambda: self._adjust_volume("sfx", -0.1)
+        )
+        sfx_up = AnimatedButton(
+            500, 320, 40, 30, "+", FontSizes.BUTTON,
+            action=lambda: self._adjust_volume("sfx", 0.1)
+        )
+        buttons.extend([sfx_down, sfx_up])
+        
+        return buttons
+    
+    def _adjust_volume(self, volume_type: str, delta: float):
+        """Adjust volume setting."""
+        current = self.volume_settings[volume_type]
+        new_volume = max(0.0, min(1.0, current + delta))
+        self.volume_settings[volume_type] = new_volume
+        
+        # Apply to audio manager
+        if volume_type == "master":
+            audio_manager.set_master_volume(new_volume)
+        elif volume_type == "music":
+            audio_manager.set_music_volume(new_volume)
+        elif volume_type == "sfx":
+            audio_manager.set_sfx_volume(new_volume)
+        
+        # Play test sound for feedback
+        audio_manager.play_sound(SoundEffect.BUTTON_CLICK, 0.5)
+    
+    def _render_volume_controls(self, surface: pygame.Surface):
+        """Render volume control interface."""
+        font = pygame.font.Font(None, FontSizes.BODY)
+        
+        # Volume labels and bars
+        volume_types = [
+            ("Master Volume", "master", 200),
+            ("Music Volume", "music", 260),
+            ("SFX Volume", "sfx", 320)
+        ]
+        
+        for label, vol_type, y in volume_types:
+            # Label
+            label_surface = font.render(label, True, Colors.DESERT_SAND)
+            surface.blit(label_surface, (200, y))
+            
+            # Volume bar
+            bar_x = 350
+            bar_width = 120
+            bar_height = 20
+            
+            # Background bar
+            bar_rect = pygame.Rect(bar_x, y, bar_width, bar_height)
+            pygame.draw.rect(surface, Colors.BLACK, bar_rect)
+            pygame.draw.rect(surface, Colors.GOLD, bar_rect, 2)
+            
+            # Volume fill
+            volume_level = self.volume_settings[vol_type]
+            fill_width = int(bar_width * volume_level)
+            fill_rect = pygame.Rect(bar_x, y, fill_width, bar_height)
+            pygame.draw.rect(surface, Colors.LAPIS_LAZULI, fill_rect)
+            
+            # Volume percentage
+            percent_text = f"{int(volume_level * 100)}%"
+            percent_surface = font.render(percent_text, True, Colors.WHITE)
+            surface.blit(percent_surface, (bar_x + bar_width + 10, y))
+    
     def _handle_action(self, action: SettingsAction):
         """Handle button actions."""
         if self.on_action:
@@ -80,7 +178,8 @@ class SettingsScreen:
                 self.fade_in_complete = True
         
         # Update buttons
-        for button in self.buttons:
+        all_buttons = self.buttons + self.volume_buttons
+        for button in all_buttons:
             button.update(dt, mouse_pos, mouse_pressed)
         
         # Handle events
@@ -90,7 +189,8 @@ class SettingsScreen:
                     self._handle_action(SettingsAction.BACK_TO_MENU)
             
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                for button in self.buttons:
+                all_buttons = self.buttons + self.volume_buttons
+                for button in all_buttons:
                     if button.handle_click(mouse_pos):
                         break
     
@@ -107,15 +207,16 @@ class SettingsScreen:
         font = pygame.font.Font(None, FontSizes.TITLE_LARGE)
         title_text = "TEMPLE SETTINGS"
         title_surface = font.render(title_text, True, Colors.GOLD)
-        title_rect = title_surface.get_rect(center=(SCREEN_CENTER[0], 200))
+        title_rect = title_surface.get_rect(center=(SCREEN_CENTER[0], 120))
         surface.blit(title_surface, title_rect)
         
-        # Coming soon message
-        subtitle_font = pygame.font.Font(None, FontSizes.SUBTITLE)
-        subtitle_text = "Configure your divine experience"
-        subtitle_surface = subtitle_font.render(subtitle_text, True, Colors.LAPIS_LAZULI)
-        subtitle_rect = subtitle_surface.get_rect(center=(SCREEN_CENTER[0], 260))
-        surface.blit(subtitle_surface, subtitle_rect)
+        # Volume controls
+        self._render_volume_controls(surface)
+        
+        # Buttons
+        all_buttons = self.buttons + self.volume_buttons
+        for button in all_buttons:
+            button.render(surface)
         
         # Settings preview
         body_font = pygame.font.Font(None, FontSizes.BODY)
@@ -176,6 +277,7 @@ class SettingsScreen:
         self.fade_in_complete = False
         self.animation_time = 0.0
         
-        for button in self.buttons:
+        all_buttons = self.buttons + self.volume_buttons
+        for button in all_buttons:
             button.hover_progress = 0.0
             button.press_progress = 0.0

@@ -13,6 +13,7 @@ from ...core.constants import (
     FontSizes
 )
 from ...core.state_manager import GameState
+from ...audio.simple_audio_manager import audio_manager, SoundEffect, AudioTrack
 from ..components.animated_button import AnimatedButton
 from ..components.title_animation import TitleAnimation
 
@@ -145,7 +146,13 @@ class MainMenuScreen:
         
         # Update buttons
         for i, button in enumerate(self.buttons):
+            # Check for hover state change for sound effects
+            was_hovered = button.is_hovered
             button.update(dt, mouse_pos, mouse_pressed)
+            
+            # Play hover sound when button becomes hovered
+            if button.is_hovered and not was_hovered:
+                audio_manager.play_sound(SoundEffect.BUTTON_HOVER, 0.3)
             
             # Update selected button based on mouse position
             if button.rect.collidepoint(mouse_pos):
@@ -159,6 +166,7 @@ class MainMenuScreen:
                 if event.button == 1:  # Left click
                     for button in self.buttons:
                         if button.handle_click(mouse_pos):
+                            audio_manager.play_sound(SoundEffect.BUTTON_CLICK, 0.6)
                             break
         
         self.last_mouse_pos = mouse_pos
@@ -173,6 +181,7 @@ class MainMenuScreen:
             # Simulate click on selected button
             selected_button = self.buttons[self.selected_button_index]
             if selected_button.action:
+                audio_manager.play_sound(SoundEffect.BUTTON_CLICK, 0.6)
                 selected_button.action()
         elif key == pygame.K_ESCAPE:
             # Quick quit
@@ -287,3 +296,6 @@ class MainMenuScreen:
         for button in self.buttons:
             button.hover_progress = 0.0
             button.press_progress = 0.0
+        
+        # Start menu music
+        audio_manager.play_music(AudioTrack.MENU, fade_in=2.0)

@@ -15,6 +15,7 @@ from ...core.constants import (
     FontSizes, Timing
 )
 from ...core.deck_manager import deck_manager
+from ...audio.simple_audio_manager import audio_manager, SoundEffect, AudioTrack
 from ..components.animated_button import AnimatedButton
 
 class DeckBuilderAction(Enum):
@@ -406,6 +407,8 @@ class ProfessionalDeckBuilder:
                     deck_card = Card(card.data)
                     self.deck_cards.append(deck_card)
                     self._update_deck_positions()
+                    # Play card add sound
+                    audio_manager.play_sound(SoundEffect.CARD_PLAY, 0.4)
                 break
         
         # Deck cards (to remove)
@@ -413,6 +416,8 @@ class ProfessionalDeckBuilder:
             if self.deck_area.colliderect(card.get_rect()) and card.handle_click(mouse_pos):
                 self.deck_cards.pop(i)
                 self._update_deck_positions()
+                # Play card remove sound (different pitch)
+                audio_manager.play_sound(SoundEffect.CARD_PLAY, 0.3)
                 break
     
     def render(self, surface: pygame.Surface):
@@ -570,3 +575,6 @@ class ProfessionalDeckBuilder:
         for button in self.buttons + self.filter_buttons:
             button.hover_progress = 0.0
             button.press_progress = 0.0
+        
+        # Start deck builder music
+        audio_manager.play_music(AudioTrack.DECK_BUILDER, fade_in=2.0)

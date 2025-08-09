@@ -16,6 +16,7 @@ from ...core.constants import (
     FontSizes, Timing
 )
 from ...core.deck_manager import deck_manager
+from ...audio.simple_audio_manager import audio_manager, SoundEffect, AudioTrack
 from ..components.animated_button import AnimatedButton
 
 class CombatAction(Enum):
@@ -534,6 +535,9 @@ class ProfessionalCombat:
             card.trigger_play_animation()
             self._update_card_positions()
             
+            # Play card sound effect
+            audio_manager.play_sound(SoundEffect.CARD_PLAY, 0.7)
+            
             # Add combat effect
             self.combat_effects.append({
                 'type': 'card_played',
@@ -550,6 +554,9 @@ class ProfessionalCombat:
             
             card.trigger_play_animation()
             self._update_card_positions()
+            
+            # Play enemy card sound (slightly different pitch)
+            audio_manager.play_sound(SoundEffect.CARD_PLAY, 0.5)
             
             # Add combat effect for enemy card
             self.combat_effects.append({
@@ -578,6 +585,9 @@ class ProfessionalCombat:
                 card.show_damage(card.data.attack)
                 self.player_battlefield.remove(card)
                 
+                # Play damage sound effect
+                audio_manager.play_sound(SoundEffect.DAMAGE_DEALT, 0.8)
+                
                 # Add spell effect
                 self.combat_effects.append({
                     'type': 'spell_cast',
@@ -592,6 +602,9 @@ class ProfessionalCombat:
                 self.player.health -= card.data.attack
                 card.show_damage(card.data.attack)
                 self.enemy_battlefield.remove(card)
+                
+                # Play damage sound effect
+                audio_manager.play_sound(SoundEffect.DAMAGE_DEALT, 0.8)
                 
                 # Add spell effect
                 self.combat_effects.append({
@@ -668,8 +681,14 @@ class ProfessionalCombat:
     def _check_win_conditions(self):
         """Check for victory or defeat conditions."""
         if self.player.health <= 0:
+            if self.phase != CombatPhase.DEFEAT:  # Only play sound once
+                audio_manager.play_sound(SoundEffect.DEFEAT_SOUND, 1.0)
+                audio_manager.play_music(AudioTrack.DEFEAT, fade_in=1.0)
             self.phase = CombatPhase.DEFEAT
         elif self.enemy.health <= 0:
+            if self.phase != CombatPhase.VICTORY:  # Only play sound once
+                audio_manager.play_sound(SoundEffect.VICTORY_FANFARE, 1.0)
+                audio_manager.play_music(AudioTrack.VICTORY, fade_in=1.0)
             self.phase = CombatPhase.VICTORY
     
     def update(self, dt: float, events: List[pygame.event.Event], 
@@ -1034,3 +1053,6 @@ class ProfessionalCombat:
         for button in self.buttons:
             button.hover_progress = 0.0
             button.press_progress = 0.0
+        
+        # Start combat music
+        audio_manager.play_music(AudioTrack.COMBAT, fade_in=2.0)
