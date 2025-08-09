@@ -15,6 +15,7 @@ from ...core.constants import (
     Colors, Layout, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER,
     FontSizes, Timing
 )
+from ...core.deck_manager import deck_manager
 from ..components.animated_button import AnimatedButton
 
 class CombatAction(Enum):
@@ -301,8 +302,14 @@ class ProfessionalCombat:
         self.player = Combatant("PHARAOH", 30, 30, 3, 10)
         self.enemy = Combatant("ANUBIS", 30, 30, 3, 8)  # Equal health, equal starting mana
         
-        # Card system
-        self.player_hand = self._create_starting_hand()
+        # Card system - use saved deck if available
+        if deck_manager.has_saved_deck():
+            self.player_hand = self._create_hand_from_saved_deck()
+            print(f"Using custom deck: {len(self.player_hand)} cards loaded from deck builder!")
+        else:
+            self.player_hand = self._create_starting_hand()
+            print("Using default starter deck - build a custom deck to use it in combat!")
+        
         self.enemy_hand = self._create_enemy_hand()  # Enemy now has cards
         self.player_battlefield = []
         self.enemy_battlefield = []
@@ -363,6 +370,33 @@ class ProfessionalCombat:
         cards = []
         for data in card_data:
             card = CombatCard3D(data)
+            cards.append(card)
+        
+        return cards
+    
+    def _create_hand_from_saved_deck(self) -> List[CombatCard3D]:
+        """Create hand from saved deck - take first 5 cards as starting hand."""
+        saved_deck = deck_manager.get_player_deck()
+        
+        if not saved_deck:
+            return self._create_starting_hand()
+        
+        # Take first 5 cards as starting hand (or all if less than 5)
+        hand_size = min(5, len(saved_deck))
+        starting_cards = saved_deck[:hand_size]
+        
+        cards = []
+        for deck_card in starting_cards:
+            combat_card_data = CombatCard(
+                name=deck_card.name,
+                cost=deck_card.cost,
+                attack=deck_card.attack,
+                health=deck_card.health,
+                description=deck_card.description,
+                rarity=deck_card.rarity,
+                card_type=deck_card.card_type
+            )
+            card = CombatCard3D(combat_card_data)
             cards.append(card)
         
         return cards
@@ -965,11 +999,14 @@ class ProfessionalCombat:
                 "Combat complete! Well fought, warrior!"
             ]
         else:
+            # Check if using custom deck
+            deck_status = "Custom Deck" if deck_manager.has_saved_deck() else "Starter Deck"
+            
             instructions = [
                 "Drag cards to battlefield to play them",
                 "SPACE: End Turn • ESC: Back to Menu",
                 f"Your Mana: {self.player.mana}/{self.player.max_mana} • Enemy Mana: {self.enemy.mana}/{self.enemy.max_mana}",
-                f"Turn: {self.turn_count} • Phase: {self.phase.name.replace('_', ' ')}"
+                f"Turn: {self.turn_count} • {deck_status} • Phase: {self.phase.name.replace('_', ' ')}"
             ]
         
         font = pygame.font.Font(None, FontSizes.CARD_TEXT)

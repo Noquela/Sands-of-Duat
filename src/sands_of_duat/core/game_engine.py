@@ -213,8 +213,8 @@ class GameEngine:
         if action == DeckBuilderAction.BACK_TO_MENU:
             self._start_transition(TransitionType.RETURNING_HOME, GameState.DECK_BUILDER, GameState.MAIN_MENU)
         elif action == DeckBuilderAction.SAVE_DECK:
-            self.logger.info("💾 Deck saved successfully")
-            # TODO: Implement deck saving
+            self.logger.info("💾 Deck saved successfully - ready for combat!")
+            # Deck saving is handled in the deck builder screen
         elif action == DeckBuilderAction.CLEAR_DECK:
             self.logger.info("🗑️ Deck cleared")
         elif action == DeckBuilderAction.EXPORT_DECK:

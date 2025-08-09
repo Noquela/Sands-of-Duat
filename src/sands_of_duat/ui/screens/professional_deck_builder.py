@@ -14,6 +14,7 @@ from ...core.constants import (
     Colors, Layout, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER,
     FontSizes, Timing
 )
+from ...core.deck_manager import deck_manager
 from ..components.animated_button import AnimatedButton
 
 class DeckBuilderAction(Enum):
@@ -298,6 +299,14 @@ class ProfessionalDeckBuilder:
         if action == DeckBuilderAction.CLEAR_DECK:
             self.deck_cards.clear()
             self._update_deck_positions()
+            deck_manager.clear_deck()
+        elif action == DeckBuilderAction.SAVE_DECK:
+            # Save current deck to global manager
+            success = deck_manager.save_deck(self.deck_cards)
+            if success:
+                print(f"Deck saved successfully! {len(self.deck_cards)} cards ready for combat.")
+            else:
+                print("Failed to save deck.")
         
         if self.on_action:
             self.on_action(action)
