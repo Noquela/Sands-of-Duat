@@ -1,0 +1,17 @@
+{
+  "subject": "Ancient egyptian temple interior, massive columns, hieroglyphic carvings, dramatic lighting",
+  "character_type": "environment",
+  "color_scheme": "purple_shadow",
+  "prompt": "hades game art style, hand-painted digital art, dramatic chiaroscuro lighting,         vibrant saturated colors, black ink outlines, pen and ink technique,         heroic proportions, dynamic composition, Jen Zee art style,         Mike Mignola influence, Supergiant Games artwork, masterpiece, ancient egyptian mythology, hieroglyphic elements, pharaonic symbols,         desert mysticism, golden ornaments, egyptian architecture, Ancient egyptian temple interior, massive columns, hieroglyphic carvings, dramatic lighting, epic architectural scale, atmospheric perspective, cinematic composition, dark purple #4B0082 and silver highlights, shadowy atmosphere, highly detailed, professional game art, sharp focus",
+  "negative_prompt": "blurry, low quality, amateur, sketch, dull colors, soft lighting, pastel colors,         anime style, cartoon, chibi, realistic photography, 3d render, multiple characters,         crowd, text, watermark, signature, bad anatomy, deformed, distorted, extra limbs",
+  "parameters": {
+    "width": 1024,
+    "height": 1024,
+    "num_inference_steps": 30,
+    "guidance_scale": 7.5,
+    "clip_skip": 2
+  },
+  "generation_time": 26.048816680908203,
+  "seed": 45,
+  "filepath": "..\\..\\assets\\work_in_progress\\testing\\hades_ancient_egyptian_temple_interior,_massive_columns,_hieroglyphic_carvings,_dramatic_lighting_20250809_131535.png"
+}

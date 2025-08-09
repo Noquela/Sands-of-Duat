@@ -1,0 +1,22 @@
+{
+  "approval_info": {
+    "approved_date": "2025-08-09T15:01:43.398733",
+    "quality_tier": "PROFESSIONAL",
+    "rarity": "rare",
+    "approved_for_production": true
+  },
+  "quality_analysis": {
+    "filename": "hades_egyptian_sphinx_guardian_rare_20250809_145944.png",
+    "resolution": "1024x1024",
+    "file_size_mb": 2.28,
+    "format": "PNG",
+    "mode": "RGB",
+    "resolution_score": 1.0,
+    "file_size_score": 1.0,
+    "format_score": 1.0,
+    "overall_score": 1.0,
+    "quality_tier": "PROFESSIONAL"
+  },
+  "production_path": "approval_workflow\\production_ready\\rare_assets\\hades_egyptian_sphinx_guardian_rare_20250809_145944.png",
+  "approved_path": "approval_workflow\\approved\\professional_tier\\hades_egyptian_sphinx_guardian_rare_20250809_145944.png"
+}

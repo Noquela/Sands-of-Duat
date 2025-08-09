@@ -1,0 +1,20 @@
+[
+  {
+    "name": "char_player_hero",
+    "improved_prompt": "egyptian_hades_art, masterpiece, single Egyptian warrior hero portrait, determined expression, traditional pharaonic armor, golden headdress, heroic bearing, centered composition, one character only",
+    "category": "characters",
+    "resolution": {
+      "width": 512,
+      "height": 768
+    }
+  },
+  {
+    "name": "sand_grain",
+    "improved_prompt": "egyptian_hades_art, masterpiece, tiny magical grain of sand, glowing with power, desert magic essence, golden sparkle, simple object, minimal composition, close-up view",
+    "category": "common_cards",
+    "resolution": {
+      "width": 768,
+      "height": 1024
+    }
+  }
+]

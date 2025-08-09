@@ -1,0 +1,64 @@
+{
+  "batch_info": {
+    "generation_date": "2025-08-09T15:00:32.890281",
+    "total_assets": 8,
+    "successful": 8,
+    "failed": 0,
+    "success_rate": 100.0
+  },
+  "assets": [
+    {
+      "name": "anubis_deity_legendary",
+      "path": "../../../assets/generated_art/hades_egyptian_anubis_deity_legendary_20250809_145745.png",
+      "metadata": "../../../assets/generated_art/hades_egyptian_anubis_deity_legendary_20250809_145745.json",
+      "success": true
+    },
+    {
+      "name": "ra_sun_god_legendary",
+      "path": "../../../assets/generated_art/hades_egyptian_ra_sun_god_legendary_20250809_145810.png",
+      "metadata": "../../../assets/generated_art/hades_egyptian_ra_sun_god_legendary_20250809_145810.json",
+      "success": true
+    },
+    {
+      "name": "isis_goddess_legendary",
+      "path": "../../../assets/generated_art/hades_egyptian_isis_goddess_legendary_20250809_145834.png",
+      "metadata": "../../../assets/generated_art/hades_egyptian_isis_goddess_legendary_20250809_145834.json",
+      "success": true
+    },
+    {
+      "name": "set_chaos_god_legendary",
+      "path": "../../../assets/generated_art/hades_egyptian_set_chaos_god_legendary_20250809_145857.png",
+      "metadata": "../../../assets/generated_art/hades_egyptian_set_chaos_god_legendary_20250809_145857.json",
+      "success": true
+    },
+    {
+      "name": "egyptian_warrior_epic",
+      "path": "../../../assets/generated_art/hades_egyptian_egyptian_warrior_epic_20250809_145921.png",
+      "metadata": "../../../assets/generated_art/hades_egyptian_egyptian_warrior_epic_20250809_145921.json",
+      "success": true
+    },
+    {
+      "name": "sphinx_guardian_rare",
+      "path": "../../../assets/generated_art/hades_egyptian_sphinx_guardian_rare_20250809_145944.png",
+      "metadata": "../../../assets/generated_art/hades_egyptian_sphinx_guardian_rare_20250809_145944.json",
+      "success": true
+    },
+    {
+      "name": "mummy_guardian_rare",
+      "path": "../../../assets/generated_art/hades_egyptian_mummy_guardian_rare_20250809_150008.png",
+      "metadata": "../../../assets/generated_art/hades_egyptian_mummy_guardian_rare_20250809_150008.json",
+      "success": true
+    },
+    {
+      "name": "temple_interior_epic",
+      "path": "../../../assets/generated_art/hades_egyptian_temple_interior_epic_20250809_150032.png",
+      "metadata": "../../../assets/generated_art/hades_egyptian_temple_interior_epic_20250809_150032.json",
+      "success": true
+    }
+  ],
+  "system_info": {
+    "device": "cuda",
+    "gpu": "NVIDIA GeForce RTX 5070",
+    "pytorch_version": "2.8.0+cu128"
+  }
+}

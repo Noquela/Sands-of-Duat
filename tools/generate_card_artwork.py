@@ -30,9 +30,9 @@ class CardArtworkGenerator:
         self.asset_validator = get_asset_validator()
         self.all_cards = self.deck_builder.get_all_cards()
         
-        print("🏺 Card Artwork Generator initialized - HADES QUALITY EGYPTIAN ART")
-        print(f"📋 Found {len(self.all_cards)} cards to generate artwork for")
-        print("🎨 Targeting Supergiant Games Hades-level artistic excellence")
+        print("Card Artwork Generator initialized - HADES QUALITY EGYPTIAN ART")
+        print(f"Found {len(self.all_cards)} cards to generate artwork for")
+        print("Targeting Supergiant Games Hades-level artistic excellence")
     
     def generate_all_card_art(self):
         """Generate artwork for all Egyptian cards."""
@@ -288,15 +288,15 @@ def main():
     
     while True:
         print("\n" + "="*60)
-        print("🏺 SANDS OF DUAT - HADES-QUALITY CARD ARTWORK GENERATOR")
+        print("SANDS OF DUAT - HADES-QUALITY CARD ARTWORK GENERATOR")
         print("="*60)
-        print("🎨 GENERATION:")
+        print("GENERATION:")
         print("1. Generate ALL card artwork (with validation)")
         print("2. Generate priority cards (Legendary + Rare)")
         print("3. Generate by card type")
         print("4. Generate backgrounds")
         print("5. Test single card")
-        print("🔍 VALIDATION:")
+        print("VALIDATION:")
         print("6. Validate existing assets")
         print("7. Show card catalog")
         print("0. Exit")
@@ -304,7 +304,7 @@ def main():
         choice = input("\nSelect option (0-7): ").strip()
         
         if choice == "0":
-            print("🏺 Artwork generation complete!")
+            print("Artwork generation complete!")
             break
             
         elif choice == "1":

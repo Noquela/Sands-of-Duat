@@ -1,0 +1,17 @@
+{
+  "subject": "Ra sun god with falcon head, solar disk crown, radiant golden aura",
+  "character_type": "deity",
+  "color_scheme": "red_gold",
+  "prompt": "hades game art style, hand-painted digital art, dramatic chiaroscuro lighting,         vibrant saturated colors, black ink outlines, pen and ink technique,         heroic proportions, dynamic composition, Jen Zee art style,         Mike Mignola influence, Supergiant Games artwork, masterpiece, ancient egyptian mythology, hieroglyphic elements, pharaonic symbols,         desert mysticism, golden ornaments, egyptian architecture, Ra sun god with falcon head, solar disk crown, radiant golden aura, divine aura, godlike presence, regal bearing, supernatural radiance, majestic pose, rich red #C41E3A and golden #FFD700 color palette, dramatic red lighting, highly detailed, professional game art, sharp focus",
+  "negative_prompt": "blurry, low quality, amateur, sketch, dull colors, soft lighting, pastel colors,         anime style, cartoon, chibi, realistic photography, 3d render, multiple characters,         crowd, text, watermark, signature, bad anatomy, deformed, distorted, extra limbs",
+  "parameters": {
+    "width": 1024,
+    "height": 1024,
+    "num_inference_steps": 30,
+    "guidance_scale": 7.5,
+    "clip_skip": 2
+  },
+  "generation_time": 26.161222219467163,
+  "seed": 43,
+  "filepath": "..\\..\\assets\\work_in_progress\\testing\\hades_ra_sun_god_with_falcon_head,_solar_disk_crown,_radiant_golden_aura_20250809_131438.png"
+}

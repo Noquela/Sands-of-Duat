@@ -1,0 +1,94 @@
+SANDS OF DUAT - HADES-QUALITY EGYPTIAN PROMPTS
+=====================================================
+
+🏺 READY-TO-USE PROMPTS FOR YOUR RTX 5070 + 32GB RAM
+
+SETTINGS FOR AUTOMATIC1111 WEBUI:
+- Width: 768, Height: 1024 (card aspect ratio)
+- Steps: 25-35
+- CFG Scale: 7-9
+- Sampler: DPM++ 2M Karras
+
+=====================================================
+
+🔥 LEGENDARY CARDS (Generate These First!)
+
+RA - SUN GOD:
+sands_of_duat_style, egyptian_underworld_art, hades_game_art_quality, majestic egyptian sun god Ra, golden solar disc crown, falcon head with piercing divine eyes, brilliant solar energy radiating, intricate hieroglyphic symbols, powerful divine presence, masterpiece quality, supergiant games art style, vibrant rich colors, dramatic lighting contrasts, hand painted texture, award winning illustration
+
+ANUBIS - GUIDE OF THE DEAD:
+sands_of_duat_style, egyptian_underworld_art, hades_character_quality, Anubis jackal-headed god of death, black jackal head with golden eyes, ornate golden collar and regalia, weighing scales of judgment, mystical underworld atmosphere, guardian of afterlife, masterpiece quality, hades game aesthetic, dramatic contrasts, painterly style
+
+OSIRIS - LORD OF THE UNDERWORLD:
+sands_of_duat_style, egyptian_underworld_art, hades_character_quality, Osiris green-skinned god of underworld, mummified divine form, golden crown and crook, resurrection symbolism, underworld throne room, mystical green aura, judge of the dead, legendary artwork quality, supergiant games style, rich atmospheric lighting
+
+=====================================================
+
+⚔️ RARE CARDS
+
+HORUS - SKY GOD:
+sands_of_duat_style, egyptian_underworld_art, hades_character_quality, Horus falcon god with piercing divine eyes, golden falcon head, eye of Horus symbol, sky and divine kingship, royal regalia, majestic presence, professional game artwork, vibrant saturated colors, dramatic lighting
+
+ISIS - MAGIC GODDESS:
+sands_of_duat_style, egyptian_underworld_art, hades_character_quality, Isis winged goddess of magic and healing, beautiful divine feminine form, outstretched feathered wings, ankh symbol, magical energy swirling, motherhood and protection, award winning art direction, hand painted illustration
+
+THOTH - GOD OF WISDOM:
+sands_of_duat_style, egyptian_underworld_art, hades_character_quality, Thoth ibis-headed god of wisdom and writing, sacred ibis head, papyrus scroll and writing reed, hieroglyphic knowledge, scribe of the gods, scholarly divine presence, masterpiece quality, rich egyptian colors
+
+=====================================================
+
+🏺 ARTIFACTS
+
+ANKH OF ETERNAL LIFE:
+sands_of_duat_style, egyptian_underworld_art, hades_item_quality, ornate golden ankh artifact, gleaming gold and lapis lazuli, sacred hieroglyphic inscriptions, eternal life symbolism, divine mystical aura, intricate engravings, professional game art, dramatic lighting
+
+CANOPIC JAR:
+sands_of_duat_style, egyptian_underworld_art, hades_item_quality, ancient egyptian canopic jar, ornate golden lid with protective deity, hieroglyphic preservation spells, mummification ritual artifact, sacred vessel, mystical preservation magic, rich golden details
+
+PHARAOH'S SCEPTER:
+sands_of_duat_style, egyptian_underworld_art, hades_item_quality, royal egyptian scepter of power, golden was-scepter with divine symbols, command over lesser beings, pharaonic authority, ornate royal regalia, divine kingship artifact, masterpiece quality artwork
+
+=====================================================
+
+🏛️ LOCATIONS
+
+VALLEY OF THE KINGS:
+sands_of_duat_style, egyptian_underworld_art, hades_environment_quality, Valley of Kings burial ground, ancient tomb entrances, mysterious desert cliffs, pharaoh eternal rest, sacred burial atmosphere, dramatic torch lighting, cinematic composition, rich architectural depth
+
+TEMPLE OF KARNAK:
+sands_of_duat_style, egyptian_underworld_art, hades_environment_quality, massive Karnak temple complex, towering stone pillars with hieroglyphs, dedicated to Amun, vast sacred halls, atmospheric temple lighting, ancient egyptian architecture, professional background art
+
+RIVER OF SOULS:
+sands_of_duat_style, egyptian_underworld_art, hades_environment_quality, mystical underworld river, souls crossing to judgment, divine boat of Ra, otherworldly mists, passage between worlds, spiritual journey, atmospheric underworld scene, cinematic lighting
+
+=====================================================
+
+⚡ SPELLS & MAGIC
+
+CURSE OF THE MUMMY:
+sands_of_duat_style, egyptian_underworld_art, hades_effect_quality, ancient mummy curse magic, dark purple mystical energy, weakening curse effects, hieroglyphic spell symbols, ancient Egyptian magic, supernatural curse power, dynamic magical effects
+
+BLESSING OF RA:
+sands_of_duat_style, egyptian_underworld_art, hades_effect_quality, divine solar blessing, golden healing light rays, Ra's divine power, strengthening allies, solar energy magic, brilliant golden effects, divine healing magic, warm golden hour lighting
+
+JUDGMENT OF OSIRIS:
+sands_of_duat_style, egyptian_underworld_art, hades_effect_quality, scales of judgment weighing heart, Osiris divine judgment, balance of truth and falsehood, underworld trial scene, mystical weighing ceremony, divine justice magic, dramatic judgment lighting
+
+=====================================================
+
+🚫 NEGATIVE PROMPT (Use for ALL generations):
+blurry, low_quality, pixelated, watermark, text, signature, amateur, sketch, unfinished, draft, placeholder, modern_elements, non_egyptian, inappropriate, ugly, deformed, bad_anatomy, poorly_drawn, amateur_art, low_resolution, jpeg_artifacts, compression_artifacts, washed_out_colors, flat_lighting, boring, generic, cheap_looking, rushed, inconsistent_style, photorealistic, 3d_render, photography
+
+=====================================================
+
+🎯 GENERATION ORDER (Start with these):
+1. Ra - Sun God (Legendary)
+2. Anubis - Guide of the Dead (Legendary) 
+3. Osiris - Lord of the Underworld (Legendary)
+4. Horus - Sky God (Rare)
+5. Isis - Magic Goddess (Rare)
+
+Your RTX 5070 will generate these in 20-30 seconds each!
+Expected quality: Supergiant Games Hades-level excellence!
+
+=====================================================

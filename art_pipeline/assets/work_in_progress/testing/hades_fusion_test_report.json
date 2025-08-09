@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-08-09T13:15:37.431278",
+  "test_type": "Hades-Egyptian Fusion",
+  "total_tests": 4,
+  "successful": 4,
+  "success_rate": 1.0,
+  "results": [
+    {
+      "test_case": "Anubis no estilo Hades com collar dourado",
+      "subject": "Anubis egyptian god with jackal head, golden ceremonial collar, divine presence",
+      "success": true,
+      "filepath": "..\\..\\assets\\work_in_progress\\testing\\hades_anubis_egyptian_god_with_jackal_head,_golden_ceremonial_collar,_divine_presence_20250809_131409.png"
+    },
+    {
+      "test_case": "Ra majestoso com disco solar",
+      "subject": "Ra sun god with falcon head, solar disk crown, radiant golden aura",
+      "success": true,
+      "filepath": "..\\..\\assets\\work_in_progress\\testing\\hades_ra_sun_god_with_falcon_head,_solar_disk_crown,_radiant_golden_aura_20250809_131438.png"
+    },
+    {
+      "test_case": "Heroi egipcio estilo Zagreus",
+      "subject": "Egyptian warrior hero in pharaonic armor, determined expression, battle stance",
+      "success": true,
+      "filepath": "..\\..\\assets\\work_in_progress\\testing\\hades_egyptian_warrior_hero_in_pharaonic_armor,_determined_expression,_battle_stance_20250809_131506.png"
+    },
+    {
+      "test_case": "Templo com atmosfera underworld",
+      "subject": "Ancient egyptian temple interior, massive columns, hieroglyphic carvings, dramatic lighting",
+      "success": true,
+      "filepath": "..\\..\\assets\\work_in_progress\\testing\\hades_ancient_egyptian_temple_interior,_massive_columns,_hieroglyphic_carvings,_dramatic_lighting_20250809_131535.png"
+    }
+  ]
+}

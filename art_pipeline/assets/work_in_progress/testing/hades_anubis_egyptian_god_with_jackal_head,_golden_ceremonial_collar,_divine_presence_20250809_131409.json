@@ -1,0 +1,17 @@
+{
+  "subject": "Anubis egyptian god with jackal head, golden ceremonial collar, divine presence",
+  "character_type": "deity",
+  "color_scheme": "red_gold",
+  "prompt": "hades game art style, hand-painted digital art, dramatic chiaroscuro lighting,         vibrant saturated colors, black ink outlines, pen and ink technique,         heroic proportions, dynamic composition, Jen Zee art style,         Mike Mignola influence, Supergiant Games artwork, masterpiece, ancient egyptian mythology, hieroglyphic elements, pharaonic symbols,         desert mysticism, golden ornaments, egyptian architecture, Anubis egyptian god with jackal head, golden ceremonial collar, divine presence, divine aura, godlike presence, regal bearing, supernatural radiance, majestic pose, rich red #C41E3A and golden #FFD700 color palette, dramatic red lighting, highly detailed, professional game art, sharp focus",
+  "negative_prompt": "blurry, low quality, amateur, sketch, dull colors, soft lighting, pastel colors,         anime style, cartoon, chibi, realistic photography, 3d render, multiple characters,         crowd, text, watermark, signature, bad anatomy, deformed, distorted, extra limbs",
+  "parameters": {
+    "width": 1024,
+    "height": 1024,
+    "num_inference_steps": 30,
+    "guidance_scale": 7.5,
+    "clip_skip": 2
+  },
+  "generation_time": 27.38151741027832,
+  "seed": 42,
+  "filepath": "..\\..\\assets\\work_in_progress\\testing\\hades_anubis_egyptian_god_with_jackal_head,_golden_ceremonial_collar,_divine_presence_20250809_131409.png"
+}

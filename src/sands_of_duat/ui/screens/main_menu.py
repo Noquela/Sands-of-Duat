@@ -13,6 +13,7 @@ from ...core.constants import (
     FontSizes
 )
 from ...core.state_manager import GameState
+from ...core.asset_loader import get_asset_loader
 from ...audio.simple_audio_manager import audio_manager, SoundEffect, AudioTrack
 from ..components.animated_button import AnimatedButton
 from ..components.title_animation import TitleAnimation
@@ -60,7 +61,18 @@ class MainMenuScreen:
         self.last_mouse_pos = (0, 0)
     
     def _create_background(self) -> pygame.Surface:
-        """Create animated background with Egyptian theming."""
+        """Load generated background asset with fallback."""
+        # Try to load the generated menu background
+        asset_loader = get_asset_loader()
+        menu_bg = asset_loader.load_background('menu')
+        
+        if menu_bg:
+            # Scale to screen size if needed
+            if menu_bg.get_size() != (SCREEN_WIDTH, SCREEN_HEIGHT):
+                menu_bg = pygame.transform.scale(menu_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
+            return menu_bg
+        
+        # Fallback: Create gradient if asset loading fails
         background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         
         # Create gradient effect

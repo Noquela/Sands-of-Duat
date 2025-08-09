@@ -241,7 +241,10 @@ class AIArtGenerator:
             category=ArtCategory.CARD_ART,
             base_prompt=prompt,
             negative_prompt=self.prompt_library.get_negative_prompt(),
-            width=512, height=640,  # Card aspect ratio
+            model=AIModel.FLUX_PRO,  # Use FLUX.1 DEV for BEST quality!
+            width=768, height=1024,  # Optimal card aspect ratio for Flux
+            steps=28,  # Flux optimal steps
+            cfg_scale=3.5,  # Flux optimal guidance
             card_name=card_name,
             card_type=card_type,
             rarity=rarity
@@ -273,8 +276,10 @@ class AIArtGenerator:
         logger.info(f"Prompt: {request.base_prompt}")
         
         try:
-            # Route to appropriate model
-            if request.model == AIModel.STABLE_DIFFUSION_XL:
+            # Route to appropriate model - FLUX.1 DEV is the BEST for RTX 5070!
+            if request.model == AIModel.FLUX_PRO:
+                result = self._generate_with_flux_dev(request)
+            elif request.model == AIModel.STABLE_DIFFUSION_XL:
                 result = self._generate_with_sdxl(request)
             elif request.model == AIModel.LOCAL_LORA:
                 result = self._generate_with_local_lora(request)
@@ -327,6 +332,58 @@ class AIArtGenerator:
             error_message="Local LoRA generation needs ComfyUI or Automatic1111 setup",
             attempts=1
         )
+    
+    def _generate_with_flux_dev(self, request: GenerationRequest) -> GenerationResult:
+        """Generate using Flux.1 Dev - BEST quality for RTX 5070."""
+        
+        try:
+            from .flux_generator import get_flux_generator
+            
+            flux_gen = get_flux_generator()
+            
+            # Generate image
+            image = flux_gen.generate_hades_egyptian_art(
+                prompt=request.base_prompt,
+                negative_prompt=request.negative_prompt,
+                width=request.width,
+                height=request.height,
+                steps=request.steps,
+                guidance=request.cfg_scale
+            )
+            
+            if image:
+                # Save image
+                import os
+                os.makedirs(self.output_dir, exist_ok=True)
+                image_path = self.output_dir / f"{request.name}_flux.png"
+                image.save(image_path)
+                
+                # Evaluate quality
+                quality_score = self._evaluate_quality(str(image_path), request)
+                
+                return GenerationResult(
+                    request=request,
+                    success=True,
+                    image_path=str(image_path),
+                    quality_score=quality_score,
+                    attempts=1,
+                    model_metadata=flux_gen.get_memory_usage()
+                )
+            else:
+                return GenerationResult(
+                    request=request,
+                    success=False,
+                    error_message="Flux.1 Dev generation returned None",
+                    attempts=1
+                )
+                
+        except Exception as e:
+            return GenerationResult(
+                request=request,
+                success=False,
+                error_message=f"Flux.1 Dev error: {str(e)}",
+                attempts=1
+            )
     
     def _evaluate_quality(self, image_path: str, request: GenerationRequest) -> float:
         """Evaluate the quality of generated artwork."""

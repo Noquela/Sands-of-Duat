@@ -13,9 +13,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 
-# Asset paths
-ASSETS_ROOT = Path(__file__).parent.parent.parent.parent.parent / "assets"
-FINAL_DATASET_PATH = ASSETS_ROOT / "images" / "lora_training" / "final_dataset"
+# Import our updated asset loader
+from ...core.asset_loader import get_asset_loader
 
 @dataclass
 class CardData:
@@ -59,6 +58,7 @@ class EgyptianCard:
         self.rarity_colors = {
             'common': self.colors['DESERT_SAND'],
             'rare': self.colors['RARE_PURPLE'],
+            'epic': self.colors['LAPIS_LAZULI'],
             'legendary': self.colors['LEGENDARY_ORANGE']
         }
         
@@ -68,17 +68,21 @@ class EgyptianCard:
         self._render_card()
     
     def _load_artwork(self) -> Optional[pygame.Surface]:
-        """Load the authentic Egyptian god artwork."""
-        artwork_path = FINAL_DATASET_PATH / self.data.artwork_file
-        if artwork_path.exists():
-            try:
-                artwork = pygame.image.load(str(artwork_path))
-                # Scale to fit card artwork area
-                return pygame.transform.scale(artwork, (160, 120))
-            except pygame.error as e:
-                print(f"Could not load artwork {self.data.artwork_file}: {e}")
+        """Load the generated card artwork."""
+        asset_loader = get_asset_loader()
         
-        # Fallback artwork
+        # Try loading by card name first
+        artwork = asset_loader.load_card_art_by_name(self.data.name)
+        if artwork:
+            # Scale to fit card artwork area
+            return pygame.transform.scale(artwork, (160, 120))
+        
+        # Fallback: try by rarity
+        artwork = asset_loader.get_random_card_art_by_rarity(self.data.rarity)
+        if artwork:
+            return pygame.transform.scale(artwork, (160, 120))
+        
+        # Final fallback artwork
         fallback = pygame.Surface((160, 120))
         fallback.fill(self.colors['LAPIS_LAZULI'])
         return fallback
@@ -296,86 +300,133 @@ class CardCollection:
     
     def _load_egyptian_gods(self):
         """Load all available Egyptian god cards from assets."""
-        # Define Egyptian god cards with their authentic artwork
+        # Define Egyptian god cards using our generated artwork
         god_cards = [
+            # Legendary Cards
             CardData(
-                name="RA", 
-                title="Sun God of Creation",
+                name="Ra - Sun God", 
+                title="Creator of Light",
                 cost=8, attack=10, health=12, rarity="legendary",
                 description="At dawn, deal 3 damage to all enemies. Divine radiance cannot be extinguished.",
-                artwork_file="egyptian_god_ra_01_q81.png",
+                artwork_file="ra_sun_god.png",
                 god_type="major"
             ),
             CardData(
-                name="ANUBIS", 
+                name="Anubis - Judgment", 
                 title="Guardian of the Dead",
                 cost=6, attack=8, health=8, rarity="legendary",
                 description="When a creature dies, gain +2/+2. Judge the souls of the fallen.",
-                artwork_file="egyptian_god_anubis_02_q75.png",
+                artwork_file="anubis_judgment.png",
                 god_type="major"
             ),
             CardData(
-                name="HORUS", 
-                title="Sky God of Vengeance",
-                cost=5, attack=7, health=6, rarity="rare",
-                description="Flying. When played, deal 4 damage to target enemy. The falcon strikes swift.",
-                artwork_file="egyptian_god_horus_06_q77.png",
-                god_type="major"
-            ),
-            CardData(
-                name="ISIS", 
-                title="Goddess of Magic",
-                cost=4, attack=4, health=6, rarity="rare",
-                description="Restore 5 health to all friendly creatures. Ancient magic flows eternal.",
-                artwork_file="egyptian_god_isis_04_q76.png",
-                god_type="major"
-            ),
-            CardData(
-                name="OSIRIS", 
+                name="Osiris - Resurrection", 
                 title="Lord of the Underworld",
                 cost=7, attack=6, health=10, rarity="legendary",
                 description="Resurrect all dead friendly creatures with 1 health. Death is but a door.",
-                artwork_file="egyptian_god_osiris_05_q76.png",
+                artwork_file="osiris_resurrection.png",
                 god_type="major"
             ),
             CardData(
-                name="BASTET", 
-                title="Protector Goddess",
-                cost=3, attack=3, health=4, rarity="common",
-                description="Summon two 1/1 sacred cats. Feline grace protects the innocent.",
-                artwork_file="egyptian_god_bastet_08_q73.png",
-                god_type="guardian"
+                name="Horus - Divine Sight", 
+                title="Sky God of Vengeance",
+                cost=5, attack=7, health=6, rarity="legendary",
+                description="Flying. When played, deal 4 damage to target enemy. The falcon strikes swift.",
+                artwork_file="horus_divine_sight.png",
+                god_type="major"
             ),
             CardData(
-                name="THOTH", 
-                title="God of Wisdom",
-                cost=4, attack=2, health=8, rarity="rare",
+                name="Isis - Protection", 
+                title="Goddess of Magic",
+                cost=4, attack=4, health=6, rarity="legendary",
+                description="Restore 5 health to all friendly creatures. Ancient magic flows eternal.",
+                artwork_file="isis_protection.png",
+                god_type="major"
+            ),
+            
+            # Epic Cards
+            CardData(
+                name="Thoth - Wisdom", 
+                title="God of Knowledge",
+                cost=4, attack=2, health=8, rarity="epic",
                 description="Draw 2 cards. Knowledge is the greatest weapon of all.",
-                artwork_file="egyptian_god_thoth_03_q74.png",
+                artwork_file="thoth_wisdom.png",
                 god_type="minor"
             ),
             CardData(
-                name="SEKHMET", 
-                title="Lioness of War",
-                cost=6, attack=9, health=5, rarity="rare",
-                description="Destroy target creature. The lioness knows no mercy in battle.",
-                artwork_file="egyptian_god_sekhmet_09_q77.png",
-                god_type="major"
-            ),
-            CardData(
-                name="SOBEK", 
-                title="Crocodile God",
-                cost=5, attack=6, health=7, rarity="common",
-                description="When attacked, deal 2 damage to attacker. The Nile's fury unleashed.",
-                artwork_file="egyptian_god_sobek_10_q74.png",
+                name="Bastet - Feline Grace", 
+                title="Protector Goddess",
+                cost=3, attack=3, health=4, rarity="epic",
+                description="Summon two 1/1 sacred cats. Feline grace protects the innocent.",
+                artwork_file="bastet_feline_grace.png",
                 god_type="guardian"
             ),
             CardData(
-                name="PTAH", 
-                title="Creator of Crafts",
-                cost=3, attack=2, health=5, rarity="common",
-                description="Create a random artifact card. The craftsman's touch brings wonders.",
-                artwork_file="egyptian_god_ptah_12_q74.png",
+                name="Sekhmet - War Cry", 
+                title="Lioness of War",
+                cost=6, attack=9, health=5, rarity="epic",
+                description="Destroy target creature. The lioness knows no mercy in battle.",
+                artwork_file="sekhmet_war_cry.png",
+                god_type="major"
+            ),
+            CardData(
+                name="Set - Chaos Storm", 
+                title="God of Chaos",
+                cost=5, attack=8, health=4, rarity="epic",
+                description="Deal 2 damage to all creatures. Chaos consumes order.",
+                artwork_file="set_chaos_storm.png",
+                god_type="major"
+            ),
+            CardData(
+                name="Pharaoh - Divine Mandate", 
+                title="Ruler of Egypt",
+                cost=7, attack=6, health=8, rarity="epic",
+                description="All friendly creatures gain +1/+1. The pharaoh's will commands.",
+                artwork_file="pharaoh_divine_mandate.png",
+                god_type="major"
+            ),
+            
+            # Rare Cards
+            CardData(
+                name="Mummy Wrath", 
+                title="Undead Guardian",
+                cost=4, attack=5, health=3, rarity="rare",
+                description="When destroyed, return to hand. The dead do not rest.",
+                artwork_file="mummy_wrath.png",
+                god_type="guardian"
+            ),
+            CardData(
+                name="Scarab Swarm", 
+                title="Desert Plague",
+                cost=3, attack=2, health=2, rarity="rare",
+                description="Summon three 1/1 scarab tokens. The swarm devours all.",
+                artwork_file="scarab_swarm.png",
+                god_type="minor"
+            ),
+            
+            # Common Cards
+            CardData(
+                name="Sacred Scarab", 
+                title="Holy Beetle",
+                cost=1, attack=1, health=1, rarity="common",
+                description="Draw a card when played. Sacred wisdom flows through all things.",
+                artwork_file="sacred_scarab.png",
+                god_type="minor"
+            ),
+            CardData(
+                name="Desert Meditation", 
+                title="Spiritual Focus",
+                cost=2, attack=0, health=3, rarity="common",
+                description="Restore 3 health. Inner peace brings strength.",
+                artwork_file="desert_meditation.png",
+                god_type="minor"
+            ),
+            CardData(
+                name="Papyrus Scroll", 
+                title="Ancient Wisdom",
+                cost=1, attack=0, health=1, rarity="common",
+                description="Draw a card. The wisdom of ages flows through papyrus.",
+                artwork_file="papyrus_scroll.png",
                 god_type="minor"
             )
         ]

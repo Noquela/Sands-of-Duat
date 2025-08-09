@@ -1,0 +1,751 @@
+{
+  "batch_1_legendary": {
+    "priority": 1,
+    "name": "Deidades Legendárias",
+    "assets": [
+      {
+        "id": "deity_anubis_var_1",
+        "prompt": "Anubis egyptian god with jackal head, golden ceremonial collar, divine presence, dramatic chiaroscuro lighting, pen and ink style, hades game art, vibrant red and gold colors, heroic proportions, masterpiece",
+        "character": "Anubis",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 1,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_anubis_var_2",
+        "prompt": "Anubis egyptian god with jackal head, golden ceremonial collar, divine presence, dramatic chiaroscuro lighting, pen and ink style, hades game art, vibrant red and gold colors, heroic proportions, masterpiece",
+        "character": "Anubis",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 2,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_anubis_var_3",
+        "prompt": "Anubis egyptian god with jackal head, golden ceremonial collar, divine presence, dramatic chiaroscuro lighting, pen and ink style, hades game art, vibrant red and gold colors, heroic proportions, masterpiece",
+        "character": "Anubis",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 3,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_anubis_var_4",
+        "prompt": "Anubis egyptian god with jackal head, golden ceremonial collar, divine presence, dramatic chiaroscuro lighting, pen and ink style, hades game art, vibrant red and gold colors, heroic proportions, masterpiece",
+        "character": "Anubis",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 4,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_ra_var_1",
+        "prompt": "Ra sun god with falcon head, solar disk crown, radiant golden aura, divine majesty, dramatic lighting, hades art style, vibrant colors, pen and ink technique, masterpiece",
+        "character": "Ra",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 1,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_ra_var_2",
+        "prompt": "Ra sun god with falcon head, solar disk crown, radiant golden aura, divine majesty, dramatic lighting, hades art style, vibrant colors, pen and ink technique, masterpiece",
+        "character": "Ra",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 2,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_ra_var_3",
+        "prompt": "Ra sun god with falcon head, solar disk crown, radiant golden aura, divine majesty, dramatic lighting, hades art style, vibrant colors, pen and ink technique, masterpiece",
+        "character": "Ra",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 3,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_ra_var_4",
+        "prompt": "Ra sun god with falcon head, solar disk crown, radiant golden aura, divine majesty, dramatic lighting, hades art style, vibrant colors, pen and ink technique, masterpiece",
+        "character": "Ra",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 4,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_isis_var_1",
+        "prompt": "Isis goddess with wings spread, protective pose, blue and gold colors, divine aura, hades game art style, pen and ink, dramatic shadows, masterpiece",
+        "character": "Isis",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 1,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_isis_var_2",
+        "prompt": "Isis goddess with wings spread, protective pose, blue and gold colors, divine aura, hades game art style, pen and ink, dramatic shadows, masterpiece",
+        "character": "Isis",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 2,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_isis_var_3",
+        "prompt": "Isis goddess with wings spread, protective pose, blue and gold colors, divine aura, hades game art style, pen and ink, dramatic shadows, masterpiece",
+        "character": "Isis",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 3,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_isis_var_4",
+        "prompt": "Isis goddess with wings spread, protective pose, blue and gold colors, divine aura, hades game art style, pen and ink, dramatic shadows, masterpiece",
+        "character": "Isis",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 4,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_set_var_1",
+        "prompt": "Set chaos god with unique creature head, red and black colors, menacing expression, dramatic lighting, hades art influence, pen and ink style, masterpiece",
+        "character": "Set",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 1,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_set_var_2",
+        "prompt": "Set chaos god with unique creature head, red and black colors, menacing expression, dramatic lighting, hades art influence, pen and ink style, masterpiece",
+        "character": "Set",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 2,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_set_var_3",
+        "prompt": "Set chaos god with unique creature head, red and black colors, menacing expression, dramatic lighting, hades art influence, pen and ink style, masterpiece",
+        "character": "Set",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 3,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_set_var_4",
+        "prompt": "Set chaos god with unique creature head, red and black colors, menacing expression, dramatic lighting, hades art influence, pen and ink style, masterpiece",
+        "character": "Set",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 4,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_thoth_var_1",
+        "prompt": "Thoth ibis god with scroll, wisdom pose, blue and silver colors, scholarly appearance, hades game art, pen and ink technique, masterpiece",
+        "character": "Thoth",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 1,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_thoth_var_2",
+        "prompt": "Thoth ibis god with scroll, wisdom pose, blue and silver colors, scholarly appearance, hades game art, pen and ink technique, masterpiece",
+        "character": "Thoth",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 2,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_thoth_var_3",
+        "prompt": "Thoth ibis god with scroll, wisdom pose, blue and silver colors, scholarly appearance, hades game art, pen and ink technique, masterpiece",
+        "character": "Thoth",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 3,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "deity_thoth_var_4",
+        "prompt": "Thoth ibis god with scroll, wisdom pose, blue and silver colors, scholarly appearance, hades game art, pen and ink technique, masterpiece",
+        "character": "Thoth",
+        "category": "deity",
+        "rarity": "legendary",
+        "variation": 4,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      }
+    ],
+    "estimated_time": 1800,
+    "quality_threshold": 0.9,
+    "max_attempts": 3
+  },
+  "batch_2_epic_heroes": {
+    "priority": 2,
+    "name": "Heróis Épicos",
+    "assets": [
+      {
+        "id": "hero_warrior_var_1",
+        "prompt": "Egyptian warrior hero in pharaonic armor, determined expression, battle stance, red gold colors, hades art style, dramatic lighting, pen and ink, masterpiece",
+        "character": "Egyptian Warrior",
+        "category": "hero",
+        "rarity": "epic",
+        "variation": 1,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "hero_warrior_var_2",
+        "prompt": "Egyptian warrior hero in pharaonic armor, determined expression, battle stance, red gold colors, hades art style, dramatic lighting, pen and ink, masterpiece",
+        "character": "Egyptian Warrior",
+        "category": "hero",
+        "rarity": "epic",
+        "variation": 2,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "hero_warrior_var_3",
+        "prompt": "Egyptian warrior hero in pharaonic armor, determined expression, battle stance, red gold colors, hades art style, dramatic lighting, pen and ink, masterpiece",
+        "character": "Egyptian Warrior",
+        "category": "hero",
+        "rarity": "epic",
+        "variation": 3,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "hero_warrior_var_4",
+        "prompt": "Egyptian warrior hero in pharaonic armor, determined expression, battle stance, red gold colors, hades art style, dramatic lighting, pen and ink, masterpiece",
+        "character": "Egyptian Warrior",
+        "category": "hero",
+        "rarity": "epic",
+        "variation": 4,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "hero_pharaoh_var_1",
+        "prompt": "Pharaoh hero with ceremonial khopesh sword, regal bearing, golden armor details, hades game art style, vibrant colors, dramatic shadows, masterpiece",
+        "character": "Divine Pharaoh",
+        "category": "hero",
+        "rarity": "epic",
+        "variation": 1,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "hero_pharaoh_var_2",
+        "prompt": "Pharaoh hero with ceremonial khopesh sword, regal bearing, golden armor details, hades game art style, vibrant colors, dramatic shadows, masterpiece",
+        "character": "Divine Pharaoh",
+        "category": "hero",
+        "rarity": "epic",
+        "variation": 2,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "hero_pharaoh_var_3",
+        "prompt": "Pharaoh hero with ceremonial khopesh sword, regal bearing, golden armor details, hades game art style, vibrant colors, dramatic shadows, masterpiece",
+        "character": "Divine Pharaoh",
+        "category": "hero",
+        "rarity": "epic",
+        "variation": 3,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "hero_pharaoh_var_4",
+        "prompt": "Pharaoh hero with ceremonial khopesh sword, regal bearing, golden armor details, hades game art style, vibrant colors, dramatic shadows, masterpiece",
+        "character": "Divine Pharaoh",
+        "category": "hero",
+        "rarity": "epic",
+        "variation": 4,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "hero_priestess_var_1",
+        "prompt": "Egyptian priestess hero with staff, flowing robes, mystical blue glow, hades art influence, pen and ink style, dramatic lighting, masterpiece",
+        "character": "High Priestess",
+        "category": "hero",
+        "rarity": "epic",
+        "variation": 1,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "hero_priestess_var_2",
+        "prompt": "Egyptian priestess hero with staff, flowing robes, mystical blue glow, hades art influence, pen and ink style, dramatic lighting, masterpiece",
+        "character": "High Priestess",
+        "category": "hero",
+        "rarity": "epic",
+        "variation": 2,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "hero_priestess_var_3",
+        "prompt": "Egyptian priestess hero with staff, flowing robes, mystical blue glow, hades art influence, pen and ink style, dramatic lighting, masterpiece",
+        "character": "High Priestess",
+        "category": "hero",
+        "rarity": "epic",
+        "variation": 3,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "hero_priestess_var_4",
+        "prompt": "Egyptian priestess hero with staff, flowing robes, mystical blue glow, hades art influence, pen and ink style, dramatic lighting, masterpiece",
+        "character": "High Priestess",
+        "category": "hero",
+        "rarity": "epic",
+        "variation": 4,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      }
+    ],
+    "estimated_time": 1080,
+    "quality_threshold": 0.85,
+    "max_attempts": 2
+  },
+  "batch_3_epic_environments": {
+    "priority": 3,
+    "name": "Ambientes Épicos",
+    "assets": [
+      {
+        "id": "env_temple_var_1",
+        "prompt": "Ancient egyptian temple interior, massive stone columns, hieroglyphic carvings, dramatic shadows, atmospheric lighting, hades game art, architectural grandeur, masterpiece",
+        "character": "Sacred Temple",
+        "category": "environment",
+        "rarity": "epic",
+        "variation": 1,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "env_temple_var_2",
+        "prompt": "Ancient egyptian temple interior, massive stone columns, hieroglyphic carvings, dramatic shadows, atmospheric lighting, hades game art, architectural grandeur, masterpiece",
+        "character": "Sacred Temple",
+        "category": "environment",
+        "rarity": "epic",
+        "variation": 2,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "env_temple_var_3",
+        "prompt": "Ancient egyptian temple interior, massive stone columns, hieroglyphic carvings, dramatic shadows, atmospheric lighting, hades game art, architectural grandeur, masterpiece",
+        "character": "Sacred Temple",
+        "category": "environment",
+        "rarity": "epic",
+        "variation": 3,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "env_temple_var_4",
+        "prompt": "Ancient egyptian temple interior, massive stone columns, hieroglyphic carvings, dramatic shadows, atmospheric lighting, hades game art, architectural grandeur, masterpiece",
+        "character": "Sacred Temple",
+        "category": "environment",
+        "rarity": "epic",
+        "variation": 4,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "env_tomb_var_1",
+        "prompt": "Egyptian tomb chamber, sarcophagus, treasure, atmospheric lighting, mystical ambiance, hades art influence, rich colors, detailed architecture, masterpiece",
+        "character": "Pharaoh's Tomb",
+        "category": "environment",
+        "rarity": "epic",
+        "variation": 1,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "env_tomb_var_2",
+        "prompt": "Egyptian tomb chamber, sarcophagus, treasure, atmospheric lighting, mystical ambiance, hades art influence, rich colors, detailed architecture, masterpiece",
+        "character": "Pharaoh's Tomb",
+        "category": "environment",
+        "rarity": "epic",
+        "variation": 2,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "env_tomb_var_3",
+        "prompt": "Egyptian tomb chamber, sarcophagus, treasure, atmospheric lighting, mystical ambiance, hades art influence, rich colors, detailed architecture, masterpiece",
+        "character": "Pharaoh's Tomb",
+        "category": "environment",
+        "rarity": "epic",
+        "variation": 3,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "env_tomb_var_4",
+        "prompt": "Egyptian tomb chamber, sarcophagus, treasure, atmospheric lighting, mystical ambiance, hades art influence, rich colors, detailed architecture, masterpiece",
+        "character": "Pharaoh's Tomb",
+        "category": "environment",
+        "rarity": "epic",
+        "variation": 4,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "env_pyramid_var_1",
+        "prompt": "Desert pyramid exterior, sandstorm, dramatic sky, epic scale architecture, egyptian grandeur, hades game art style, cinematic composition, masterpiece",
+        "character": "Great Pyramid",
+        "category": "environment",
+        "rarity": "epic",
+        "variation": 1,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "env_pyramid_var_2",
+        "prompt": "Desert pyramid exterior, sandstorm, dramatic sky, epic scale architecture, egyptian grandeur, hades game art style, cinematic composition, masterpiece",
+        "character": "Great Pyramid",
+        "category": "environment",
+        "rarity": "epic",
+        "variation": 2,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "env_pyramid_var_3",
+        "prompt": "Desert pyramid exterior, sandstorm, dramatic sky, epic scale architecture, egyptian grandeur, hades game art style, cinematic composition, masterpiece",
+        "character": "Great Pyramid",
+        "category": "environment",
+        "rarity": "epic",
+        "variation": 3,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "env_pyramid_var_4",
+        "prompt": "Desert pyramid exterior, sandstorm, dramatic sky, epic scale architecture, egyptian grandeur, hades game art style, cinematic composition, masterpiece",
+        "character": "Great Pyramid",
+        "category": "environment",
+        "rarity": "epic",
+        "variation": 4,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      }
+    ],
+    "estimated_time": 1080,
+    "quality_threshold": 0.85,
+    "max_attempts": 2
+  },
+  "batch_4_rare_creatures": {
+    "priority": 4,
+    "name": "Criaturas Raras",
+    "assets": [
+      {
+        "id": "creature_sphinx_var_1",
+        "prompt": "Ancient egyptian sphinx creature, lion body, human head, golden brown colors, mystical presence, hades game art, pen and ink technique, masterpiece",
+        "character": "Desert Sphinx",
+        "category": "creature",
+        "rarity": "rare",
+        "variation": 1,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "creature_sphinx_var_2",
+        "prompt": "Ancient egyptian sphinx creature, lion body, human head, golden brown colors, mystical presence, hades game art, pen and ink technique, masterpiece",
+        "character": "Desert Sphinx",
+        "category": "creature",
+        "rarity": "rare",
+        "variation": 2,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "creature_sphinx_var_3",
+        "prompt": "Ancient egyptian sphinx creature, lion body, human head, golden brown colors, mystical presence, hades game art, pen and ink technique, masterpiece",
+        "character": "Desert Sphinx",
+        "category": "creature",
+        "rarity": "rare",
+        "variation": 3,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "creature_sphinx_var_4",
+        "prompt": "Ancient egyptian sphinx creature, lion body, human head, golden brown colors, mystical presence, hades game art, pen and ink technique, masterpiece",
+        "character": "Desert Sphinx",
+        "category": "creature",
+        "rarity": "rare",
+        "variation": 4,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "creature_scarab_var_1",
+        "prompt": "Scarab beetle creature, metallic green blue carapace, magical glow, egyptian mysticism, hades art style, vibrant colors, detailed design, masterpiece",
+        "character": "Sacred Scarab",
+        "category": "creature",
+        "rarity": "rare",
+        "variation": 1,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "creature_scarab_var_2",
+        "prompt": "Scarab beetle creature, metallic green blue carapace, magical glow, egyptian mysticism, hades art style, vibrant colors, detailed design, masterpiece",
+        "character": "Sacred Scarab",
+        "category": "creature",
+        "rarity": "rare",
+        "variation": 2,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "creature_scarab_var_3",
+        "prompt": "Scarab beetle creature, metallic green blue carapace, magical glow, egyptian mysticism, hades art style, vibrant colors, detailed design, masterpiece",
+        "character": "Sacred Scarab",
+        "category": "creature",
+        "rarity": "rare",
+        "variation": 3,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "creature_scarab_var_4",
+        "prompt": "Scarab beetle creature, metallic green blue carapace, magical glow, egyptian mysticism, hades art style, vibrant colors, detailed design, masterpiece",
+        "character": "Sacred Scarab",
+        "category": "creature",
+        "rarity": "rare",
+        "variation": 4,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "creature_mummy_var_1",
+        "prompt": "Egyptian mummy guardian, bandaged undead, glowing eyes, protective stance, hades game influence, dramatic shadows, pen and ink style, masterpiece",
+        "character": "Mummy Guardian",
+        "category": "creature",
+        "rarity": "rare",
+        "variation": 1,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "creature_mummy_var_2",
+        "prompt": "Egyptian mummy guardian, bandaged undead, glowing eyes, protective stance, hades game influence, dramatic shadows, pen and ink style, masterpiece",
+        "character": "Mummy Guardian",
+        "category": "creature",
+        "rarity": "rare",
+        "variation": 2,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "creature_mummy_var_3",
+        "prompt": "Egyptian mummy guardian, bandaged undead, glowing eyes, protective stance, hades game influence, dramatic shadows, pen and ink style, masterpiece",
+        "character": "Mummy Guardian",
+        "category": "creature",
+        "rarity": "rare",
+        "variation": 3,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "creature_mummy_var_4",
+        "prompt": "Egyptian mummy guardian, bandaged undead, glowing eyes, protective stance, hades game influence, dramatic shadows, pen and ink style, masterpiece",
+        "character": "Mummy Guardian",
+        "category": "creature",
+        "rarity": "rare",
+        "variation": 4,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "creature_scorpion_var_1",
+        "prompt": "Desert scorpion creature, massive size, threatening pose, blue and gold carapace, egyptian underworld, hades art style, dramatic lighting, masterpiece",
+        "character": "Desert Scorpion",
+        "category": "creature",
+        "rarity": "rare",
+        "variation": 1,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "creature_scorpion_var_2",
+        "prompt": "Desert scorpion creature, massive size, threatening pose, blue and gold carapace, egyptian underworld, hades art style, dramatic lighting, masterpiece",
+        "character": "Desert Scorpion",
+        "category": "creature",
+        "rarity": "rare",
+        "variation": 2,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "creature_scorpion_var_3",
+        "prompt": "Desert scorpion creature, massive size, threatening pose, blue and gold carapace, egyptian underworld, hades art style, dramatic lighting, masterpiece",
+        "character": "Desert Scorpion",
+        "category": "creature",
+        "rarity": "rare",
+        "variation": 3,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "creature_scorpion_var_4",
+        "prompt": "Desert scorpion creature, massive size, threatening pose, blue and gold carapace, egyptian underworld, hades art style, dramatic lighting, masterpiece",
+        "character": "Desert Scorpion",
+        "category": "creature",
+        "rarity": "rare",
+        "variation": 4,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      }
+    ],
+    "estimated_time": 1440,
+    "quality_threshold": 0.8,
+    "max_attempts": 2
+  },
+  "batch_5_common_ui": {
+    "priority": 5,
+    "name": "Elementos UI Comuns",
+    "assets": [
+      {
+        "id": "ui_frame_var_1",
+        "prompt": "Egyptian ornate frame border, hieroglyphic decorations, gold and blue colors, game UI style, detailed ornamentation, hades art influence, masterpiece",
+        "character": "Sacred Frame",
+        "category": "ui_element",
+        "rarity": "common",
+        "variation": 1,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "ui_frame_var_2",
+        "prompt": "Egyptian ornate frame border, hieroglyphic decorations, gold and blue colors, game UI style, detailed ornamentation, hades art influence, masterpiece",
+        "character": "Sacred Frame",
+        "category": "ui_element",
+        "rarity": "common",
+        "variation": 2,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "ui_frame_var_3",
+        "prompt": "Egyptian ornate frame border, hieroglyphic decorations, gold and blue colors, game UI style, detailed ornamentation, hades art influence, masterpiece",
+        "character": "Sacred Frame",
+        "category": "ui_element",
+        "rarity": "common",
+        "variation": 3,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      },
+      {
+        "id": "ui_frame_var_4",
+        "prompt": "Egyptian ornate frame border, hieroglyphic decorations, gold and blue colors, game UI style, detailed ornamentation, hades art influence, masterpiece",
+        "character": "Sacred Frame",
+        "category": "ui_element",
+        "rarity": "common",
+        "variation": 4,
+        "estimated_gen_time": 60,
+        "estimated_qc_time": 30,
+        "status": "pending"
+      }
+    ],
+    "estimated_time": 360,
+    "quality_threshold": 0.75,
+    "max_attempts": 1
+  }
+}

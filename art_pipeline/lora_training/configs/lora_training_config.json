@@ -1,0 +1,60 @@
+{
+  "model": {
+    "pretrained_model_name_or_path": "stabilityai/stable-diffusion-xl-base-1.0",
+    "vae": null,
+    "text_encoder": null
+  },
+  "dataset": {
+    "train_data_dir": "dataset\\hades_egyptian\\images",
+    "caption_extension": ".txt",
+    "resolution": "1024,1024",
+    "batch_size": 1,
+    "enable_bucket": true,
+    "min_bucket_reso": 256,
+    "max_bucket_reso": 2048,
+    "bucket_reso_steps": 64
+  },
+  "training": {
+    "max_train_steps": 1000,
+    "learning_rate": 0.0001,
+    "lr_scheduler": "cosine",
+    "lr_warmup_steps": 100,
+    "gradient_accumulation_steps": 4,
+    "mixed_precision": "fp16",
+    "save_every_n_steps": 250,
+    "save_state": true,
+    "resume": null
+  },
+  "network": {
+    "network_module": "networks.lora",
+    "network_dim": 128,
+    "network_alpha": 32,
+    "network_args": {
+      "conv_dim": 64,
+      "conv_alpha": 32
+    }
+  },
+  "output": {
+    "output_dir": "output\\models",
+    "logging_dir": "output\\logs",
+    "log_with": "tensorboard",
+    "output_name": "hades_egyptian_lora"
+  },
+  "optimization": {
+    "optimizer_type": "AdamW8bit",
+    "xformers": true,
+    "cache_latents": true,
+    "cache_text_encoder_outputs": true,
+    "gradient_checkpointing": true
+  },
+  "validation": {
+    "sample_every_n_steps": 250,
+    "sample_prompts": [
+      "Anubis egyptian god, hades art style, masterpiece",
+      "Ra sun god, hades art style, vibrant colors",
+      "Egyptian hero warrior, hades art style, detailed"
+    ],
+    "sample_sampler": "euler_a",
+    "sample_steps": 20
+  }
+}

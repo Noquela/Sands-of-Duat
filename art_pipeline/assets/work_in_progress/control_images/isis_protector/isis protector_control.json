@@ -1,0 +1,22 @@
+{
+  "character_name": "Isis Protector",
+  "character_type": "deity",
+  "pose_reference": {
+    "pose_type": "deity_majestic",
+    "description": "Pose majestosa de divindade - postura ereta, braços abertos",
+    "character_type": "deity",
+    "keypoints": "standing_arms_spread",
+    "recommended_strength": 0.8,
+    "guidance_range": [
+      0.0,
+      1.0
+    ]
+  },
+  "depth_map_path": "..\\..\\assets\\work_in_progress\\control_images\\isis_protector\\isis protector_depth.png",
+  "generation_settings": {
+    "width": 1024,
+    "height": 1024,
+    "controlnet_strength": 0.8
+  },
+  "created": "2025-08-09T13:17:09.557701"
+}

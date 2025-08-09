@@ -1,0 +1,104 @@
+{
+  "total_prompts": 16,
+  "target_images": 64,
+  "style": "hades_egyptian_fusion",
+  "prompts": [
+    {
+      "id": 0,
+      "prompt": "Anubis egyptian god with jackal head, golden collar, dramatic chiaroscuro lighting, pen and ink style",
+      "variations": 4,
+      "category": "deity"
+    },
+    {
+      "id": 1,
+      "prompt": "Ra sun god with falcon head, solar disk crown, heroic proportions, vibrant colors",
+      "variations": 4,
+      "category": "deity"
+    },
+    {
+      "id": 2,
+      "prompt": "Isis goddess with wings spread, protective pose, blue and gold colors, divine aura",
+      "variations": 4,
+      "category": "deity"
+    },
+    {
+      "id": 3,
+      "prompt": "Set chaos god with unique creature head, red and black colors, menacing expression",
+      "variations": 4,
+      "category": "deity"
+    },
+    {
+      "id": 4,
+      "prompt": "Thoth ibis god with scroll, wisdom pose, blue and silver colors, scholarly appearance",
+      "variations": 4,
+      "category": "deity"
+    },
+    {
+      "id": 5,
+      "prompt": "Egyptian warrior hero in pharaonic armor, determined expression, battle stance, red gold colors",
+      "variations": 4,
+      "category": "hero"
+    },
+    {
+      "id": 6,
+      "prompt": "Pharaoh hero with ceremonial khopesh sword, regal bearing, golden armor details",
+      "variations": 4,
+      "category": "hero"
+    },
+    {
+      "id": 7,
+      "prompt": "Egyptian priestess hero with staff, flowing robes, mystical blue glow",
+      "variations": 4,
+      "category": "hero"
+    },
+    {
+      "id": 8,
+      "prompt": "Ancient egyptian sphinx creature, lion body, human head, golden brown colors",
+      "variations": 4,
+      "category": "creature"
+    },
+    {
+      "id": 9,
+      "prompt": "Scarab beetle creature, metallic green blue carapace, magical glow",
+      "variations": 4,
+      "category": "creature"
+    },
+    {
+      "id": 10,
+      "prompt": "Egyptian mummy guardian, bandaged undead, glowing eyes, protective stance",
+      "variations": 4,
+      "category": "misc"
+    },
+    {
+      "id": 11,
+      "prompt": "Ancient egyptian temple interior, massive stone columns, hieroglyphic carvings, dramatic shadows",
+      "variations": 4,
+      "category": "environment"
+    },
+    {
+      "id": 12,
+      "prompt": "Egyptian tomb chamber, sarcophagus, treasure, atmospheric lighting, mystical ambiance",
+      "variations": 4,
+      "category": "environment"
+    },
+    {
+      "id": 13,
+      "prompt": "Desert pyramid exterior, sandstorm, dramatic sky, epic scale architecture",
+      "variations": 4,
+      "category": "environment"
+    },
+    {
+      "id": 14,
+      "prompt": "Egyptian ornate frame border, hieroglyphic decorations, gold and blue colors, game UI style",
+      "variations": 4,
+      "category": "ui_element"
+    },
+    {
+      "id": 15,
+      "prompt": "Ancient papyrus scroll background, aged texture, hieroglyphic text, mystical symbols",
+      "variations": 4,
+      "category": "ui_element"
+    }
+  ],
+  "created": "2025-08-09T13:29:57.001446"
+}

@@ -4,8 +4,8 @@ SANDS OF DUAT - ASSET LOADING SYSTEM
 ===================================
 
 Manages loading and caching of all Egyptian assets including:
-- 71 high-quality Egyptian artwork pieces from final_dataset
-- Card artwork, backgrounds, UI elements
+- 44 high-quality AI-generated game assets from generated_art
+- Card artwork, backgrounds, character portraits, UI elements
 - Proper memory management and performance optimization
 """
 
@@ -18,38 +18,43 @@ from enum import Enum
 
 logger = logging.getLogger(__name__)
 
-class AssetCategory(Enum):
-    """Categories of Egyptian assets"""
-    GODS = "egyptian_god"
-    ARTIFACTS = "egyptian_artifact"
-    OBJECTS = "egyptian_object"
-    MYTHS = "egyptian_myth"
-    STYLES = "egyptian_style"
-    SCENES = "egyptian_god_scene"
-    UNDERWORLD_LOCATIONS = "underworld_location"
-    UNDERWORLD_SCENES = "underworld_scene"
-    COMPLEX = "egyptian_complex"
+class AssetType(Enum):
+    """Types of generated game assets"""
+    CARD_LEGENDARY = "legendary"
+    CARD_EPIC = "epic" 
+    CARD_RARE = "rare"
+    CARD_COMMON = "common"
+    BACKGROUND = "bg_"
+    CHARACTER = "char_"
+    UI_FRAME = "ui_card_frame_"
+    UI_ICON = "ui_"
+    UI_BUTTON = "ui_"
 
-class EgyptianAssetLoader:
+class GeneratedAssetLoader:
     """
-    Manages loading and caching of all Egyptian assets.
+    Manages loading and caching of AI-generated game assets.
     
     Features:
     - Lazy loading for performance
-    - Asset categorization by Egyptian theme
+    - Asset categorization by game function
     - Memory management with LRU cache
-    - Quality-based asset selection
-    - Metadata integration
+    - Direct access to generated artwork
+    - Card rarity mapping
     """
     
     def __init__(self, assets_path: Optional[Path] = None):
         self.assets_path = assets_path or self._get_assets_path()
-        self.final_dataset_path = self.assets_path / "images" / "lora_training" / "final_dataset"
+        self.generated_art_path = self.assets_path / "generated_art"
         
         # Asset caches
         self._image_cache: Dict[str, pygame.Surface] = {}
-        self._metadata_cache: Dict[str, dict] = {}
-        self._asset_registry: Dict[AssetCategory, List[str]] = {}
+        self._asset_registry: Dict[AssetType, List[str]] = {}
+        
+        # Game-specific asset mappings
+        self.card_art_mapping = self._create_card_mapping()
+        self.background_mapping = self._create_background_mapping()
+        self.character_mapping = self._create_character_mapping()
+        self.ui_mapping = self._create_ui_mapping()
         
         # Performance settings
         self.max_cache_size = 100  # Maximum cached images
@@ -65,66 +70,143 @@ class EgyptianAssetLoader:
     
     def _initialize(self):
         """Initialize the asset loading system."""
-        logger.info("Initializing Egyptian Asset Loader...")
+        logger.info("Initializing Generated Asset Loader...")
         
         # Check if assets exist
-        if not self.final_dataset_path.exists():
-            logger.error(f"Final dataset not found at: {self.final_dataset_path}")
-            raise FileNotFoundError(f"Egyptian assets not found at {self.final_dataset_path}")
-        
-        # Load metadata if available
-        self._load_metadata()
+        if not self.generated_art_path.exists():
+            logger.error(f"Generated art not found at: {self.generated_art_path}")
+            raise FileNotFoundError(f"Generated assets not found at {self.generated_art_path}")
         
         # Scan and categorize assets
-        self._scan_assets()
+        self._scan_generated_assets()
         
-        logger.info(f"Asset loader initialized with {self.get_total_asset_count()} Egyptian assets")
+        logger.info(f"Asset loader initialized with {self.get_total_asset_count()} generated assets")
     
-    def _load_metadata(self):
-        """Load metadata from the final dataset."""
-        metadata_file = self.final_dataset_path / "metadata.jsonl"
-        if metadata_file.exists():
-            try:
-                with open(metadata_file, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        if line.strip():
-                            data = json.loads(line)
-                            filename = data.get('file_name', '')
-                            if filename:
-                                self._metadata_cache[filename] = data
-                logger.info(f"Loaded metadata for {len(self._metadata_cache)} assets")
-            except Exception as e:
-                logger.warning(f"Could not load metadata: {e}")
+    def _create_card_mapping(self) -> Dict[str, str]:
+        """Create mapping of card names to their artwork files."""
+        return {
+            # Legendary Cards
+            'Ra - Sun God': 'ra_sun_god.png',
+            'Anubis - Judgment': 'anubis_judgment.png', 
+            'Osiris - Resurrection': 'osiris_resurrection.png',
+            'Horus - Divine Sight': 'horus_divine_sight.png',
+            'Isis - Protection': 'isis_protection.png',
+            
+            # Epic Cards
+            'Thoth - Wisdom': 'thoth_wisdom.png',
+            'Bastet - Feline Grace': 'bastet_feline_grace.png',
+            'Set - Chaos Storm': 'set_chaos_storm.png',
+            'Sekhmet - War Cry': 'sekhmet_war_cry.png',
+            'Pharaoh - Divine Mandate': 'pharaoh_divine_mandate.png',
+            'Pyramid Power': 'pyramid_power.png',
+            'Ankh Blessing': 'ankh_blessing.png',
+            
+            # Rare Cards
+            'Mummy Wrath': 'mummy_wrath.png',
+            'Scarab Swarm': 'scarab_swarm.png',
+            'Desert Whisper': 'desert_whisper.png',
+            'Temple Offering': 'temple_offering.png',
+            'Canopic Jar Ritual': 'canopic_jar_ritual.png',
+            
+            # Common Cards
+            'Sand Grain': 'sand_grain.png',
+            'Papyrus Scroll': 'papyrus_scroll.png',
+            'Desert Meditation': 'desert_meditation.png',
+            'Sacred Scarab': 'sacred_scarab.png',
+            'Whisper of Thoth': 'whisper_of_thoth.png'
+        }
     
-    def _scan_assets(self):
-        """Scan and categorize all available Egyptian assets."""
-        for category in AssetCategory:
-            self._asset_registry[category] = []
+    def _create_background_mapping(self) -> Dict[str, str]:
+        """Create mapping of game screens to background files."""
+        return {
+            'combat': 'bg_combat_underworld.png',
+            'menu': 'bg_menu_temple.png', 
+            'deck_builder': 'bg_deck_builder_sanctum.png',
+            'victory': 'bg_victory_sunrise.png',
+            'defeat': 'bg_defeat_dusk.png'
+        }
+    
+    def _create_character_mapping(self) -> Dict[str, str]:
+        """Create mapping of characters to portrait files."""
+        return {
+            'player_hero': 'char_player_hero.png',
+            'anubis_boss': 'char_anubis_boss.png',
+            'mummy_guardian': 'char_mummy_guardian.png',
+            'desert_scorpion': 'char_desert_scorpion.png',
+            'sand_elemental': 'char_sand_elemental.png'
+        }
+    
+    def _create_ui_mapping(self) -> Dict[str, str]:
+        """Create mapping of UI elements to their files."""
+        return {
+            # Card Frames
+            'frame_legendary': 'ui_card_frame_legendary.png',
+            'frame_epic': 'ui_card_frame_epic.png',
+            'frame_rare': 'ui_card_frame_rare.png',
+            'frame_common': 'ui_card_frame_common.png',
+            
+            # Icons
+            'health_icon': 'ui_ankh_health_icon.png',
+            'energy_icon': 'ui_scarab_energy_icon.png',
+            'time_icon': 'ui_hourglass_icon.png',
+            'victory_icon': 'ui_pyramid_victory_icon.png',
+            
+            # Buttons
+            'play_button': 'ui_play_button.png',
+            'deck_button': 'ui_deck_button.png',
+            'settings_button': 'ui_settings_button.png',
+            'exit_button': 'ui_exit_button.png'
+        }
+    
+    def _scan_generated_assets(self):
+        """Scan and categorize all generated game assets."""
+        for asset_type in AssetType:
+            self._asset_registry[asset_type] = []
         
-        # Scan PNG files in final dataset
-        png_files = list(self.final_dataset_path.glob("*.png"))
+        # Scan PNG files in generated_art directory
+        png_files = list(self.generated_art_path.glob("*.png"))
         
         for png_file in png_files:
             filename = png_file.name
             
-            # Categorize by filename prefix
-            for category in AssetCategory:
-                if filename.startswith(category.value):
-                    self._asset_registry[category].append(filename)
-                    break
+            # Categorize by filename patterns
+            if filename.startswith('bg_'):
+                self._asset_registry[AssetType.BACKGROUND].append(filename)
+            elif filename.startswith('char_'):
+                self._asset_registry[AssetType.CHARACTER].append(filename)
+            elif filename.startswith('ui_card_frame_'):
+                self._asset_registry[AssetType.UI_FRAME].append(filename)
+            elif filename.startswith('ui_') and ('button' in filename or 'icon' in filename):
+                if 'button' in filename:
+                    self._asset_registry[AssetType.UI_BUTTON].append(filename)
+                else:
+                    self._asset_registry[AssetType.UI_ICON].append(filename)
+            else:
+                # Card artwork - categorize by card name mapping
+                for card_name, card_file in self.card_art_mapping.items():
+                    if filename == card_file:
+                        if 'ra_sun_god' in filename or 'anubis_judgment' in filename or 'osiris_resurrection' in filename or 'horus_divine_sight' in filename or 'isis_protection' in filename:
+                            self._asset_registry[AssetType.CARD_LEGENDARY].append(filename)
+                        elif 'thoth_wisdom' in filename or 'bastet_feline_grace' in filename or 'set_chaos_storm' in filename or 'sekhmet_war_cry' in filename or 'pharaoh_divine_mandate' in filename or 'pyramid_power' in filename or 'ankh_blessing' in filename:
+                            self._asset_registry[AssetType.CARD_EPIC].append(filename)
+                        elif 'mummy_wrath' in filename or 'scarab_swarm' in filename or 'desert_whisper' in filename or 'temple_offering' in filename or 'canopic_jar_ritual' in filename:
+                            self._asset_registry[AssetType.CARD_RARE].append(filename)
+                        else:
+                            self._asset_registry[AssetType.CARD_COMMON].append(filename)
+                        break
         
         # Log categorization results
-        for category, files in self._asset_registry.items():
+        for asset_type, files in self._asset_registry.items():
             if files:
-                logger.info(f"{category.name}: {len(files)} assets")
+                logger.info(f"{asset_type.name}: {len(files)} assets")
     
     def get_total_asset_count(self) -> int:
         """Get total number of available assets."""
         return sum(len(files) for files in self._asset_registry.values())
     
-    def get_assets_by_category(self, category: AssetCategory) -> List[str]:
-        """Get all asset filenames for a specific category."""
-        return self._asset_registry.get(category, []).copy()
+    def get_assets_by_type(self, asset_type: AssetType) -> List[str]:
+        """Get all asset filenames for a specific type."""
+        return self._asset_registry.get(asset_type, []).copy()
     
     def load_image(self, filename: str, size: Optional[Tuple[int, int]] = None) -> Optional[pygame.Surface]:
         """
@@ -144,7 +226,7 @@ class EgyptianAssetLoader:
             return self._image_cache[cache_key]
         
         # Load from disk
-        image_path = self.final_dataset_path / filename
+        image_path = self.generated_art_path / filename
         if not image_path.exists():
             logger.warning(f"Asset not found: {filename}")
             return None
@@ -177,72 +259,134 @@ class EgyptianAssetLoader:
         
         self._image_cache[cache_key] = surface
     
-    def load_card_art(self, category: AssetCategory, index: int = 0) -> Optional[pygame.Surface]:
+    def load_card_art_by_name(self, card_name: str) -> Optional[pygame.Surface]:
         """
-        Load card art from a specific category.
+        Load card art by card name.
         
         Args:
-            category: Asset category to load from
-            index: Index within the category (0-based)
+            card_name: Name of the card to load art for
             
         Returns:
             Card-sized pygame Surface or None
         """
-        assets = self.get_assets_by_category(category)
-        if not assets or index >= len(assets):
-            logger.warning(f"No asset at index {index} for category {category.name}")
+        filename = self.card_art_mapping.get(card_name)
+        if not filename:
+            logger.warning(f"No artwork mapped for card: {card_name}")
             return None
         
-        filename = assets[index]
         return self.load_image(filename, self.target_card_size)
     
-    def get_random_card_art(self, category: AssetCategory) -> Optional[pygame.Surface]:
-        """Get random card art from a category."""
+    def load_background(self, screen_name: str) -> Optional[pygame.Surface]:
+        """
+        Load background for a specific screen.
+        
+        Args:
+            screen_name: Name of the screen (combat, menu, deck_builder, etc.)
+            
+        Returns:
+            Full-sized pygame Surface or None
+        """
+        filename = self.background_mapping.get(screen_name)
+        if not filename:
+            logger.warning(f"No background mapped for screen: {screen_name}")
+            return None
+        
+        return self.load_image(filename)
+    
+    def load_character_portrait(self, character_name: str) -> Optional[pygame.Surface]:
+        """
+        Load character portrait by name.
+        
+        Args:
+            character_name: Name of the character
+            
+        Returns:
+            Portrait-sized pygame Surface or None
+        """
+        filename = self.character_mapping.get(character_name)
+        if not filename:
+            logger.warning(f"No portrait mapped for character: {character_name}")
+            return None
+        
+        return self.load_image(filename, (512, 768))  # Portrait aspect ratio
+    
+    def load_ui_element(self, element_name: str) -> Optional[pygame.Surface]:
+        """
+        Load UI element by name.
+        
+        Args:
+            element_name: Name of the UI element
+            
+        Returns:
+            UI-sized pygame Surface or None
+        """
+        filename = self.ui_mapping.get(element_name)
+        if not filename:
+            logger.warning(f"No UI element mapped for: {element_name}")
+            return None
+        
+        return self.load_image(filename)
+    
+    def get_random_card_art_by_rarity(self, rarity: str) -> Optional[pygame.Surface]:
+        """Get random card art by rarity level."""
         import random
-        assets = self.get_assets_by_category(category)
+        
+        rarity_mapping = {
+            'legendary': AssetType.CARD_LEGENDARY,
+            'epic': AssetType.CARD_EPIC, 
+            'rare': AssetType.CARD_RARE,
+            'common': AssetType.CARD_COMMON
+        }
+        
+        asset_type = rarity_mapping.get(rarity.lower())
+        if not asset_type:
+            return None
+            
+        assets = self.get_assets_by_type(asset_type)
         if not assets:
             return None
         
         filename = random.choice(assets)
         return self.load_image(filename, self.target_card_size)
     
-    def get_highest_quality_asset(self, category: AssetCategory) -> Optional[pygame.Surface]:
-        """Get the highest quality asset from a category based on filename quality indicators."""
-        assets = self.get_assets_by_category(category)
-        if not assets:
-            return None
-        
-        # Sort by quality indicator in filename (higher q values = better quality)
-        def extract_quality(filename: str) -> int:
-            try:
-                # Look for pattern like "_q84.png"
-                parts = filename.split('_q')
-                if len(parts) > 1:
-                    quality_str = parts[-1].split('.')[0]
-                    return int(quality_str)
-            except (ValueError, IndexError):
-                pass
-            return 0
-        
-        best_asset = max(assets, key=extract_quality)
-        return self.load_image(best_asset, self.target_card_size)
+    def get_card_frame_by_rarity(self, rarity: str) -> Optional[pygame.Surface]:
+        """Get card frame by rarity level."""
+        frame_name = f"frame_{rarity.lower()}"
+        return self.load_ui_element(frame_name)
     
     def preload_essential_assets(self):
         """Preload essential assets for smooth gameplay."""
         logger.info("Preloading essential Egyptian assets...")
         
-        # Preload one high-quality asset from each category for immediate use
-        for category in AssetCategory:
-            assets = self.get_assets_by_category(category)
+        # Preload essential assets for immediate use
+        # Preload one asset from each type
+        for asset_type in AssetType:
+            assets = self.get_assets_by_type(asset_type)
             if assets:
-                # Load the first asset from each category
-                self.load_card_art(category, 0)
+                # Load the first asset from each type
+                self.load_image(assets[0])
+        
+        # Preload key backgrounds
+        self.load_background('menu')
+        self.load_background('combat')
         
         logger.info("Essential assets preloaded")
     
-    def get_asset_metadata(self, filename: str) -> Dict:
-        """Get metadata for a specific asset."""
-        return self._metadata_cache.get(filename, {})
+    def get_all_card_names(self) -> List[str]:
+        """Get all available card names."""
+        return list(self.card_art_mapping.keys())
+    
+    def get_all_backgrounds(self) -> List[str]:
+        """Get all available background screen names."""
+        return list(self.background_mapping.keys())
+    
+    def get_all_characters(self) -> List[str]:
+        """Get all available character names."""
+        return list(self.character_mapping.keys())
+    
+    def get_all_ui_elements(self) -> List[str]:
+        """Get all available UI element names."""
+        return list(self.ui_mapping.keys())
     
     def clear_cache(self):
         """Clear the image cache to free memory."""
@@ -254,23 +398,23 @@ class EgyptianAssetLoader:
         return {
             'cached_images': len(self._image_cache),
             'max_cache_size': self.max_cache_size,
-            'total_categories': len(AssetCategory),
+            'total_types': len(AssetType),
             'total_assets': self.get_total_asset_count()
         }
 
 # Global asset loader instance
-_asset_loader: Optional[EgyptianAssetLoader] = None
+_asset_loader: Optional[GeneratedAssetLoader] = None
 
-def get_asset_loader() -> EgyptianAssetLoader:
+def get_asset_loader() -> GeneratedAssetLoader:
     """Get the global asset loader instance."""
     global _asset_loader
     if _asset_loader is None:
-        _asset_loader = EgyptianAssetLoader()
+        _asset_loader = GeneratedAssetLoader()
     return _asset_loader
 
 def initialize_assets():
     """Initialize the global asset loader."""
     global _asset_loader
-    _asset_loader = EgyptianAssetLoader()
+    _asset_loader = GeneratedAssetLoader()
     _asset_loader.preload_essential_assets()
     return _asset_loader

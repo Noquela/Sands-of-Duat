@@ -1,0 +1,27 @@
+{
+  "asset_info": {
+    "filename": "hades_egyptian_characters_rare_mummy_guardian_rare_20250809_150008_20250809.png",
+    "original_filename": "hades_egyptian_mummy_guardian_rare_20250809_150008.png",
+    "category": "characters",
+    "type": "deity",
+    "rarity": "rare",
+    "integration_date": "2025-08-09T15:03:02.627494",
+    "quality_tier": "PROFESSIONAL"
+  },
+  "game_integration": {
+    "target_directory": "characters",
+    "usage_context": "Elite enemies, special encounters, unique creatures",
+    "implementation_priority": "MEDIUM - Enhanced content"
+  },
+  "technical_specs": {
+    "format": "PNG",
+    "optimized": true,
+    "professional_polish": true,
+    "game_ready": true
+  },
+  "hades_egyptian_certification": {
+    "style_compliance": "CERTIFIED",
+    "quality_standard": "PROFESSIONAL AAA",
+    "production_ready": true
+  }
+}
