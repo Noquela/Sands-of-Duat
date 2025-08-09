@@ -297,9 +297,9 @@ class ProfessionalCombat:
         self.battlefield_particles = []
         self.combat_effects = []
         
-        # Initialize combatants
+        # Initialize combatants - BALANCED STATS
         self.player = Combatant("PHARAOH", 30, 30, 3, 10)
-        self.enemy = Combatant("ANUBIS", 35, 35, 2, 8)  # Enemy now has mana
+        self.enemy = Combatant("ANUBIS", 30, 30, 3, 8)  # Equal health, equal starting mana
         
         # Card system
         self.player_hand = self._create_starting_hand()
@@ -353,11 +353,11 @@ class ProfessionalCombat:
     def _create_starting_hand(self) -> List[CombatCard3D]:
         """Create starting hand of cards."""
         card_data = [
-            CombatCard("SACRED SCARAB", 2, 2, 1, "Swift desert guardian"),
+            CombatCard("SACRED SCARAB", 2, 2, 2, "Swift desert guardian"),  # BUFFED: 2/2 instead of 2/1
             CombatCard("TEMPLE GUARD", 3, 2, 4, "Protects the sacred halls"),
-            CombatCard("DIVINE LIGHTNING", 4, 5, 0, "Strike enemies with Ra's power", card_type="spell"),
+            CombatCard("DIVINE LIGHTNING", 3, 5, 0, "Strike enemies with Ra's power", card_type="spell"),  # BUFFED: 3 cost instead of 4
             CombatCard("ANUBIS BLESSING", 3, 3, 3, "Judge the worthy souls", "rare"),
-            CombatCard("PYRAMID POWER", 6, 7, 7, "Ancient monument of power", "legendary"),
+            CombatCard("PYRAMID POWER", 6, 6, 8, "Ancient monument of power", "legendary"),  # BALANCED: 6/8 instead of 7/7
         ]
         
         cards = []
@@ -372,9 +372,9 @@ class ProfessionalCombat:
         enemy_card_data = [
             CombatCard("SHADOW SERVANT", 2, 2, 2, "Anubis's minion from the underworld"),
             CombatCard("JUDGMENT SCALE", 3, 1, 4, "Weighs the hearts of mortals", "rare"),
-            CombatCard("UNDERWORLD CURSE", 4, 4, 0, "Deals 4 damage to enemy", card_type="spell"),
+            CombatCard("UNDERWORLD CURSE", 3, 4, 0, "Deals 4 damage to enemy", card_type="spell"),  # BUFFED: 3 cost instead of 4
             CombatCard("DEATH'S EMBRACE", 5, 3, 6, "Gains +1/+1 when enemy dies", "rare"),
-            CombatCard("ANUBIS'S WRATH", 7, 8, 8, "Legendary guardian of the dead", "legendary"),
+            CombatCard("ANUBIS'S WRATH", 7, 7, 8, "Legendary guardian of the dead", "legendary"),  # BALANCED: 7/8 instead of 8/8
         ]
         
         cards = []
