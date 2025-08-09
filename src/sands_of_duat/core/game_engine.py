@@ -19,6 +19,7 @@ from ..ui.screens.main_menu import MainMenuScreen, MenuAction
 from ..ui.screens.loading_screen import LoadingScreen, LoadingType
 from ..ui.screens.transition_screen import TransitionScreen, TransitionType
 from ..ui.screens.professional_deck_builder import ProfessionalDeckBuilder, DeckBuilderAction
+from ..ui.screens.professional_combat import ProfessionalCombat, CombatAction
 
 class GameEngine:
     """
@@ -62,6 +63,7 @@ class GameEngine:
         # UI Screens
         self.main_menu_screen = MainMenuScreen(self._handle_menu_action)
         self.deck_builder_screen = ProfessionalDeckBuilder(self._handle_deck_builder_action)
+        self.combat_screen = ProfessionalCombat(self._handle_combat_action)
         self.current_loading_screen: Optional[LoadingScreen] = None
         self.current_transition_screen: Optional[TransitionScreen] = None
         
@@ -140,13 +142,13 @@ class GameEngine:
             self.main_menu_screen.render(surface)
         elif state == GameState.DECK_BUILDER:
             self.deck_builder_screen.render(surface)
+        elif state == GameState.COMBAT:
+            self.combat_screen.render(surface)
         elif state == GameState.LOADING:
             if self.current_loading_screen:
                 self.current_loading_screen.render(surface)
             else:
                 self._render_loading_placeholder(surface)
-        elif state == GameState.COMBAT:
-            self._render_combat_placeholder(surface)
         else:
             self._render_default_placeholder(surface, state)
     
@@ -211,6 +213,16 @@ class GameEngine:
             self.logger.info("📤 Deck exported")
             # TODO: Implement deck export
     
+    def _handle_combat_action(self, action: CombatAction):
+        """Handle actions from the combat system."""
+        if action == CombatAction.BACK_TO_MENU:
+            self._start_transition(TransitionType.RETURNING_HOME, GameState.COMBAT, GameState.MAIN_MENU)
+        elif action == CombatAction.END_TURN:
+            self.logger.info("🎯 Turn ended")
+        elif action == CombatAction.SURRENDER:
+            self.logger.info("🏳️ Combat surrendered")
+            self._start_transition(TransitionType.RETURNING_HOME, GameState.COMBAT, GameState.MAIN_MENU)
+    
     def _start_transition(self, transition_type: TransitionType, from_state: GameState, to_state: GameState):
         """Start a transition between game states."""
         self.current_transition_screen = TransitionScreen(
@@ -230,6 +242,8 @@ class GameEngine:
             self.main_menu_screen.reset_animations()
         elif target_state == GameState.DECK_BUILDER:
             self.deck_builder_screen.reset_animations()
+        elif target_state == GameState.COMBAT:
+            self.combat_screen.reset_animations()
         
         self.state_manager.change_state(target_state, "fade", 0.5)
     
@@ -255,6 +269,9 @@ class GameEngine:
         elif current_state == GameState.DECK_BUILDER:
             mouse_pressed = any(self.mouse_buttons)
             self.deck_builder_screen.update(dt, self.current_events, self.mouse_pos, mouse_pressed)
+        elif current_state == GameState.COMBAT:
+            mouse_pressed = any(self.mouse_buttons)
+            self.combat_screen.update(dt, self.current_events, self.mouse_pos, mouse_pressed)
         elif current_state == GameState.LOADING:
             if self.current_loading_screen:
                 self.current_loading_screen.update(dt)
