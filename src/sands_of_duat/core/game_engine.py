@@ -20,6 +20,8 @@ from ..ui.screens.loading_screen import LoadingScreen, LoadingType
 from ..ui.screens.transition_screen import TransitionScreen, TransitionType
 from ..ui.screens.professional_deck_builder import ProfessionalDeckBuilder, DeckBuilderAction
 from ..ui.screens.professional_combat import ProfessionalCombat, CombatAction
+from ..ui.screens.collection_screen import CollectionScreen, CollectionAction
+from ..ui.screens.settings_screen import SettingsScreen, SettingsAction
 
 class GameEngine:
     """
@@ -64,6 +66,8 @@ class GameEngine:
         self.main_menu_screen = MainMenuScreen(self._handle_menu_action)
         self.deck_builder_screen = ProfessionalDeckBuilder(self._handle_deck_builder_action)
         self.combat_screen = ProfessionalCombat(self._handle_combat_action)
+        self.collection_screen = CollectionScreen(self._handle_collection_action)
+        self.settings_screen = SettingsScreen(self._handle_settings_action)
         self.current_loading_screen: Optional[LoadingScreen] = None
         self.current_transition_screen: Optional[TransitionScreen] = None
         
@@ -144,6 +148,10 @@ class GameEngine:
             self.deck_builder_screen.render(surface)
         elif state == GameState.COMBAT:
             self.combat_screen.render(surface)
+        elif state == GameState.COLLECTION:
+            self.collection_screen.render(surface)
+        elif state == GameState.SETTINGS:
+            self.settings_screen.render(surface)
         elif state == GameState.LOADING:
             if self.current_loading_screen:
                 self.current_loading_screen.render(surface)
@@ -223,6 +231,16 @@ class GameEngine:
             self.logger.info("🏳️ Combat surrendered")
             self._start_transition(TransitionType.RETURNING_HOME, GameState.COMBAT, GameState.MAIN_MENU)
     
+    def _handle_collection_action(self, action: CollectionAction):
+        """Handle actions from the collection screen."""
+        if action == CollectionAction.BACK_TO_MENU:
+            self._start_transition(TransitionType.RETURNING_HOME, GameState.COLLECTION, GameState.MAIN_MENU)
+    
+    def _handle_settings_action(self, action: SettingsAction):
+        """Handle actions from the settings screen."""
+        if action == SettingsAction.BACK_TO_MENU:
+            self._start_transition(TransitionType.RETURNING_HOME, GameState.SETTINGS, GameState.MAIN_MENU)
+    
     def _start_transition(self, transition_type: TransitionType, from_state: GameState, to_state: GameState):
         """Start a transition between game states."""
         self.current_transition_screen = TransitionScreen(
@@ -244,6 +262,10 @@ class GameEngine:
             self.deck_builder_screen.reset_animations()
         elif target_state == GameState.COMBAT:
             self.combat_screen.reset_animations()
+        elif target_state == GameState.COLLECTION:
+            self.collection_screen.reset_animations()
+        elif target_state == GameState.SETTINGS:
+            self.settings_screen.reset_animations()
         
         self.state_manager.change_state(target_state, "fade", 0.5)
     
@@ -272,6 +294,12 @@ class GameEngine:
         elif current_state == GameState.COMBAT:
             mouse_pressed = any(self.mouse_buttons)
             self.combat_screen.update(dt, self.current_events, self.mouse_pos, mouse_pressed)
+        elif current_state == GameState.COLLECTION:
+            mouse_pressed = any(self.mouse_buttons)
+            self.collection_screen.update(dt, self.current_events, self.mouse_pos, mouse_pressed)
+        elif current_state == GameState.SETTINGS:
+            mouse_pressed = any(self.mouse_buttons)
+            self.settings_screen.update(dt, self.current_events, self.mouse_pos, mouse_pressed)
         elif current_state == GameState.LOADING:
             if self.current_loading_screen:
                 self.current_loading_screen.update(dt)

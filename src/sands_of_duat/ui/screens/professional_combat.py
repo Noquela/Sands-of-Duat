@@ -290,6 +290,7 @@ class ProfessionalCombat:
         self.animation_time = 0.0
         self.fade_in_progress = 0.0
         self.fade_in_complete = False
+        self.enemy_turn_timer = 0.0  # Timer for enemy turn delay
         
         # Background and effects
         self.background_surface = self._create_background()
@@ -298,10 +299,11 @@ class ProfessionalCombat:
         
         # Initialize combatants
         self.player = Combatant("PHARAOH", 30, 30, 3, 10)
-        self.enemy = Combatant("ANUBIS", 35, 35, 0, 0)
+        self.enemy = Combatant("ANUBIS", 35, 35, 2, 8)  # Enemy now has mana
         
         # Card system
         self.player_hand = self._create_starting_hand()
+        self.enemy_hand = self._create_enemy_hand()  # Enemy now has cards
         self.player_battlefield = []
         self.enemy_battlefield = []
         self.selected_card = None
@@ -365,6 +367,23 @@ class ProfessionalCombat:
         
         return cards
     
+    def _create_enemy_hand(self) -> List[CombatCard3D]:
+        """Create enemy's starting hand of cards."""
+        enemy_card_data = [
+            CombatCard("SHADOW SERVANT", 2, 2, 2, "Anubis's minion from the underworld"),
+            CombatCard("JUDGMENT SCALE", 3, 1, 4, "Weighs the hearts of mortals", "rare"),
+            CombatCard("UNDERWORLD CURSE", 4, 4, 0, "Deals 4 damage to enemy", card_type="spell"),
+            CombatCard("DEATH'S EMBRACE", 5, 3, 6, "Gains +1/+1 when enemy dies", "rare"),
+            CombatCard("ANUBIS'S WRATH", 7, 8, 8, "Legendary guardian of the dead", "legendary"),
+        ]
+        
+        cards = []
+        for data in enemy_card_data:
+            card = CombatCard3D(data)
+            cards.append(card)
+        
+        return cards
+    
     def _create_buttons(self) -> List[AnimatedButton]:
         """Create combat UI buttons."""
         buttons = []
@@ -420,12 +439,27 @@ class ProfessionalCombat:
         for i, card in enumerate(self.enemy_battlefield):
             card.x = self.enemy_battle_area.x + i * 160
             card.y = self.enemy_battle_area.y
+        
+        # Enemy hand (visible at top of screen)
+        if self.enemy_hand:
+            enemy_hand_area = pygame.Rect(200, 50, SCREEN_WIDTH - 400, 200)
+            card_spacing = min(160, (enemy_hand_area.width - 140) // max(1, len(self.enemy_hand) - 1))
+            start_x = enemy_hand_area.centerx - ((len(self.enemy_hand) - 1) * card_spacing) // 2
+            
+            for i, card in enumerate(self.enemy_hand):
+                card.x = start_x + i * card_spacing
+                card.y = enemy_hand_area.y
     
     def _end_turn(self):
         """End current player turn."""
         if self.phase == CombatPhase.PLAYER_TURN:
-            self.phase = CombatPhase.ENEMY_TURN
-            self._enemy_turn()
+            # Resolve combat at end of player turn
+            self._resolve_combat()
+            
+            # Check if game ended from combat
+            if self.phase not in [CombatPhase.VICTORY, CombatPhase.DEFEAT]:
+                self.phase = CombatPhase.ENEMY_TURN
+                self.enemy_turn_timer = 2.0  # 2 second delay for enemy turn
         elif self.phase == CombatPhase.ENEMY_TURN:
             self.phase = CombatPhase.PLAYER_TURN
             self.turn_count += 1
@@ -433,9 +467,25 @@ class ProfessionalCombat:
             self.player.mana = min(self.player.mana + 1, self.player.max_mana)
     
     def _enemy_turn(self):
-        """Handle enemy turn logic."""
-        # Simple AI: just end turn after a delay
-        # In a full game, this would have complex AI logic
+        """Handle enemy turn logic with simple AI."""
+        # Increase enemy mana
+        self.enemy.mana = min(self.enemy.mana + 1, self.enemy.max_mana)
+        
+        # Simple AI: Play the most expensive card enemy can afford
+        affordable_cards = [card for card in self.enemy_hand if card.data.cost <= self.enemy.mana]
+        
+        if affordable_cards:
+            # Sort by cost (most expensive first) then by attack power
+            affordable_cards.sort(key=lambda c: (c.data.cost, c.data.attack), reverse=True)
+            chosen_card = affordable_cards[0]
+            
+            # Play the chosen card
+            self._play_enemy_card(chosen_card)
+        
+        # Resolve combat between creatures
+        self._resolve_combat()
+        
+        # End enemy turn and start player turn
         self.phase = CombatPhase.PLAYER_TURN
         self.turn_count += 1
         self.player.mana = min(self.player.mana + 1, self.player.max_mana)
@@ -456,6 +506,137 @@ class ProfessionalCombat:
                 'time': 2.0,
                 'card': card
             })
+    
+    def _play_enemy_card(self, card: CombatCard3D):
+        """Play an enemy card from hand to battlefield."""
+        if card in self.enemy_hand and self.enemy.mana >= card.data.cost:
+            self.enemy_hand.remove(card)
+            self.enemy_battlefield.append(card)
+            self.enemy.mana -= card.data.cost
+            
+            card.trigger_play_animation()
+            self._update_card_positions()
+            
+            # Add combat effect for enemy card
+            self.combat_effects.append({
+                'type': 'enemy_card_played',
+                'time': 2.0,
+                'card': card
+            })
+    
+    def _resolve_combat(self):
+        """Resolve combat between creatures on the battlefield."""
+        # Handle spells first (direct damage)
+        self._resolve_spells()
+        
+        # Then resolve creature vs creature combat
+        self._resolve_creature_combat()
+        
+        # Check for win/loss conditions
+        self._check_win_conditions()
+    
+    def _resolve_spells(self):
+        """Resolve spell effects."""
+        # Player spells targeting enemy
+        for card in self.player_battlefield[:]:
+            if card.data.card_type == "spell":
+                self.enemy.health -= card.data.attack
+                card.show_damage(card.data.attack)
+                self.player_battlefield.remove(card)
+                
+                # Add spell effect
+                self.combat_effects.append({
+                    'type': 'spell_cast',
+                    'time': 2.0,
+                    'damage': card.data.attack,
+                    'target': 'enemy'
+                })
+        
+        # Enemy spells targeting player
+        for card in self.enemy_battlefield[:]:
+            if card.data.card_type == "spell":
+                self.player.health -= card.data.attack
+                card.show_damage(card.data.attack)
+                self.enemy_battlefield.remove(card)
+                
+                # Add spell effect
+                self.combat_effects.append({
+                    'type': 'spell_cast',
+                    'time': 2.0,
+                    'damage': card.data.attack,
+                    'target': 'player'
+                })
+    
+    def _resolve_creature_combat(self):
+        """Resolve creature vs creature combat."""
+        player_creatures = [c for c in self.player_battlefield if c.data.card_type == "creature"]
+        enemy_creatures = [c for c in self.enemy_battlefield if c.data.card_type == "creature"]
+        
+        # Simple combat: Each creature fights the first available enemy creature
+        for player_card in player_creatures[:]:
+            if enemy_creatures:
+                enemy_card = enemy_creatures[0]
+                
+                # Deal damage to each other
+                player_damage = player_card.data.attack
+                enemy_damage = enemy_card.data.attack
+                
+                # Apply damage
+                player_card.data.health -= enemy_damage
+                enemy_card.data.health -= player_damage
+                
+                # Show damage numbers
+                if enemy_damage > 0:
+                    player_card.show_damage(enemy_damage)
+                if player_damage > 0:
+                    enemy_card.show_damage(player_damage)
+                
+                # Remove dead creatures
+                if player_card.data.health <= 0:
+                    self.player_battlefield.remove(player_card)
+                if enemy_card.data.health <= 0:
+                    self.enemy_battlefield.remove(enemy_card)
+                    enemy_creatures.remove(enemy_card)
+                
+                # Add combat effect
+                self.combat_effects.append({
+                    'type': 'creature_combat',
+                    'time': 2.0,
+                    'player_card': player_card.data.name,
+                    'enemy_card': enemy_card.data.name
+                })
+        
+        # Remaining creatures attack players directly
+        for player_card in player_creatures:
+            if player_card in self.player_battlefield and not enemy_creatures:
+                # Attack enemy directly
+                self.enemy.health -= player_card.data.attack
+                self.combat_effects.append({
+                    'type': 'direct_attack',
+                    'time': 2.0,
+                    'attacker': player_card.data.name,
+                    'damage': player_card.data.attack,
+                    'target': 'enemy'
+                })
+        
+        for enemy_card in enemy_creatures:
+            if enemy_card in self.enemy_battlefield and not player_creatures:
+                # Attack player directly
+                self.player.health -= enemy_card.data.attack
+                self.combat_effects.append({
+                    'type': 'direct_attack',
+                    'time': 2.0,
+                    'attacker': enemy_card.data.name,
+                    'damage': enemy_card.data.attack,
+                    'target': 'player'
+                })
+    
+    def _check_win_conditions(self):
+        """Check for victory or defeat conditions."""
+        if self.player.health <= 0:
+            self.phase = CombatPhase.DEFEAT
+        elif self.enemy.health <= 0:
+            self.phase = CombatPhase.VICTORY
     
     def update(self, dt: float, events: List[pygame.event.Event], 
                mouse_pos: tuple, mouse_pressed: bool):
@@ -489,19 +670,30 @@ class ProfessionalCombat:
             if effect['time'] <= 0:
                 self.combat_effects.remove(effect)
         
+        # Handle enemy turn timer
+        if self.phase == CombatPhase.ENEMY_TURN and self.enemy_turn_timer > 0:
+            self.enemy_turn_timer -= dt
+            if self.enemy_turn_timer <= 0:
+                self._enemy_turn()
+        
         # Update buttons
         for button in self.buttons:
             button.update(dt, mouse_pos, mouse_pressed)
         
         # Update cards
-        for card in self.player_hand + self.player_battlefield + self.enemy_battlefield:
+        for card in self.player_hand + self.player_battlefield + self.enemy_hand + self.enemy_battlefield:
             card.update(dt, mouse_pos)
         
         # Handle events
         for event in events:
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and self.phase == CombatPhase.PLAYER_TURN:
-                    self._end_turn()
+                if event.key == pygame.K_SPACE:
+                    if self.phase == CombatPhase.PLAYER_TURN:
+                        self._end_turn()
+                    elif self.phase in [CombatPhase.VICTORY, CombatPhase.DEFEAT]:
+                        # Return to menu after game ends
+                        if self.on_action:
+                            self.on_action(CombatAction.BACK_TO_MENU)
                 elif event.key == pygame.K_ESCAPE:
                     if self.on_action:
                         self.on_action(CombatAction.BACK_TO_MENU)
@@ -620,9 +812,11 @@ class ProfessionalCombat:
         player_label = font.render("PHARAOH", True, Colors.GOLD)
         surface.blit(player_label, (50, SCREEN_HEIGHT - 110))
         
-        # Enemy health
+        # Enemy health and mana
         self._render_health_bar(surface, (50, 80), 
                                self.enemy.health, self.enemy.max_health, Colors.RED)
+        self._render_mana_crystals(surface, (50, 110), 
+                                  self.enemy.mana, self.enemy.max_mana)
         
         # Enemy label
         enemy_label = font.render("ANUBIS - JUDGE OF THE DEAD", True, Colors.RED)
@@ -700,6 +894,10 @@ class ProfessionalCombat:
             if card != self.selected_card:
                 card.render(surface)
         
+        # Enemy hand (render first, behind other cards)
+        for card in self.enemy_hand:
+            card.render(surface)
+        
         # Battlefield cards
         for card in self.player_battlefield + self.enemy_battlefield:
             card.render(surface)
@@ -721,11 +919,11 @@ class ProfessionalCombat:
             color = Colors.RED
             pos = (SCREEN_CENTER[0], 150)
         elif self.phase == CombatPhase.VICTORY:
-            text = "VICTORY!"
+            text = "DIVINE VICTORY!"
             color = Colors.GOLD
             pos = SCREEN_CENTER
         elif self.phase == CombatPhase.DEFEAT:
-            text = "DEFEAT"
+            text = "DEFEAT IN THE UNDERWORLD"
             color = Colors.RED
             pos = SCREEN_CENTER
         else:
@@ -761,11 +959,18 @@ class ProfessionalCombat:
     
     def _render_instructions(self, surface: pygame.Surface):
         """Render combat instructions."""
-        instructions = [
-            "Drag cards to battlefield to play them",
-            "SPACE: End Turn • ESC: Back to Menu",
-            f"Mana: {self.player.mana}/{self.player.max_mana} • Turn: {self.turn_count}"
-        ]
+        if self.phase in [CombatPhase.VICTORY, CombatPhase.DEFEAT]:
+            instructions = [
+                "SPACE: Return to Menu • ESC: Return to Menu",
+                "Combat complete! Well fought, warrior!"
+            ]
+        else:
+            instructions = [
+                "Drag cards to battlefield to play them",
+                "SPACE: End Turn • ESC: Back to Menu",
+                f"Your Mana: {self.player.mana}/{self.player.max_mana} • Enemy Mana: {self.enemy.mana}/{self.enemy.max_mana}",
+                f"Turn: {self.turn_count} • Phase: {self.phase.name.replace('_', ' ')}"
+            ]
         
         font = pygame.font.Font(None, FontSizes.CARD_TEXT)
         y = SCREEN_HEIGHT - 150
