@@ -52,6 +52,8 @@ class Colors:
     # UI Colors
     BLACK = (0, 0, 0)
     WHITE = (255, 255, 255)
+    RED = (220, 20, 20)
+    GREEN = (20, 220, 20)
     TRANSPARENT = (0, 0, 0, 0)
     
     # Interactive Colors
