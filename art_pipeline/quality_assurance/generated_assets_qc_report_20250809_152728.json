@@ -1,0 +1,183 @@
+{
+  "timestamp": "2025-08-09T15:27:28.298926",
+  "total_assets": 9,
+  "processed_assets": [
+    {
+      "filename": "hades_egyptian_anubis_deity_legendary_20250809_145745.png",
+      "rarity": "legendary",
+      "analysis": {
+        "filename": "hades_egyptian_anubis_deity_legendary_20250809_145745.png",
+        "resolution": "1024x1024",
+        "file_size_mb": 2.07,
+        "format": "PNG",
+        "mode": "RGB",
+        "resolution_score": 1.0,
+        "file_size_score": 1.0,
+        "format_score": 1.0,
+        "overall_score": 1.0,
+        "quality_tier": "PROFESSIONAL"
+      },
+      "status": "PROFESSIONAL"
+    },
+    {
+      "filename": "hades_egyptian_anubis_test_20250809_145609.png",
+      "rarity": "legendary",
+      "analysis": {
+        "filename": "hades_egyptian_anubis_test_20250809_145609.png",
+        "resolution": "1024x1024",
+        "file_size_mb": 2.1,
+        "format": "PNG",
+        "mode": "RGB",
+        "resolution_score": 1.0,
+        "file_size_score": 1.0,
+        "format_score": 1.0,
+        "overall_score": 1.0,
+        "quality_tier": "PROFESSIONAL"
+      },
+      "status": "PROFESSIONAL"
+    },
+    {
+      "filename": "hades_egyptian_egyptian_warrior_epic_20250809_145921.png",
+      "rarity": "epic",
+      "analysis": {
+        "filename": "hades_egyptian_egyptian_warrior_epic_20250809_145921.png",
+        "resolution": "1024x1024",
+        "file_size_mb": 2.04,
+        "format": "PNG",
+        "mode": "RGB",
+        "resolution_score": 1.0,
+        "file_size_score": 1.0,
+        "format_score": 1.0,
+        "overall_score": 1.0,
+        "quality_tier": "PROFESSIONAL"
+      },
+      "status": "PROFESSIONAL"
+    },
+    {
+      "filename": "hades_egyptian_isis_goddess_legendary_20250809_145834.png",
+      "rarity": "legendary",
+      "analysis": {
+        "filename": "hades_egyptian_isis_goddess_legendary_20250809_145834.png",
+        "resolution": "1024x1024",
+        "file_size_mb": 2.13,
+        "format": "PNG",
+        "mode": "RGB",
+        "resolution_score": 1.0,
+        "file_size_score": 1.0,
+        "format_score": 1.0,
+        "overall_score": 1.0,
+        "quality_tier": "PROFESSIONAL"
+      },
+      "status": "PROFESSIONAL"
+    },
+    {
+      "filename": "hades_egyptian_mummy_guardian_rare_20250809_150008.png",
+      "rarity": "rare",
+      "analysis": {
+        "filename": "hades_egyptian_mummy_guardian_rare_20250809_150008.png",
+        "resolution": "1024x1024",
+        "file_size_mb": 1.87,
+        "format": "PNG",
+        "mode": "RGB",
+        "resolution_score": 1.0,
+        "file_size_score": 1.0,
+        "format_score": 1.0,
+        "overall_score": 1.0,
+        "quality_tier": "PROFESSIONAL"
+      },
+      "status": "PROFESSIONAL"
+    },
+    {
+      "filename": "hades_egyptian_ra_sun_god_legendary_20250809_145810.png",
+      "rarity": "legendary",
+      "analysis": {
+        "filename": "hades_egyptian_ra_sun_god_legendary_20250809_145810.png",
+        "resolution": "1024x1024",
+        "file_size_mb": 2.21,
+        "format": "PNG",
+        "mode": "RGB",
+        "resolution_score": 1.0,
+        "file_size_score": 1.0,
+        "format_score": 1.0,
+        "overall_score": 1.0,
+        "quality_tier": "PROFESSIONAL"
+      },
+      "status": "PROFESSIONAL"
+    },
+    {
+      "filename": "hades_egyptian_set_chaos_god_legendary_20250809_145857.png",
+      "rarity": "legendary",
+      "analysis": {
+        "filename": "hades_egyptian_set_chaos_god_legendary_20250809_145857.png",
+        "resolution": "1024x1024",
+        "file_size_mb": 2.2,
+        "format": "PNG",
+        "mode": "RGB",
+        "resolution_score": 1.0,
+        "file_size_score": 1.0,
+        "format_score": 1.0,
+        "overall_score": 1.0,
+        "quality_tier": "PROFESSIONAL"
+      },
+      "status": "PROFESSIONAL"
+    },
+    {
+      "filename": "hades_egyptian_sphinx_guardian_rare_20250809_145944.png",
+      "rarity": "rare",
+      "analysis": {
+        "filename": "hades_egyptian_sphinx_guardian_rare_20250809_145944.png",
+        "resolution": "1024x1024",
+        "file_size_mb": 2.28,
+        "format": "PNG",
+        "mode": "RGB",
+        "resolution_score": 1.0,
+        "file_size_score": 1.0,
+        "format_score": 1.0,
+        "overall_score": 1.0,
+        "quality_tier": "PROFESSIONAL"
+      },
+      "status": "PROFESSIONAL"
+    },
+    {
+      "filename": "hades_egyptian_temple_interior_epic_20250809_150032.png",
+      "rarity": "epic",
+      "analysis": {
+        "filename": "hades_egyptian_temple_interior_epic_20250809_150032.png",
+        "resolution": "1024x1024",
+        "file_size_mb": 1.88,
+        "format": "PNG",
+        "mode": "RGB",
+        "resolution_score": 1.0,
+        "file_size_score": 1.0,
+        "format_score": 1.0,
+        "overall_score": 1.0,
+        "quality_tier": "PROFESSIONAL"
+      },
+      "status": "PROFESSIONAL"
+    }
+  ],
+  "summary": {
+    "professional": 9,
+    "approved": 0,
+    "needs_review": 0,
+    "rejected": 0
+  },
+  "by_rarity": {
+    "legendary": {
+      "total": 5,
+      "approved": 5
+    },
+    "epic": {
+      "total": 2,
+      "approved": 2
+    },
+    "rare": {
+      "total": 2,
+      "approved": 2
+    },
+    "common": {
+      "total": 0,
+      "approved": 0
+    }
+  }
+}

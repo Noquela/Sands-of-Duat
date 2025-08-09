@@ -302,13 +302,13 @@ class CardCollection:
         """Load all available Egyptian god cards from assets."""
         # Define Egyptian god cards using our generated artwork
         god_cards = [
-            # Legendary Cards
+            # Legendary Cards - Updated to match generated assets
             CardData(
                 name="Ra - Sun God", 
                 title="Creator of Light",
                 cost=8, attack=10, health=12, rarity="legendary",
                 description="At dawn, deal 3 damage to all enemies. Divine radiance cannot be extinguished.",
-                artwork_file="ra_sun_god.png",
+                artwork_file="hades_egyptian_characters_legendary_ra_sun_god_legendary_20250809_145810_20250809.png",
                 god_type="major"
             ),
             CardData(
@@ -316,23 +316,7 @@ class CardCollection:
                 title="Guardian of the Dead",
                 cost=6, attack=8, health=8, rarity="legendary",
                 description="When a creature dies, gain +2/+2. Judge the souls of the fallen.",
-                artwork_file="anubis_judgment.png",
-                god_type="major"
-            ),
-            CardData(
-                name="Osiris - Resurrection", 
-                title="Lord of the Underworld",
-                cost=7, attack=6, health=10, rarity="legendary",
-                description="Resurrect all dead friendly creatures with 1 health. Death is but a door.",
-                artwork_file="osiris_resurrection.png",
-                god_type="major"
-            ),
-            CardData(
-                name="Horus - Divine Sight", 
-                title="Sky God of Vengeance",
-                cost=5, attack=7, health=6, rarity="legendary",
-                description="Flying. When played, deal 4 damage to target enemy. The falcon strikes swift.",
-                artwork_file="horus_divine_sight.png",
+                artwork_file="hades_egyptian_characters_legendary_anubis_deity_legendary_20250809_145745_20250809.png",
                 god_type="major"
             ),
             CardData(
@@ -340,71 +324,47 @@ class CardCollection:
                 title="Goddess of Magic",
                 cost=4, attack=4, health=6, rarity="legendary",
                 description="Restore 5 health to all friendly creatures. Ancient magic flows eternal.",
-                artwork_file="isis_protection.png",
-                god_type="major"
-            ),
-            
-            # Epic Cards
-            CardData(
-                name="Thoth - Wisdom", 
-                title="God of Knowledge",
-                cost=4, attack=2, health=8, rarity="epic",
-                description="Draw 2 cards. Knowledge is the greatest weapon of all.",
-                artwork_file="thoth_wisdom.png",
-                god_type="minor"
-            ),
-            CardData(
-                name="Bastet - Feline Grace", 
-                title="Protector Goddess",
-                cost=3, attack=3, health=4, rarity="epic",
-                description="Summon two 1/1 sacred cats. Feline grace protects the innocent.",
-                artwork_file="bastet_feline_grace.png",
-                god_type="guardian"
-            ),
-            CardData(
-                name="Sekhmet - War Cry", 
-                title="Lioness of War",
-                cost=6, attack=9, health=5, rarity="epic",
-                description="Destroy target creature. The lioness knows no mercy in battle.",
-                artwork_file="sekhmet_war_cry.png",
+                artwork_file="hades_egyptian_characters_legendary_isis_goddess_legendary_20250809_145834_20250809.png",
                 god_type="major"
             ),
             CardData(
                 name="Set - Chaos Storm", 
                 title="God of Chaos",
-                cost=5, attack=8, health=4, rarity="epic",
+                cost=5, attack=8, health=4, rarity="legendary",
                 description="Deal 2 damage to all creatures. Chaos consumes order.",
-                artwork_file="set_chaos_storm.png",
-                god_type="major"
-            ),
-            CardData(
-                name="Pharaoh - Divine Mandate", 
-                title="Ruler of Egypt",
-                cost=7, attack=6, health=8, rarity="epic",
-                description="All friendly creatures gain +1/+1. The pharaoh's will commands.",
-                artwork_file="pharaoh_divine_mandate.png",
+                artwork_file="hades_egyptian_characters_legendary_set_chaos_god_legendary_20250809_145857_20250809.png",
                 god_type="major"
             ),
             
-            # Rare Cards
+            # Epic Cards - Updated to match generated assets
             CardData(
-                name="Mummy Wrath", 
-                title="Undead Guardian",
+                name="Egyptian Warrior", 
+                title="Hero of the Sands",
+                cost=4, attack=5, health=6, rarity="epic",
+                description="Rally: All friendly creatures gain +1 attack. The warrior leads by example.",
+                artwork_file="hades_egyptian_characters_epic_egyptian_warrior_epic_20250809_145921_20250809.png",
+                god_type="hero"
+            ),
+            
+            # Rare Cards - Updated to match generated assets
+            CardData(
+                name="Mummy Guardian", 
+                title="Undead Sentinel",
                 cost=4, attack=5, health=3, rarity="rare",
                 description="When destroyed, return to hand. The dead do not rest.",
-                artwork_file="mummy_wrath.png",
+                artwork_file="hades_egyptian_characters_rare_mummy_guardian_rare_20250809_150008_20250809.png",
                 god_type="guardian"
             ),
             CardData(
-                name="Scarab Swarm", 
-                title="Desert Plague",
-                cost=3, attack=2, health=2, rarity="rare",
-                description="Summon three 1/1 scarab tokens. The swarm devours all.",
-                artwork_file="scarab_swarm.png",
-                god_type="minor"
+                name="Sphinx Guardian", 
+                title="Riddle Keeper",
+                cost=5, attack=4, health=6, rarity="rare",
+                description="Taunt. Enemy must answer riddle or take 2 damage. Ancient wisdom protects.",
+                artwork_file="hades_egyptian_characters_rare_sphinx_guardian_rare_20250809_145944_20250809.png",
+                god_type="guardian"
             ),
             
-            # Common Cards
+            # Common Cards - Using fallback artwork for now
             CardData(
                 name="Sacred Scarab", 
                 title="Holy Beetle",

@@ -45,6 +45,7 @@ class GeneratedAssetLoader:
     def __init__(self, assets_path: Optional[Path] = None):
         self.assets_path = assets_path or self._get_assets_path()
         self.generated_art_path = self.assets_path / "generated_art"
+        self.approved_art_path = self.assets_path / "approved_hades_quality"
         
         # Asset caches
         self._image_cache: Dict[str, pygame.Surface] = {}
@@ -72,10 +73,12 @@ class GeneratedAssetLoader:
         """Initialize the asset loading system."""
         logger.info("Initializing Generated Asset Loader...")
         
-        # Check if assets exist
-        if not self.generated_art_path.exists():
-            logger.error(f"Generated art not found at: {self.generated_art_path}")
-            raise FileNotFoundError(f"Generated assets not found at {self.generated_art_path}")
+        # Check if approved assets exist (priority), fallback to generated
+        if self.approved_art_path.exists():
+            logger.info(f"Using approved Hades-quality assets from: {self.approved_art_path}")
+        elif not self.generated_art_path.exists():
+            logger.error(f"No assets found at: {self.generated_art_path} or {self.approved_art_path}")
+            raise FileNotFoundError(f"No assets found")
         
         # Scan and categorize assets
         self._scan_generated_assets()
@@ -85,55 +88,40 @@ class GeneratedAssetLoader:
     def _create_card_mapping(self) -> Dict[str, str]:
         """Create mapping of card names to their artwork files."""
         return {
-            # Legendary Cards
-            'Ra - Sun God': 'ra_sun_god.png',
-            'Anubis - Judgment': 'anubis_judgment.png', 
-            'Osiris - Resurrection': 'osiris_resurrection.png',
-            'Horus - Divine Sight': 'horus_divine_sight.png',
-            'Isis - Protection': 'isis_protection.png',
+            # Legendary Cards - Using actual generated assets
+            'Ra - Sun God': 'hades_egyptian_characters_legendary_ra_sun_god_legendary_20250809_145810_20250809.png',
+            'Anubis - Judgment': 'hades_egyptian_characters_legendary_anubis_deity_legendary_20250809_145745_20250809.png', 
+            'Isis - Protection': 'hades_egyptian_characters_legendary_isis_goddess_legendary_20250809_145834_20250809.png',
+            'Set - Chaos Storm': 'hades_egyptian_characters_legendary_set_chaos_god_legendary_20250809_145857_20250809.png',
             
-            # Epic Cards
-            'Thoth - Wisdom': 'thoth_wisdom.png',
-            'Bastet - Feline Grace': 'bastet_feline_grace.png',
-            'Set - Chaos Storm': 'set_chaos_storm.png',
-            'Sekhmet - War Cry': 'sekhmet_war_cry.png',
-            'Pharaoh - Divine Mandate': 'pharaoh_divine_mandate.png',
-            'Pyramid Power': 'pyramid_power.png',
-            'Ankh Blessing': 'ankh_blessing.png',
+            # Epic Cards - Using actual generated assets
+            'Egyptian Warrior': 'hades_egyptian_characters_epic_egyptian_warrior_epic_20250809_145921_20250809.png',
             
-            # Rare Cards
-            'Mummy Wrath': 'mummy_wrath.png',
-            'Scarab Swarm': 'scarab_swarm.png',
-            'Desert Whisper': 'desert_whisper.png',
-            'Temple Offering': 'temple_offering.png',
-            'Canopic Jar Ritual': 'canopic_jar_ritual.png',
+            # Rare Cards - Using actual generated assets
+            'Mummy Guardian': 'hades_egyptian_characters_rare_mummy_guardian_rare_20250809_150008_20250809.png',
+            'Sphinx Guardian': 'hades_egyptian_characters_rare_sphinx_guardian_rare_20250809_145944_20250809.png',
             
-            # Common Cards
-            'Sand Grain': 'sand_grain.png',
-            'Papyrus Scroll': 'papyrus_scroll.png',
-            'Desert Meditation': 'desert_meditation.png',
-            'Sacred Scarab': 'sacred_scarab.png',
-            'Whisper of Thoth': 'whisper_of_thoth.png'
+            # Common Cards - Will use fallback artwork for now
         }
     
     def _create_background_mapping(self) -> Dict[str, str]:
         """Create mapping of game screens to background files."""
         return {
-            'combat': 'bg_combat_underworld.png',
-            'menu': 'bg_menu_temple.png', 
-            'deck_builder': 'bg_deck_builder_sanctum.png',
-            'victory': 'bg_victory_sunrise.png',
-            'defeat': 'bg_defeat_dusk.png'
+            'combat': 'hades_egyptian_environments_epic_temple_interior_epic_20250809_150032_20250809.png',
+            'menu': 'hades_egyptian_environments_epic_temple_interior_epic_20250809_150032_20250809.png', 
+            'deck_builder': 'hades_egyptian_environments_epic_temple_interior_epic_20250809_150032_20250809.png'
         }
     
     def _create_character_mapping(self) -> Dict[str, str]:
         """Create mapping of characters to portrait files."""
         return {
-            'player_hero': 'char_player_hero.png',
-            'anubis_boss': 'char_anubis_boss.png',
-            'mummy_guardian': 'char_mummy_guardian.png',
-            'desert_scorpion': 'char_desert_scorpion.png',
-            'sand_elemental': 'char_sand_elemental.png'
+            'player_hero': 'hades_egyptian_characters_epic_egyptian_warrior_epic_20250809_145921_20250809.png',
+            'anubis_boss': 'hades_egyptian_characters_legendary_anubis_deity_legendary_20250809_145745_20250809.png',
+            'mummy_guardian': 'hades_egyptian_characters_rare_mummy_guardian_rare_20250809_150008_20250809.png',
+            'sphinx_guardian': 'hades_egyptian_characters_rare_sphinx_guardian_rare_20250809_145944_20250809.png',
+            'ra_deity': 'hades_egyptian_characters_legendary_ra_sun_god_legendary_20250809_145810_20250809.png',
+            'isis_goddess': 'hades_egyptian_characters_legendary_isis_goddess_legendary_20250809_145834_20250809.png',
+            'set_god': 'hades_egyptian_characters_legendary_set_chaos_god_legendary_20250809_145857_20250809.png'
         }
     
     def _create_ui_mapping(self) -> Dict[str, str]:
@@ -163,8 +151,18 @@ class GeneratedAssetLoader:
         for asset_type in AssetType:
             self._asset_registry[asset_type] = []
         
-        # Scan PNG files in generated_art directory
-        png_files = list(self.generated_art_path.glob("*.png"))
+        # First scan approved assets if they exist
+        png_files = []
+        if self.approved_art_path.exists():
+            # Scan all subdirectories in approved assets
+            for subdir in ['characters', 'environments', 'ui', 'cards']:
+                subdir_path = self.approved_art_path / subdir
+                if subdir_path.exists():
+                    png_files.extend(list(subdir_path.glob("*.png")))
+        
+        # Also scan generated_art directory
+        if self.generated_art_path.exists():
+            png_files.extend(list(self.generated_art_path.glob("*.png")))
         
         for png_file in png_files:
             filename = png_file.name
@@ -225,8 +223,25 @@ class GeneratedAssetLoader:
         if cache_key in self._image_cache:
             return self._image_cache[cache_key]
         
-        # Load from disk
-        image_path = self.generated_art_path / filename
+        # Try approved assets first, then fallback to generated
+        image_path = None
+        
+        # Check approved assets directory structure
+        if self.approved_art_path.exists():
+            # Check characters directory
+            char_path = self.approved_art_path / "characters" / filename
+            if char_path.exists():
+                image_path = char_path
+            else:
+                # Check environments directory
+                env_path = self.approved_art_path / "environments" / filename
+                if env_path.exists():
+                    image_path = env_path
+        
+        # Fallback to generated art
+        if not image_path:
+            image_path = self.generated_art_path / filename
+            
         if not image_path.exists():
             logger.warning(f"Asset not found: {filename}")
             return None

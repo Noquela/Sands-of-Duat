@@ -1,7 +1,23 @@
 {
   "permissions": {
     "allow": [
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(python:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__desktop-automation__screen_capture",
+      "mcp__screenmonitormcp__capture_screen",
+      "mcp__screenmonitormcp__analyze_screen",
+      "mcp__mcp-pyautogui__take_screenshot",
+      "mcp__mcp-pyautogui__click",
+      "mcp__mcp-pyautogui__press_key",
+      "Bash(rmdir:*)",
+      "Bash(rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(git add:*)",
+      "Bash(pip install:*)",
+      "Bash(mv:*)",
+      "Bash(pip uninstall:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }
