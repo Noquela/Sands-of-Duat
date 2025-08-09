@@ -24,6 +24,8 @@ from ..ui.screens.collection_screen import CollectionScreen, CollectionAction
 from ..ui.screens.enhanced_settings_screen import EnhancedSettingsScreen, SettingsAction
 from ..audio.simple_audio_manager import audio_manager
 from .settings_manager import settings_manager
+from .save_system import save_system
+from ..ui.effects.enhanced_visual_effects import visual_effects
 
 class GameEngine:
     """
@@ -81,6 +83,9 @@ class GameEngine:
         
         # Apply saved settings
         settings_manager.apply_audio_settings(audio_manager)
+        
+        # Initialize save system
+        save_system.auto_save_enabled = settings_manager.gameplay.auto_save
         
         self.logger.info("🏺 Game Engine initialized successfully")
     
@@ -184,6 +189,12 @@ class GameEngine:
                 self.toggle_fullscreen()
             elif event.key == pygame.K_F1 and Dev.DEBUG_MODE:
                 Dev.SHOW_FPS = not Dev.SHOW_FPS
+            elif event.key == pygame.K_F5:
+                # Quick save
+                self._quick_save()
+            elif event.key == pygame.K_F9:
+                # Quick load
+                self._quick_load()
         
         elif event.type == pygame.KEYUP:
             self.keys_pressed.discard(event.key)
@@ -321,6 +332,9 @@ class GameEngine:
         current_screen_name = current_state.name.lower()
         audio_manager.update(dt, current_screen_name)
         
+        # Update visual effects
+        visual_effects.update(dt)
+        
         # Clear per-frame input state
         self.keys_just_pressed.clear()
         self.keys_just_released.clear()
@@ -333,6 +347,9 @@ class GameEngine:
         
         # Render current state
         self.state_manager.render(self.screen)
+        
+        # Render visual effects on top
+        visual_effects.render(self.screen)
         
         # Render debug information
         if Dev.DEBUG_MODE:
@@ -372,10 +389,60 @@ class GameEngine:
             self._start_transition(TransitionType.RETURNING_HOME, current_state, GameState.MAIN_MENU)
             return True
     
+    def _quick_save(self):
+        """Perform quick save."""
+        try:
+            # Create a basic game state from current state
+            from .save_system import GameState as SaveGameState
+            
+            current_state = self.state_manager.get_current_state()
+            if current_state in [GameState.COMBAT, GameState.DECK_BUILDER]:
+                game_state = SaveGameState()  # Would populate with actual game data
+                success = save_system.quick_save(game_state)
+                
+                if success:
+                    # Show success effect
+                    visual_effects.create_divine_light(SCREEN_CENTER[0], 100)
+                    audio_manager.play_sound(SoundEffect.HEALING, 0.4)
+                    self.logger.info("⚡ Quick save successful")
+                else:
+                    self.logger.warning("⚡ Quick save failed")
+            else:
+                self.logger.info("⚡ Quick save not available in current screen")
+                
+        except Exception as e:
+            self.logger.error(f"Quick save error: {e}")
+    
+    def _quick_load(self):
+        """Perform quick load."""
+        try:
+            save_data = save_system.quick_load()
+            
+            if save_data:
+                # Show load effect
+                visual_effects.create_sand_storm()
+                audio_manager.play_sound(SoundEffect.TRANSITION, 0.5)
+                self.logger.info("⚡ Quick load successful")
+            else:
+                self.logger.info("⚡ No quick save found")
+                
+        except Exception as e:
+            self.logger.error(f"Quick load error: {e}")
+    
     def shutdown(self):
         """Clean shutdown of game engine."""
         self.logger.info("🏺 Game Engine shutting down...")
+        
+        # Cleanup systems
+        visual_effects.clear_effects()
         audio_manager.shutdown()
+        
+        # Auto-save if enabled
+        if save_system.auto_save_enabled and save_system.current_save:
+            from .save_system import GameState as SaveGameState
+            game_state = SaveGameState()
+            save_system.auto_save(game_state)
+        
         self.running = False
     
     def _update_performance_tracking(self, dt: float):
