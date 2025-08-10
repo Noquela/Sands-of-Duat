@@ -15,8 +15,25 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import logging
 from enum import Enum
+import time
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
+
+@dataclass
+class AnimationFrame:
+    """Single frame of an animated sprite"""
+    surface: pygame.Surface
+    duration: float  # Duration in milliseconds
+    
+@dataclass 
+class AnimationData:
+    """Complete animation data for a sprite"""
+    frames: List[AnimationFrame]
+    loop: bool
+    fps: int
+    total_duration: float
+    metadata: Dict
 
 class AssetType(Enum):
     """Types of generated game assets"""
@@ -29,6 +46,9 @@ class AssetType(Enum):
     UI_FRAME = "ui_card_frame_"
     UI_ICON = "ui_"
     UI_BUTTON = "ui_"
+    ANIMATED_CARD = "anim_card_"
+    ANIMATED_BACKGROUND = "anim_bg_"
+    ANIMATED_UI = "anim_ui_"
 
 class GeneratedAssetLoader:
     """
@@ -46,16 +66,21 @@ class GeneratedAssetLoader:
         self.assets_path = assets_path or self._get_assets_path()
         self.generated_art_path = self.assets_path / "generated_art"
         self.approved_art_path = self.assets_path / "approved_hades_quality"
+        self.animated_cards_path = self.approved_art_path / "animated_cards"
+        self.compressed_sprites_path = self.assets_path / "compressed_sprites"
         
         # Asset caches
         self._image_cache: Dict[str, pygame.Surface] = {}
+        self._animation_cache: Dict[str, AnimationData] = {}
         self._asset_registry: Dict[AssetType, List[str]] = {}
+        self._active_animations: Dict[str, Tuple[int, float]] = {}  # frame_index, last_update
         
         # Game-specific asset mappings
         self.card_art_mapping = self._create_card_mapping()
         self.background_mapping = self._create_background_mapping()
         self.character_mapping = self._create_character_mapping()
         self.ui_mapping = self._create_ui_mapping()
+        self.animated_card_mapping = self._create_animated_card_mapping()
         
         # Performance settings
         self.max_cache_size = 100  # Maximum cached images
@@ -86,33 +111,65 @@ class GeneratedAssetLoader:
         logger.info(f"Asset loader initialized with {self.get_total_asset_count()} generated assets")
     
     def _create_card_mapping(self) -> Dict[str, str]:
-        """Create mapping of card names to their artwork files."""
+        """Create mapping of card names to RTX 5070 generated Egyptian cards."""
         return {
-            # Legendary Cards - Using actual generated assets
-            'Ra - Sun God': 'hades_egyptian_characters_legendary_ra_sun_god_legendary_20250809_145810_20250809.png',
-            'Anubis - Judgment': 'hades_egyptian_characters_legendary_anubis_deity_legendary_20250809_145745_20250809.png', 
-            'Isis - Protection': 'hades_egyptian_characters_legendary_isis_goddess_legendary_20250809_145834_20250809.png',
-            'Set - Chaos Storm': 'hades_egyptian_characters_legendary_set_chaos_god_legendary_20250809_145857_20250809.png',
+            # RTX 5070 Generated Egyptian Cards (Legendary)
+            'ANUBIS - JUDGE OF THE DEAD': 'anubis_judge_of_the_dead.png',
+            'RA - SUN GOD': 'ra_sun_god.png',
+            'ISIS - DIVINE MOTHER': 'isis_divine_mother.png',
+            'SET - CHAOS GOD': 'set_chaos_god.png',
             
-            # Epic Cards - Using actual generated assets
-            'Egyptian Warrior': 'hades_egyptian_characters_epic_egyptian_warrior_epic_20250809_145921_20250809.png',
+            # RTX 5070 Generated Egyptian Cards (Epic)
+            'EGYPTIAN WARRIOR': 'egyptian_warrior.png',
+            'PHARAOH\'S GUARD': 'pharaoh\'s_guard.png',
             
-            # Rare Cards - Using actual generated assets  
-            'Mummy Guardian': 'hades_egyptian_characters_rare_mummy_guardian_rare_20250809_150008_20250809.png',
-            'Sphinx Guardian': 'hades_egyptian_characters_rare_sphinx_guardian_rare_20250809_145944_20250809.png',
+            # RTX 5070 Generated Egyptian Cards (Rare)
+            'MUMMY GUARDIAN': 'mummy_guardian.png',
+            'SPHINX GUARDIAN': 'sphinx_guardian.png',
             
-            # Alternative names for the same cards (combat system uses these)
-            'ANUBIS - JUDGE OF THE DEAD': 'hades_egyptian_characters_legendary_anubis_deity_legendary_20250809_145745_20250809.png',
-            'JUDGMENT SCALE': 'hades_egyptian_characters_legendary_anubis_deity_legendary_20250809_145745_20250809.png',
-            'DEITY\'S EMBRACE': 'hades_egyptian_characters_legendary_isis_goddess_legendary_20250809_145834_20250809.png',
-            'ANUBIS\'S WRATH': 'hades_egyptian_characters_legendary_set_chaos_god_legendary_20250809_145857_20250809.png',
-            'BLESSED SCARAB': 'hades_egyptian_characters_rare_sphinx_guardian_rare_20250809_145944_20250809.png',
-            'SACRED SCARAB': 'hades_egyptian_characters_rare_sphinx_guardian_rare_20250809_145944_20250809.png',
-            'PHARAOH POWER': 'hades_egyptian_characters_epic_egyptian_warrior_epic_20250809_145921_20250809.png',
-            'PYRAMID POWER': 'hades_egyptian_characters_legendary_ra_sun_god_legendary_20250809_145810_20250809.png',
-            'WISDOM SERVANT': 'hades_egyptian_characters_rare_mummy_guardian_rare_20250809_150008_20250809.png',
+            # Alternative names for compatibility
+            'Ra - Sun God': 'ra_sun_god.png',
+            'Anubis - Judgment': 'anubis_judge_of_the_dead.png', 
+            'Isis - Protection': 'isis_divine_mother.png',
+            'Set - Chaos Storm': 'set_chaos_god.png',
+            'Egyptian Warrior': 'egyptian_warrior.png',
+            'Mummy Guardian': 'mummy_guardian.png',
+            'Sphinx Guardian': 'sphinx_guardian.png',
+            'Pharaoh\'s Guard': 'pharaoh\'s_guard.png',
             
-            # Common Cards - Will use fallback artwork for now
+            # Combat system alternative names
+            'JUDGMENT SCALE': 'anubis_judge_of_the_dead.png',
+            'DEITY\'S EMBRACE': 'isis_divine_mother.png',
+            'ANUBIS\'S WRATH': 'set_chaos_god.png',
+            'BLESSED SCARAB': 'sphinx_guardian.png',
+            'SACRED SCARAB': 'sphinx_guardian.png',
+            'PHARAOH POWER': 'egyptian_warrior.png',
+            'PYRAMID POWER': 'ra_sun_god.png',
+            'WISDOM SERVANT': 'mummy_guardian.png'
+        }
+    
+    def _create_animated_card_mapping(self) -> Dict[str, str]:
+        """Create mapping of card names to RTX 5070 Hades-quality animated sprites."""
+        return {
+            # RTX 5070 Generated Animations (16 frames @ 12fps each)
+            'ANUBIS - JUDGE OF THE DEAD': 'anubis_judge_of_the_dead_animated.png',
+            'RA - SUN GOD': 'ra_sun_god_animated.png',
+            'ISIS - DIVINE MOTHER': 'isis_divine_mother_animated.png',
+            'SET - CHAOS GOD': 'set_chaos_god_animated.png',
+            'EGYPTIAN WARRIOR': 'egyptian_warrior_animated.png',
+            'PHARAOH\'S GUARD': 'pharaoh\'s_guard_animated.png',
+            'MUMMY GUARDIAN': 'mummy_guardian_animated.png',
+            'SPHINX GUARDIAN': 'sphinx_guardian_animated.png',
+            
+            # Alternative names for compatibility
+            'Anubis - Judgment': 'anubis_judge_of_the_dead_animated.png',
+            'Ra - Sun God': 'ra_sun_god_animated.png', 
+            'Isis - Protection': 'isis_divine_mother_animated.png',
+            'Set - Chaos Storm': 'set_chaos_god_animated.png',
+            'Egyptian Warrior': 'egyptian_warrior_animated.png',
+            'Mummy Guardian': 'mummy_guardian_animated.png',
+            'Sphinx Guardian': 'sphinx_guardian_animated.png',
+            'Pharaoh\'s Guard': 'pharaoh\'s_guard_animated.png'
         }
     
     def _create_background_mapping(self) -> Dict[str, str]:
@@ -173,6 +230,17 @@ class GeneratedAssetLoader:
                 if subdir_path.exists():
                     png_files.extend(list(subdir_path.glob("*.png")))
         
+        # Scan animated cards directory
+        if self.animated_cards_path.exists():
+            png_files.extend(list(self.animated_cards_path.glob("*.png")))
+        
+        # Scan compressed sprites directory
+        if self.compressed_sprites_path.exists():
+            for subdir in ['cards', 'backgrounds', 'ui']:
+                subdir_path = self.compressed_sprites_path / subdir
+                if subdir_path.exists():
+                    png_files.extend(list(subdir_path.glob("*.png")))
+        
         # Also scan generated_art directory
         if self.generated_art_path.exists():
             png_files.extend(list(self.generated_art_path.glob("*.png")))
@@ -192,6 +260,14 @@ class GeneratedAssetLoader:
                     self._asset_registry[AssetType.UI_BUTTON].append(filename)
                 else:
                     self._asset_registry[AssetType.UI_ICON].append(filename)
+            elif filename.endswith('_anim.png'):
+                # Animated assets
+                if 'card' in filename.lower() or any(card_name.lower().replace(' ', '_').replace('-', '_') in filename.lower() for card_name in self.animated_card_mapping.keys()):
+                    self._asset_registry[AssetType.ANIMATED_CARD].append(filename)
+                elif 'bg_' in filename or 'background' in filename:
+                    self._asset_registry[AssetType.ANIMATED_BACKGROUND].append(filename) 
+                elif 'ui_' in filename:
+                    self._asset_registry[AssetType.ANIMATED_UI].append(filename)
             else:
                 # Card artwork - categorize by card name mapping
                 for card_name, card_file in self.card_art_mapping.items():
@@ -289,7 +365,7 @@ class GeneratedAssetLoader:
     
     def load_card_art_by_name(self, card_name: str) -> Optional[pygame.Surface]:
         """
-        Load card art by card name.
+        Load card art by card name (prioritizes animated version).
         
         Args:
             card_name: Name of the card to load art for
@@ -297,6 +373,14 @@ class GeneratedAssetLoader:
         Returns:
             Card-sized pygame Surface or None
         """
+        # Check for animated version first
+        animated_filename = self.animated_card_mapping.get(card_name)
+        if animated_filename:
+            animated_surface = self.load_animated_card(card_name)
+            if animated_surface:
+                return animated_surface
+        
+        # Fallback to static image
         filename = self.card_art_mapping.get(card_name)
         if not filename:
             logger.warning(f"No artwork mapped for card: {card_name}")
@@ -416,15 +500,213 @@ class GeneratedAssetLoader:
         """Get all available UI element names."""
         return list(self.ui_mapping.keys())
     
+    def load_animation_spritesheet(self, filename: str) -> Optional[AnimationData]:
+        """Load and parse an animated spritesheet."""
+        
+        # Check cache first
+        if filename in self._animation_cache:
+            return self._animation_cache[filename]
+        
+        # Load spritesheet image
+        spritesheet_path = None
+        metadata_path = None
+        
+        # Check different directories for the spritesheet
+        search_paths = [
+            self.animated_cards_path,
+            self.compressed_sprites_path / "cards",
+            self.compressed_sprites_path / "backgrounds", 
+            self.compressed_sprites_path / "ui"
+        ]
+        
+        for search_path in search_paths:
+            if search_path.exists():
+                test_path = search_path / filename
+                test_metadata = search_path / filename.replace('.png', '.json')
+                if test_path.exists() and test_metadata.exists():
+                    spritesheet_path = test_path
+                    metadata_path = test_metadata
+                    break
+        
+        if not spritesheet_path or not metadata_path:
+            logger.warning(f"Animation spritesheet or metadata not found: {filename}")
+            return None
+        
+        try:
+            # Load metadata
+            with open(metadata_path) as f:
+                metadata = json.load(f)
+            
+            # Load spritesheet
+            spritesheet = pygame.image.load(str(spritesheet_path))
+            
+            # Extract frames
+            frames = self._extract_animation_frames(spritesheet, metadata)
+            
+            if not frames:
+                return None
+            
+            # Create animation data
+            fps = metadata.get('fps', 12)
+            frame_duration = 1000.0 / fps  # milliseconds per frame
+            
+            animation_frames = [
+                AnimationFrame(surface=frame, duration=frame_duration)
+                for frame in frames
+            ]
+            
+            animation_data = AnimationData(
+                frames=animation_frames,
+                loop=metadata.get('loop', True),
+                fps=fps,
+                total_duration=len(frames) * frame_duration,
+                metadata=metadata
+            )
+            
+            # Cache animation
+            self._animation_cache[filename] = animation_data
+            
+            logger.debug(f"Loaded animation: {filename} ({len(frames)} frames, {fps} fps)")
+            return animation_data
+            
+        except Exception as e:
+            logger.error(f"Failed to load animation {filename}: {e}")
+            return None
+    
+    def _extract_animation_frames(self, spritesheet: pygame.Surface, metadata: Dict) -> List[pygame.Surface]:
+        """Extract individual frames from a spritesheet."""
+        
+        frames = []
+        frame_width, frame_height = metadata['frame_size']
+        cols = metadata['cols']
+        frame_count = metadata['frame_count']
+        
+        for i in range(frame_count):
+            row = i // cols
+            col = i % cols
+            
+            x = col * frame_width
+            y = row * frame_height
+            
+            # Create subsurface for this frame
+            frame_rect = pygame.Rect(x, y, frame_width, frame_height)
+            
+            # Extract frame
+            frame = pygame.Surface((frame_width, frame_height), pygame.SRCALPHA)
+            frame.blit(spritesheet, (0, 0), frame_rect)
+            
+            frames.append(frame)
+        
+        return frames
+    
+    def load_animated_card(self, card_name: str) -> Optional[pygame.Surface]:
+        """Load current frame of an animated card."""
+        
+        animated_filename = self.animated_card_mapping.get(card_name)
+        if not animated_filename:
+            return None
+        
+        animation_data = self.load_animation_spritesheet(animated_filename)
+        if not animation_data:
+            return None
+        
+        # Get current frame based on time
+        current_time = time.time() * 1000  # milliseconds
+        
+        if card_name not in self._active_animations:
+            self._active_animations[card_name] = (0, current_time)
+        
+        frame_index, last_update = self._active_animations[card_name]
+        
+        # Update frame if enough time has passed
+        frame_duration = animation_data.frames[0].duration
+        if current_time - last_update >= frame_duration:
+            frame_index = (frame_index + 1) % len(animation_data.frames)
+            self._active_animations[card_name] = (frame_index, current_time)
+        
+        # Get current frame surface
+        current_frame = animation_data.frames[frame_index].surface
+        
+        # Scale to card size if needed
+        if current_frame.get_size() != self.target_card_size:
+            current_frame = pygame.transform.scale(current_frame, self.target_card_size)
+        
+        return current_frame
+    
+    def update_animations(self, dt: float):
+        """Update all active animations. Call this in your game loop."""
+        current_time = time.time() * 1000
+        
+        # Update active animations
+        for animation_name in list(self._active_animations.keys()):
+            frame_index, last_update = self._active_animations[animation_name]
+            
+            # Find the animation data
+            animation_data = None
+            if animation_name in self.animated_card_mapping:
+                filename = self.animated_card_mapping[animation_name]
+                animation_data = self.load_animation_spritesheet(filename)
+            
+            if not animation_data:
+                continue
+            
+            # Check if we need to advance frame
+            frame_duration = animation_data.frames[frame_index].duration
+            if current_time - last_update >= frame_duration:
+                new_frame_index = (frame_index + 1) % len(animation_data.frames)
+                self._active_animations[animation_name] = (new_frame_index, current_time)
+    
+    def get_animation_info(self, animation_name: str) -> Optional[Dict]:
+        """Get information about an animation."""
+        
+        if animation_name in self.animated_card_mapping:
+            filename = self.animated_card_mapping[animation_name]
+            animation_data = self.load_animation_spritesheet(filename)
+            
+            if animation_data:
+                return {
+                    'filename': filename,
+                    'frame_count': len(animation_data.frames),
+                    'fps': animation_data.fps,
+                    'duration_ms': animation_data.total_duration,
+                    'loop': animation_data.loop,
+                    'metadata': animation_data.metadata
+                }
+        
+        return None
+    
+    def preload_animations(self, animation_names: List[str] = None):
+        """Preload specific animations for smooth gameplay."""
+        
+        if not animation_names:
+            # Preload all animated cards by default
+            animation_names = list(self.animated_card_mapping.keys())
+        
+        logger.info(f"Preloading {len(animation_names)} animations...")
+        
+        for animation_name in animation_names:
+            # This will load and cache the animation
+            self.load_animated_card(animation_name)
+            
+        logger.info("Animation preloading complete")
+    
+    def get_all_animated_cards(self) -> List[str]:
+        """Get all available animated card names."""
+        return list(self.animated_card_mapping.keys())
+    
     def clear_cache(self):
-        """Clear the image cache to free memory."""
+        """Clear all caches to free memory."""
         self._image_cache.clear()
-        logger.info("Asset cache cleared")
+        self._animation_cache.clear()
+        self._active_animations.clear()
+        logger.info("All asset caches cleared")
     
     def get_cache_stats(self) -> Dict[str, int]:
         """Get cache statistics."""
         return {
             'cached_images': len(self._image_cache),
+            'cached_animations': len(self._animation_cache),
+            'active_animations': len(self._active_animations),
             'max_cache_size': self.max_cache_size,
             'total_types': len(AssetType),
             'total_assets': self.get_total_asset_count()

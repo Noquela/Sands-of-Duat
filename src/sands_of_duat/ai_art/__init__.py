@@ -1,28 +1,23 @@
 """
-AI Art Generation Module for Sands of Duat
-==========================================
+AI Art Generation Module for Sands of Duat - RTX 5070 CUDA 12.8 Optimized
+==========================================================================
 
-Professional AI art generation system for Egyptian underworld card game.
+RTX 5070 maximum quality Egyptian art generation with ComfyUI local API.
+NO FALLBACKS - NO PLACEHOLDERS - HADES QUALITY ONLY
 """
 
 from .ai_generation_pipeline import (
-    AIArtGenerator,
-    GenerationRequest, 
-    GenerationResult,
-    EgyptianPromptLibrary,
-    AIModel,
-    ArtCategory,
-    ArtStyle,
-    get_ai_generator
+    LocalSDXLGenerator,
+    HadesEgyptianPrompts,
+    EgyptianArtPipeline,
+    get_pipeline,
+    generate_all_egyptian_cards
 )
 
 __all__ = [
-    'AIArtGenerator',
-    'GenerationRequest',
-    'GenerationResult', 
-    'EgyptianPromptLibrary',
-    'AIModel',
-    'ArtCategory',
-    'ArtStyle',
-    'get_ai_generator'
+    'LocalSDXLGenerator',
+    'HadesEgyptianPrompts',
+    'EgyptianArtPipeline', 
+    'get_pipeline',
+    'generate_all_egyptian_cards'
 ]

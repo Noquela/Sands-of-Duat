@@ -119,7 +119,7 @@ class CombatCard3D:
         from ...core.asset_loader import get_asset_loader
         asset_loader = get_asset_loader()
         
-        # Try to load artwork for this card
+        # Try to load animated artwork first, then fallback to static
         card_artwork = asset_loader.load_card_art_by_name(self.data.name)
         if not card_artwork:
             # Try fallback by rarity
@@ -348,6 +348,18 @@ class ProfessionalCombat:
         # Initialize positions
         self._update_card_positions()
         self._spawn_battlefield_particles()
+        
+        # Initialize asset loader for animations
+        from ...core.asset_loader import get_asset_loader
+        self.asset_loader = get_asset_loader()
+        
+        # Preload combat animations
+        self.asset_loader.preload_animations([
+            'ANUBIS - JUDGE OF THE DEAD',
+            'Egyptian Warrior', 
+            'Mummy Guardian',
+            'Sphinx Guardian'
+        ])
         
         print("Professional Combat System initialized - Ready for Egyptian warfare!")
     
@@ -734,6 +746,9 @@ class ProfessionalCombat:
                mouse_pos: tuple, mouse_pressed: bool):
         """Update combat system."""
         self.animation_time += dt
+        
+        # Update card animations 
+        self.asset_loader.update_animations(dt)
         
         # Fade-in animation
         if not self.fade_in_complete:

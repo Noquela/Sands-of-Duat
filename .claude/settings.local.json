@@ -19,7 +19,16 @@
       "Bash(pip uninstall:*)",
       "Bash(git push:*)",
       "Bash(powershell:*)",
-      "mcp__mcp-pyautogui__hotkey"
+      "mcp__mcp-pyautogui__hotkey",
+      "Bash(git clone:*)",
+      "Bash(dir:*)",
+      "Bash(venvScripts:*)",
+      "Bash(call venvScriptsactivate.bat)",
+      "Bash(venv/Scripts/python.exe -m pip install:*)",
+      "Bash(../../venv/Scripts/python.exe -m pip install:*)",
+      "Bash(\"venv\\Scripts\\python.exe\":*)",
+      "Bash(\"../../venv/Scripts/python.exe\":*)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

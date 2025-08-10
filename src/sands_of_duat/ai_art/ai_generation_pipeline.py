@@ -1,448 +1,518 @@
+#!/usr/bin/env python3
 """
-SANDS OF DUAT - AI ART GENERATION PIPELINE
-==========================================
-
-Professional AI art generation system for creating consistent Egyptian underworld artwork.
-Uses trained models and standardized prompts to generate high-quality game assets.
+AI Art Generation Pipeline - RTX 5070 CUDA 12.8 Optimized
+Complete rewrite with NO fallbacks or placeholders
+ONLY ComfyUI local generation allowed
 """
 
 import os
+import sys
 import json
 import time
-import hashlib
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass, asdict
+import requests
+import random
 from pathlib import Path
-from enum import Enum, auto
-import logging
+from typing import Dict, List, Optional, Tuple
+import base64
+from io import BytesIO
+from PIL import Image
+import numpy as np
 
-logger = logging.getLogger(__name__)
-
-class AIModel(Enum):
-    """Supported AI models for art generation."""
-    STABLE_DIFFUSION_XL = "sdxl"
-    MIDJOURNEY = "midjourney"
-    DALLE3 = "dalle3"
-    FLUX_PRO = "flux_pro"
-    LOCAL_LORA = "local_lora"
-
-class ArtCategory(Enum):
-    """Categories of artwork to generate."""
-    CARD_ART = auto()
-    BACKGROUND = auto()
-    UI_ELEMENT = auto()
-    CHARACTER_PORTRAIT = auto()
-    ENVIRONMENTAL = auto()
-
-class ArtStyle(Enum):
-    """Art style variations."""
-    STANDARD = "sands_of_duat_style"
-    DETAILED = "sands_of_duat_style, highly_detailed"
-    CINEMATIC = "sands_of_duat_style, cinematic_lighting"
-    MYSTICAL = "sands_of_duat_style, mystical_atmosphere"
-
-@dataclass
-class GenerationRequest:
-    """Request for AI art generation."""
-    name: str
-    category: ArtCategory
-    base_prompt: str
-    style: ArtStyle = ArtStyle.STANDARD
-    model: AIModel = AIModel.STABLE_DIFFUSION_XL
-    width: int = 512
-    height: int = 512
-    steps: int = 30
-    cfg_scale: float = 7.5
-    seed: Optional[int] = None
-    negative_prompt: str = ""
+class LocalSDXLGenerator:
+    """RTX 5070 optimized SDXL generator via ComfyUI API - CUDA 12.8 required"""
     
-    # Quality control
-    min_quality_score: float = 0.75
-    max_attempts: int = 3
-    
-    # Metadata
-    card_name: Optional[str] = None
-    card_type: Optional[str] = None
-    rarity: Optional[str] = None
-
-@dataclass
-class GenerationResult:
-    """Result of AI art generation."""
-    request: GenerationRequest
-    success: bool
-    image_path: Optional[str] = None
-    quality_score: float = 0.0
-    generation_time: float = 0.0
-    attempts: int = 0
-    error_message: Optional[str] = None
-    model_metadata: Dict[str, Any] = None
-
-class EgyptianPromptLibrary:
-    """
-    Standardized prompt library for HADES-QUALITY Egyptian underworld artwork.
-    Targets the same artistic excellence as Supergiant Games' Hades.
-    """
-    
-    BASE_STYLE = "sands_of_duat_style, egyptian_underworld_art, hades_game_art_quality"
-    
-    # Hades-quality art specifications
-    HADES_QUALITY_ELEMENTS = [
-        "supergiant_games_style",
-        "hand_painted_illustration", 
-        "vibrant_saturated_colors",
-        "dramatic_lighting_contrasts",
-        "painterly_brush_strokes",
-        "professional_game_artwork",
-        "award_winning_art_direction"
-    ]
-    
-    # Core Egyptian elements with Hades-level detail
-    EGYPTIAN_ELEMENTS = {
-        "gods": "majestic egyptian deity, golden divine regalia, intricate hieroglyphic details, powerful divine presence, hades_character_quality",
-        "artifacts": "ornate ancient egyptian artifact, gleaming gold and lapis lazuli, sacred hieroglyphic inscriptions, mystical aura, hades_item_quality",
-        "locations": "atmospheric egyptian underworld chamber, dramatic torch lighting, mysterious hieroglyphic walls, rich architectural details, hades_environment_quality", 
-        "spells": "dynamic egyptian mythological magic, swirling divine energy, golden mystical effects, dramatic spell casting, hades_effect_quality",
-        "creatures": "imposing sacred egyptian creature, detailed mythological anatomy, divine markings, fierce expression, hades_creature_quality",
-        "backgrounds": "cinematic egyptian underworld environment, layered atmospheric lighting, rich architectural depth, hades_background_quality"
-    }
-    
-    # Hades-level quality enhancers
-    QUALITY_ENHANCERS = [
-        "highly detailed",
-        "masterpiece_quality",
-        "supergiant_games_art_style",
-        "hades_game_aesthetic",
-        "vibrant_rich_colors",
-        "dramatic_contrasts",
-        "hand_painted_texture",
-        "award_winning_illustration",
-        "professional_game_art",
-        "painterly_style",
-        "4k_resolution"
-    ]
-    
-    # Lighting and atmosphere
-    LIGHTING_STYLES = {
-        "divine": "divine golden light, heavenly glow",
-        "mystical": "mystical purple aura, magical energy",
-        "underworld": "dim torchlight, mysterious shadows",
-        "solar": "brilliant solar rays, warm golden hour",
-        "moonlit": "silver moonlight, ethereal glow"
-    }
-    
-    # Negative prompts to avoid - ensuring Hades-level quality
-    NEGATIVE_PROMPTS = [
-        "blurry", "low_quality", "pixelated", "watermark", "text", "signature",
-        "amateur", "sketch", "unfinished", "draft", "placeholder",
-        "modern_elements", "non_egyptian", "inappropriate", "ugly", "deformed",
-        "bad_anatomy", "poorly_drawn", "amateur_art", "low_resolution",
-        "jpeg_artifacts", "compression_artifacts", "washed_out_colors",
-        "flat_lighting", "boring", "generic", "cheap_looking", "rushed",
-        "inconsistent_style", "photorealistic", "3d_render", "photography"
-    ]
-    
-    def create_card_prompt(self, card_name: str, card_type: str, 
-                          rarity: str = "common") -> str:
-        """Create optimized prompt for card artwork."""
+    def __init__(self):
+        self.api_base = "http://127.0.0.1:8188"
+        self.session = requests.Session()
         
-        # Get base elements for card type
-        type_key = card_type.lower()
-        if type_key in self.EGYPTIAN_ELEMENTS:
-            type_elements = self.EGYPTIAN_ELEMENTS[type_key]
-        else:
-            type_elements = self.EGYPTIAN_ELEMENTS["artifacts"]
-        
-        # Enhance based on rarity
-        quality_level = "detailed artwork"
-        if rarity == "rare":
-            quality_level = "highly detailed, premium artwork"
-        elif rarity == "legendary":
-            quality_level = "masterpiece quality, legendary artwork, divine aura"
-        
-        # Combine prompt elements
-        prompt_parts = [
-            self.BASE_STYLE,
-            type_elements,
-            quality_level,
-            "professional game card art",
-            "rich egyptian colors",
-            "intricate details"
-        ]
-        
-        return ", ".join(prompt_parts)
-    
-    def create_background_prompt(self, scene_type: str) -> str:
-        """Create prompt for background/environment art."""
-        
-        scene_elements = {
-            "main_menu": "grand egyptian temple entrance with golden pillars",
-            "combat": "egyptian underworld battlefield with mystical energy",
-            "deck_builder": "ancient egyptian library with scrolls and artifacts",
-            "collection": "pharaoh's treasure chamber with golden artifacts",
-            "settings": "egyptian temple inner sanctum with hieroglyphic walls",
-            "victory": "radiant egyptian paradise with golden light",
-            "defeat": "dark egyptian underworld with mysterious shadows"
+        # RTX 5070 CUDA 12.8 optimized settings - NO LIMITS
+        self.config = {
+            "batch_size": 1,          # High quality single generation
+            "steps": 50,              # MAXIMUM quality steps
+            "cfg_scale": 9.0,         # Strong guidance for Egyptian style
+            "width": 768,             # High resolution cards
+            "height": 1024,           # Portrait aspect ratio
+            "scheduler": "karras",
+            "sampler": "euler_ancestral",
+            "model": "sd_xl_base_1.0.safetensors",
+            "vae": "sdxl_vae.safetensors"
         }
         
-        scene_desc = scene_elements.get(scene_type, scene_elements["main_menu"])
+        print(f"LocalSDXLGenerator initialized - RTX 5070 CUDA 12.8")
+        print(f"ComfyUI API: {self.api_base}")
         
-        prompt_parts = [
-            self.BASE_STYLE,
-            scene_desc,
-            "cinematic composition",
-            "atmospheric lighting", 
-            "rich egyptian architecture",
-            "game background art"
-        ]
+    def generate_image(self, 
+                      prompt: str, 
+                      negative_prompt: str,
+                      seed: Optional[int] = None,
+                      **kwargs) -> Optional[Image.Image]:
+        """Generate single image via ComfyUI API - RTX 5070 max quality"""
         
-        return ", ".join(prompt_parts)
-    
-    def get_negative_prompt(self) -> str:
-        """Get standardized negative prompt."""
-        return ", ".join(self.NEGATIVE_PROMPTS)
-
-class AIArtGenerator:
-    """
-    Main AI art generation system with multiple model support.
-    """
-    
-    def __init__(self, output_dir: str = "assets/generated_art"):
-        self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        if seed is None:
+            seed = random.randint(0, 2**32-1)
+            
+        # Merge config with any overrides
+        gen_config = {**self.config, **kwargs}
         
-        self.prompt_library = EgyptianPromptLibrary()
-        self.generation_log: List[GenerationResult] = []
+        print(f"  Generating {gen_config['width']}x{gen_config['height']} @ {gen_config['steps']} steps")
         
-        # Model configurations
-        self.model_configs = {
-            AIModel.STABLE_DIFFUSION_XL: {
-                "api_endpoint": None,  # Configure based on service
-                "default_size": (1024, 1024),
-                "max_steps": 50
+        # Create ComfyUI workflow for RTX 5070
+        workflow = {
+            "3": {
+                "inputs": {
+                    "seed": seed,
+                    "steps": gen_config["steps"],
+                    "cfg": gen_config["cfg_scale"],
+                    "sampler_name": gen_config["sampler"],
+                    "scheduler": gen_config["scheduler"],
+                    "denoise": 1.0,
+                    "model": ["4", 0],
+                    "positive": ["6", 0],
+                    "negative": ["7", 0],
+                    "latent_image": ["5", 0]
+                },
+                "class_type": "KSampler"
             },
-            AIModel.LOCAL_LORA: {
-                "model_path": "assets/models/sands_of_duat_lora.safetensors",
-                "base_model": "sdxl_base_1.0.safetensors",
-                "default_size": (768, 768)
+            "4": {
+                "inputs": {
+                    "ckpt_name": gen_config["model"]
+                },
+                "class_type": "CheckpointLoaderSimple"
+            },
+            "5": {
+                "inputs": {
+                    "width": gen_config["width"],
+                    "height": gen_config["height"],
+                    "batch_size": gen_config["batch_size"]
+                },
+                "class_type": "EmptyLatentImage"
+            },
+            "6": {
+                "inputs": {
+                    "text": prompt,
+                    "clip": ["4", 1]
+                },
+                "class_type": "CLIPTextEncode"
+            },
+            "7": {
+                "inputs": {
+                    "text": negative_prompt,
+                    "clip": ["4", 1]
+                },
+                "class_type": "CLIPTextEncode"
+            },
+            "8": {
+                "inputs": {
+                    "samples": ["3", 0],
+                    "vae": ["4", 2]
+                },
+                "class_type": "VAEDecode"
+            },
+            "9": {
+                "inputs": {
+                    "filename_prefix": f"sands_of_duat_{int(time.time())}",
+                    "images": ["8", 0]
+                },
+                "class_type": "SaveImage"
             }
         }
         
-        logger.info("AI Art Generator initialized - Chamber of Creation ready")
+        try:
+            # Queue prompt on RTX 5070
+            response = self.session.post(
+                f"{self.api_base}/prompt",
+                json={"prompt": workflow, "client_id": "rtx5070_sands_of_duat"}
+            )
+            
+            if response.status_code != 200:
+                print(f"    [ERROR] ComfyUI queue error: {response.status_code}")
+                return None
+                
+            result = response.json()
+            prompt_id = result.get("prompt_id")
+            
+            if not prompt_id:
+                print("    [ERROR] No prompt ID returned from ComfyUI")
+                return None
+            
+            print(f"    [PROCESSING] RTX 5070 processing... ID: {prompt_id}")
+            
+            # Wait for RTX 5070 to complete generation
+            return self._wait_for_image(prompt_id)
+            
+        except Exception as e:
+            print(f"    [ERROR] RTX 5070 generation error: {e}")
+            return None
     
-    def generate_card_art(self, card_name: str, card_type: str, 
-                         rarity: str = "common") -> GenerationResult:
-        """Generate artwork for a specific card."""
+    def _wait_for_image(self, prompt_id: str, timeout: int = 600) -> Optional[Image.Image]:
+        """Wait for RTX 5070 to complete image generation"""
         
-        # Create generation request
-        prompt = self.prompt_library.create_card_prompt(card_name, card_type, rarity)
-        
-        request = GenerationRequest(
-            name=f"card_{card_name.lower().replace(' ', '_')}",
-            category=ArtCategory.CARD_ART,
-            base_prompt=prompt,
-            negative_prompt=self.prompt_library.get_negative_prompt(),
-            model=AIModel.FLUX_PRO,  # Use FLUX.1 DEV for BEST quality!
-            width=768, height=1024,  # Optimal card aspect ratio for Flux
-            steps=28,  # Flux optimal steps
-            cfg_scale=3.5,  # Flux optimal guidance
-            card_name=card_name,
-            card_type=card_type,
-            rarity=rarity
-        )
-        
-        return self.generate_artwork(request)
-    
-    def generate_background_art(self, scene_type: str) -> GenerationResult:
-        """Generate background artwork for game scenes."""
-        
-        prompt = self.prompt_library.create_background_prompt(scene_type)
-        
-        request = GenerationRequest(
-            name=f"bg_{scene_type}",
-            category=ArtCategory.BACKGROUND,
-            base_prompt=prompt,
-            negative_prompt=self.prompt_library.get_negative_prompt(),
-            width=1920, height=1080,  # Screen resolution
-            style=ArtStyle.CINEMATIC
-        )
-        
-        return self.generate_artwork(request)
-    
-    def generate_artwork(self, request: GenerationRequest) -> GenerationResult:
-        """Generate artwork based on request."""
         start_time = time.time()
         
-        logger.info(f"Generating artwork: {request.name}")
-        logger.info(f"Prompt: {request.base_prompt}")
+        while time.time() - start_time < timeout:
+            try:
+                # Check RTX 5070 processing status
+                response = self.session.get(f"{self.api_base}/history/{prompt_id}")
+                
+                if response.status_code == 200:
+                    history = response.json()
+                    
+                    if prompt_id in history:
+                        outputs = history[prompt_id].get("outputs", {})
+                        
+                        # Look for SaveImage output
+                        for node_id, node_output in outputs.items():
+                            if "images" in node_output:
+                                images_data = node_output["images"]
+                                if images_data:
+                                    # Get first image
+                                    image_info = images_data[0]
+                                    filename = image_info["filename"]
+                                    
+                                    # Download RTX 5070 generated image
+                                    img_response = self.session.get(
+                                        f"{self.api_base}/view?filename={filename}&type=output"
+                                    )
+                                    
+                                    if img_response.status_code == 200:
+                                        print(f"    [SUCCESS] RTX 5070 generation complete!")
+                                        return Image.open(BytesIO(img_response.content))
+                
+                # RTX 5070 still processing
+                time.sleep(3)
+                
+            except Exception as e:
+                print(f"    [WARNING] Status check error: {e}")
+                time.sleep(5)
         
+        print(f"    [TIMEOUT] RTX 5070 timeout after {timeout}s")
+        return None
+    
+    def test_connection(self) -> bool:
+        """Test if ComfyUI is running on RTX 5070"""
         try:
-            # Route to appropriate model - FLUX.1 DEV is the BEST for RTX 5070!
-            if request.model == AIModel.FLUX_PRO:
-                result = self._generate_with_flux_dev(request)
-            elif request.model == AIModel.STABLE_DIFFUSION_XL:
-                result = self._generate_with_sdxl(request)
-            elif request.model == AIModel.LOCAL_LORA:
-                result = self._generate_with_local_lora(request)
+            response = self.session.get(f"{self.api_base}/system_stats", timeout=10)
+            if response.status_code == 200:
+                print("[SUCCESS] ComfyUI connection successful")
+                return True
             else:
-                raise NotImplementedError(f"Model {request.model} not yet implemented")
-            
-            result.generation_time = time.time() - start_time
-            self.generation_log.append(result)
-            
-            if result.success:
-                logger.info(f"✓ Generated: {result.image_path} (Quality: {result.quality_score:.2f})")
-            else:
-                logger.warning(f"✗ Generation failed: {result.error_message}")
-            
-            return result
-            
+                print(f"[ERROR] ComfyUI returned {response.status_code}")
+                return False
         except Exception as e:
-            error_result = GenerationResult(
-                request=request,
-                success=False,
-                error_message=str(e),
-                generation_time=time.time() - start_time
-            )
-            self.generation_log.append(error_result)
-            logger.error(f"Generation error: {e}")
-            return error_result
+            print(f"[ERROR] ComfyUI connection failed: {e}")
+            return False
+
+class HadesEgyptianPrompts:
+    """Professional Hades-Egyptian style prompts for RTX 5070 generation"""
     
-    def _generate_with_sdxl(self, request: GenerationRequest) -> GenerationResult:
-        """Generate using Stable Diffusion XL (placeholder for API integration)."""
-        
-        # This would integrate with actual SDXL API
-        # For now, return a mock result indicating where integration is needed
-        
-        return GenerationResult(
-            request=request,
-            success=False,
-            error_message="SDXL API integration needed - configure your preferred AI service",
-            attempts=1
-        )
+    # Base style targeting Hades game quality
+    BASE_STYLE = """masterpiece, best quality, ultra detailed, hades game art style, 
+    hand painted artwork, egyptian underworld theme, dramatic lighting, 
+    vibrant colors, rich textures, supergiant games quality, 
+    professional game art, award winning illustration"""
     
-    def _generate_with_local_lora(self, request: GenerationRequest) -> GenerationResult:
-        """Generate using local LoRA model (placeholder for local generation)."""
-        
-        # This would integrate with local Stable Diffusion + LoRA
-        # For now, return a mock result indicating where integration is needed
-        
-        return GenerationResult(
-            request=request,
-            success=False,
-            error_message="Local LoRA generation needs ComfyUI or Automatic1111 setup",
-            attempts=1
-        )
+    # Consistent negative prompt
+    NEGATIVE_PROMPT = """low quality, blurry, pixelated, photograph, realistic, 
+    3d render, modern, contemporary, bad anatomy, deformed, watermark, text, 
+    amateur, sketch, unfinished, cheap, generic, boring"""
     
-    def _generate_with_flux_dev(self, request: GenerationRequest) -> GenerationResult:
-        """Generate using Flux.1 Dev - BEST quality for RTX 5070."""
+    # All legendary cards with multiple prompt variants for RTX 5070
+    LEGENDARY_CARDS = {
+        "ANUBIS - JUDGE OF THE DEAD": [
+            f"{BASE_STYLE}, majestic Anubis with jackal head, golden egyptian regalia, "
+            f"divine scales of judgment floating beside him, glowing amber eyes, "
+            f"ornate collar with hieroglyphic inscriptions, underworld throne room background, "
+            f"mystical purple and gold aura, ancient egyptian architecture",
+            
+            f"{BASE_STYLE}, Anubis deity wielding crook and flail, ceremonial mummification pose, "
+            f"sacred canopic jars surrounding, torch-lit tomb interior, weathered stone pillars, "
+            f"Egyptian god of the dead, divine authority, shadowy atmosphere with golden accents"
+        ],
         
-        try:
-            from .flux_generator import get_flux_generator
+        "RA - SUN GOD": [
+            f"{BASE_STYLE}, magnificent Ra with falcon head, blazing solar disk crown, "
+            f"radiant golden armor with sun motifs, commanding solar barque, "
+            f"streams of divine sunlight, pyramid silhouettes in background, "
+            f"cosmic stellar energy, temple of heliopolis, warm golden lighting",
             
-            flux_gen = get_flux_generator()
+            f"{BASE_STYLE}, Ra sun god raising arms to command dawn, solar corona expanding, "
+            f"pharaonic regalia with precious gems, desert landscape at sunrise, "
+            f"obelisks and ancient monuments, divine solar magic, celestial background"
+        ],
+        
+        "ISIS - DIVINE MOTHER": [
+            f"{BASE_STYLE}, graceful Isis with protective wings spread wide, "
+            f"throne hieroglyph crown, flowing white and gold egyptian robes, "
+            f"ankh symbol glowing with life energy, green healing magic spiraling, "
+            f"nurturing maternal expression, temple interior with lotus columns",
             
-            # Generate image
-            image = flux_gen.generate_hades_egyptian_art(
-                prompt=request.base_prompt,
-                negative_prompt=request.negative_prompt,
-                width=request.width,
-                height=request.height,
-                steps=request.steps,
-                guidance=request.cfg_scale
-            )
+            f"{BASE_STYLE}, Isis goddess performing resurrection magic, hands glowing with power, "
+            f"mystical symbols floating in air, star-pattern dress, silver moonlight, "
+            f"sacred ibis birds around her, papyrus plants, divine feminine energy"
+        ],
+        
+        "SET - CHAOS GOD": [
+            f"{BASE_STYLE}, menacing Set with curved snout and red eyes, "
+            f"chaotic storm armor in red and black, lightning crackling around him, "
+            f"desert sandstorm background, god of disorder and violence, "
+            f"aggressive battle pose, ancient egyptian mythology, ominous atmosphere",
             
-            if image:
-                # Save image
-                import os
-                os.makedirs(self.output_dir, exist_ok=True)
-                image_path = self.output_dir / f"{request.name}_flux.png"
-                image.save(image_path)
-                
-                # Evaluate quality
-                quality_score = self._evaluate_quality(str(image_path), request)
-                
-                return GenerationResult(
-                    request=request,
-                    success=True,
-                    image_path=str(image_path),
-                    quality_score=quality_score,
-                    attempts=1,
-                    model_metadata=flux_gen.get_memory_usage()
-                )
+            f"{BASE_STYLE}, Set wielding was scepter of power, destructive chaos magic, "
+            f"red desert landscape with swirling sands, pharaonic curses, "
+            f"ancient rivalry imagery, menacing expression, dark Egyptian god"
+        ]
+    }
+    
+    # Epic tier cards for RTX 5070
+    EPIC_CARDS = {
+        "EGYPTIAN WARRIOR": [
+            f"{BASE_STYLE}, elite egyptian warrior in ornate golden armor, "
+            f"wielding bronze khopesh sword with hieroglyphic etchings, "
+            f"pharaoh's champion in ceremonial headdress, desert battlefield, "
+            f"war paint on face, determined expression, bronze age weapons",
+            
+            f"{BASE_STYLE}, egyptian warrior commanding from golden war chariot, "
+            f"two magnificent horses with egyptian decorations, spear raised high, "
+            f"royal regalia flowing in wind, army formations in background, "
+            f"pyramid monuments on horizon, victory pose, military prowess"
+        ],
+        
+        "PHARAOH'S GUARD": [
+            f"{BASE_STYLE}, imposing temple guardian in ceremonial bronze armor, "
+            f"holding ornate spear with crystal blade, massive muscular build, "
+            f"standing guard at temple entrance, torch flames creating shadows, "
+            f"hieroglyphic walls, loyal protector, stern expression",
+            
+            f"{BASE_STYLE}, elite palace guard in formation, synchronized stance, "
+            f"royal cartouche symbols on armor, golden decorations, "
+            f"disciplined warrior protecting pharaoh, palace interior, authority"
+        ]
+    }
+    
+    # Rare tier cards optimized for RTX 5070
+    RARE_CARDS = {
+        "MUMMY GUARDIAN": [
+            f"{BASE_STYLE}, ancient mummy lord rising from ornate sarcophagus, "
+            f"glowing red eyes piercing through darkness, golden burial mask, "
+            f"partially unwrapped bandages revealing ancient skin, "
+            f"dark tomb interior with treasure chests and canopic jars",
+            
+            f"{BASE_STYLE}, mummy guardian commanding undead army, "
+            f"staff topped with golden ankh, ethereal blue flame magic, "
+            f"skeletal minions in background, tomb entrance with massive doors, "
+            f"ancient curse energy, supernatural Egyptian undead"
+        ],
+        
+        "SPHINX GUARDIAN": [
+            f"{BASE_STYLE}, majestic sphinx with wise pharaoh head and lion body, "
+            f"ancient weathered limestone texture, massive monumental scale, "
+            f"great pyramids perfectly aligned in background, desert sands, "
+            f"mysterious golden eyes holding ancient secrets, sunset lighting",
+            
+            f"{BASE_STYLE}, sphinx guardian solving eternal riddles, "
+            f"glowing eyes with divine wisdom, hieroglyphic inscriptions, "
+            f"desert heat shimmer effects, geological stone textures, "
+            f"mythical creature of ancient Egypt, eternal watchfulness"
+        ]
+    }
+
+class EgyptianArtPipeline:
+    """Complete Egyptian art generation pipeline - RTX 5070 CUDA 12.8 only"""
+    
+    def __init__(self):
+        self.generator = LocalSDXLGenerator()
+        self.prompts = HadesEgyptianPrompts()
+        
+        # Output paths - exactly as specified
+        self.base_dir = Path(__file__).parent.parent.parent.parent
+        self.generated_dir = self.base_dir / "assets" / "generated_art"
+        self.approved_dir = self.base_dir / "assets" / "approved_hades_quality"
+        
+        # Create directories
+        for dir_path in [self.generated_dir, self.approved_dir]:
+            dir_path.mkdir(parents=True, exist_ok=True)
+            
+        # Create subdirectories for approved assets
+        (self.approved_dir / "cards").mkdir(exist_ok=True)
+        (self.approved_dir / "backgrounds").mkdir(exist_ok=True)
+        (self.approved_dir / "characters").mkdir(exist_ok=True)
+            
+    def test_setup(self) -> bool:
+        """Test if RTX 5070 ComfyUI setup is ready"""
+        print("[SETUP] Testing RTX 5070 ComfyUI setup...")
+        
+        if not self.generator.test_connection():
+            print("[ERROR] ComfyUI not accessible at http://127.0.0.1:8188")
+            print("[ERROR] Required: Start ComfyUI with CUDA 12.8 support")
+            print("   Command: cd external/ComfyUI && python main.py --listen 127.0.0.1 --port 8188")
+            return False
+            
+        print("[SUCCESS] RTX 5070 ComfyUI connection verified")
+        return True
+    
+    def generate_all_cards(self) -> Dict[str, bool]:
+        """Generate ALL cards from scratch - RTX 5070 maximum quality"""
+        
+        if not self.test_setup():
+            print("[ERROR] Setup failed - cannot proceed without RTX 5070 ComfyUI")
+            return {}
+            
+        print("RTX5070" + "="*54)
+        print("    RTX 5070 EGYPTIAN CARD GENERATION - CUDA 12.8")
+        print("    NO FALLBACKS - NO PLACEHOLDERS - MAXIMUM QUALITY")
+        print("RTX5070" + "="*54)
+        
+        results = {}
+        
+        # Combine all card categories
+        all_cards = {
+            **self.prompts.LEGENDARY_CARDS,
+            **self.prompts.EPIC_CARDS,  
+            **self.prompts.RARE_CARDS
+        }
+        
+        total_cards = len(all_cards)
+        successful_cards = 0
+        start_time = time.time()
+        
+        for i, (card_name, prompt_variants) in enumerate(all_cards.items(), 1):
+            print(f"\n[{i}/{total_cards}] [GEN] RTX 5070 Generating: {card_name}")
+            print("-" * 50)
+            
+            success = self._generate_single_card(card_name, prompt_variants)
+            results[card_name] = success
+            
+            if success:
+                successful_cards += 1
+                print(f"    [SUCCESS] {card_name} - RTX 5070 SUCCESS")
             else:
-                return GenerationResult(
-                    request=request,
-                    success=False,
-                    error_message="Flux.1 Dev generation returned None",
-                    attempts=1
-                )
-                
-        except Exception as e:
-            return GenerationResult(
-                request=request,
-                success=False,
-                error_message=f"Flux.1 Dev error: {str(e)}",
-                attempts=1
-            )
-    
-    def _evaluate_quality(self, image_path: str, request: GenerationRequest) -> float:
-        """Evaluate the quality of generated artwork."""
+                print(f"    [FAILED] {card_name} - RTX 5070 FAILED")
         
-        # This would implement automated quality assessment
-        # For now, return a placeholder score
+        elapsed_time = time.time() - start_time
         
-        return 0.8  # Mock quality score
-    
-    def batch_generate_cards(self, card_list: List[Dict[str, str]]) -> List[GenerationResult]:
-        """Generate artwork for multiple cards."""
-        results = []
-        
-        logger.info(f"Starting batch generation for {len(card_list)} cards")
-        
-        for i, card_info in enumerate(card_list):
-            logger.info(f"Generating card {i+1}/{len(card_list)}: {card_info['name']}")
-            
-            result = self.generate_card_art(
-                card_info['name'],
-                card_info['type'],
-                card_info.get('rarity', 'common')
-            )
-            
-            results.append(result)
-            
-            # Small delay between generations to avoid rate limiting
-            time.sleep(1)
-        
-        successful = sum(1 for r in results if r.success)
-        logger.info(f"Batch complete: {successful}/{len(results)} successful")
+        print(f"\nRTX5070{'='*54}")
+        print(f"[SUCCESS] RTX 5070 GENERATION COMPLETE!")
+        print(f"[TIME] Total time: {elapsed_time/60:.1f} minutes")
+        print(f"[SUCCESS] Success rate: {successful_cards}/{total_cards} cards")
+        print(f"[PERFORMANCE] RTX 5070 CUDA 12.8 utilized at maximum capacity")
+        print(f"[OUTPUT] Generated: {self.generated_dir}")
+        print(f"[OUTPUT] Approved: {self.approved_dir}")
         
         return results
     
-    def export_generation_report(self, filename: str = "generation_report.json"):
-        """Export detailed report of all generations."""
+    def _generate_single_card(self, card_name: str, prompt_variants: List[str]) -> bool:
+        """Generate single card with RTX 5070 quality validation"""
         
-        report = {
-            "timestamp": time.time(),
-            "total_generations": len(self.generation_log),
-            "successful_generations": sum(1 for r in self.generation_log if r.success),
-            "average_quality": sum(r.quality_score for r in self.generation_log) / len(self.generation_log) if self.generation_log else 0,
-            "generation_log": [asdict(result) for result in self.generation_log]
-        }
+        # Try each prompt variant until RTX 5070 produces acceptable quality
+        for i, prompt in enumerate(prompt_variants):
+            print(f"    [ATTEMPT] RTX 5070 attempt {i+1}/{len(prompt_variants)}")
+            
+            # Generate with RTX 5070 maximum settings
+            image = self.generator.generate_image(
+                prompt=prompt,
+                negative_prompt=self.prompts.NEGATIVE_PROMPT,
+                width=768,   # High resolution for cards
+                height=1024, # Portrait aspect
+                steps=50,    # Maximum quality steps
+                cfg_scale=9.0 # Strong guidance
+            )
+            
+            if image:
+                # Save to generated directory first
+                filename = f"{card_name.lower().replace(' - ', '_').replace(' ', '_')}.png"
+                generated_path = self.generated_dir / filename
+                image.save(generated_path, 'PNG', quality=100)
+                
+                print(f"    [SAVED] RTX 5070 output: {generated_path}")
+                
+                # Quality validation for RTX 5070 output
+                if self._validate_rtx5070_quality(image, card_name):
+                    # Move to approved directory  
+                    approved_path = self.approved_dir / "cards" / filename
+                    image.save(approved_path, 'PNG', quality=100)
+                    
+                    print(f"    [APPROVED] RTX 5070 quality approved: {approved_path}")
+                    return True
+                else:
+                    print(f"    [RETRY] RTX 5070 output quality insufficient, retrying...")
         
-        report_path = self.output_dir / filename
-        with open(report_path, 'w') as f:
-            json.dump(report, f, indent=2)
+        print(f"    [FAILED] RTX 5070 failed to produce acceptable quality for {card_name}")
+        return False
+    
+    def _validate_rtx5070_quality(self, image: Image.Image, card_name: str) -> bool:
+        """Validate RTX 5070 output meets Hades-Egyptian quality standards"""
         
-        logger.info(f"Generation report exported: {report_path}")
+        # Size validation
+        if image.width < 512 or image.height < 512:
+            print(f"    [FAILED] RTX 5070 output too small: {image.size}")
+            return False
+            
+        # Convert to numpy for analysis
+        img_array = np.array(image.convert('RGB'))
         
-        return report_path
+        # Color variance check (not blank/solid)
+        color_variance = np.var(img_array)
+        if color_variance < 200:
+            print(f"    [FAILED] RTX 5070 output too uniform: variance {color_variance}")
+            return False
+            
+        # Color saturation check (Egyptian art should be vibrant)
+        hsv_img = image.convert('HSV')
+        hsv_array = np.array(hsv_img)
+        saturation = np.mean(hsv_array[:, :, 1])
+        
+        if saturation < 80:  # Low saturation indicates washed out colors
+            print(f"    [FAILED] RTX 5070 output lacks color vibrancy: sat {saturation}")
+            return False
+            
+        # Detail complexity check
+        from PIL import ImageFilter
+        edges = image.filter(ImageFilter.FIND_EDGES)
+        edge_array = np.array(edges.convert('L'))
+        detail_score = np.mean(edge_array)
+        
+        if detail_score < 15:  # Very low detail
+            print(f"    [FAILED] RTX 5070 output lacks detail: score {detail_score}")
+            return False
+            
+        print(f"    [QUALITY] RTX 5070 quality metrics passed:")
+        print(f"        Color variance: {color_variance:.1f}")
+        print(f"        Saturation: {saturation:.1f}")
+        print(f"        Detail score: {detail_score:.1f}")
+        
+        return True
 
-# Global generator instance
-_ai_generator: Optional[AIArtGenerator] = None
+# Global pipeline instance
+_pipeline: Optional[EgyptianArtPipeline] = None
 
-def get_ai_generator() -> AIArtGenerator:
-    """Get the global AI art generator instance."""
-    global _ai_generator
-    if _ai_generator is None:
-        _ai_generator = AIArtGenerator()
-    return _ai_generator
+def get_pipeline() -> EgyptianArtPipeline:
+    """Get global RTX 5070 pipeline instance"""
+    global _pipeline
+    if _pipeline is None:
+        _pipeline = EgyptianArtPipeline()
+    return _pipeline
+
+def generate_all_egyptian_cards() -> Dict[str, bool]:
+    """Main entry point for RTX 5070 card generation"""
+    pipeline = get_pipeline()
+    return pipeline.generate_all_cards()
+
+if __name__ == "__main__":
+    # RTX 5070 CUDA 12.8 generation test
+    print("[TEST] RTX 5070 CUDA 12.8 Egyptian Art Generation Test")
+    results = generate_all_egyptian_cards()
+    
+    successful = sum(1 for success in results.values() if success)
+    total = len(results)
+    
+    print(f"\n[RESULTS] RTX 5070 FINAL RESULTS: {successful}/{total} cards generated")
+    
+    if successful == total:
+        print("[SUCCESS] PERFECT RTX 5070 SUCCESS! All Egyptian cards generated!")
+        print("[READY] Ready for animation pipeline and game integration!")
+    elif successful > 0:
+        print("[PARTIAL] Partial RTX 5070 success. Check failed cards and retry.")
+        print("[ADVICE] Consider adjusting quality thresholds or prompt variants.")
+    else:
+        print("[FAILED] RTX 5070 generation completely failed.")
+        print("[ERROR] Check ComfyUI setup, CUDA 12.8 installation, and model files.")

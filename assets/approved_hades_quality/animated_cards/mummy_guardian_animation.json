@@ -1,0 +1,23 @@
+{
+  "card_name": "mummy_guardian",
+  "animation_type": "hades_egyptian_mystical",
+  "frame_count": 16,
+  "fps": 12,
+  "frame_size": [
+    768,
+    1024
+  ],
+  "sheet_cols": 4,
+  "sheet_rows": 4,
+  "loop": true,
+  "quality": "hades_professional",
+  "rtx5070_optimized": true,
+  "effects": [
+    "hover_animation",
+    "mystical_glow",
+    "card_specific_magic",
+    "egyptian_particles"
+  ],
+  "generated_time": 1754805127.35707,
+  "generator": "RTX5070CardAnimator"
+}
