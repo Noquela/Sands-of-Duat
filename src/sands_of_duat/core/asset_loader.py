@@ -97,9 +97,20 @@ class GeneratedAssetLoader:
             # Epic Cards - Using actual generated assets
             'Egyptian Warrior': 'hades_egyptian_characters_epic_egyptian_warrior_epic_20250809_145921_20250809.png',
             
-            # Rare Cards - Using actual generated assets
+            # Rare Cards - Using actual generated assets  
             'Mummy Guardian': 'hades_egyptian_characters_rare_mummy_guardian_rare_20250809_150008_20250809.png',
             'Sphinx Guardian': 'hades_egyptian_characters_rare_sphinx_guardian_rare_20250809_145944_20250809.png',
+            
+            # Alternative names for the same cards (combat system uses these)
+            'ANUBIS - JUDGE OF THE DEAD': 'hades_egyptian_characters_legendary_anubis_deity_legendary_20250809_145745_20250809.png',
+            'JUDGMENT SCALE': 'hades_egyptian_characters_legendary_anubis_deity_legendary_20250809_145745_20250809.png',
+            'DEITY\'S EMBRACE': 'hades_egyptian_characters_legendary_isis_goddess_legendary_20250809_145834_20250809.png',
+            'ANUBIS\'S WRATH': 'hades_egyptian_characters_legendary_set_chaos_god_legendary_20250809_145857_20250809.png',
+            'BLESSED SCARAB': 'hades_egyptian_characters_rare_sphinx_guardian_rare_20250809_145944_20250809.png',
+            'SACRED SCARAB': 'hades_egyptian_characters_rare_sphinx_guardian_rare_20250809_145944_20250809.png',
+            'PHARAOH POWER': 'hades_egyptian_characters_epic_egyptian_warrior_epic_20250809_145921_20250809.png',
+            'PYRAMID POWER': 'hades_egyptian_characters_legendary_ra_sun_god_legendary_20250809_145810_20250809.png',
+            'WISDOM SERVANT': 'hades_egyptian_characters_rare_mummy_guardian_rare_20250809_150008_20250809.png',
             
             # Common Cards - Will use fallback artwork for now
         }
@@ -109,7 +120,9 @@ class GeneratedAssetLoader:
         return {
             'combat': 'hades_egyptian_environments_epic_temple_interior_epic_20250809_150032_20250809.png',
             'menu': 'hades_egyptian_environments_epic_temple_interior_epic_20250809_150032_20250809.png', 
-            'deck_builder': 'hades_egyptian_environments_epic_temple_interior_epic_20250809_150032_20250809.png'
+            'deck_builder': 'hades_egyptian_environments_epic_temple_interior_epic_20250809_150032_20250809.png',
+            'main_menu': 'hades_egyptian_environments_epic_temple_interior_epic_20250809_150032_20250809.png',
+            'underworld': 'hades_egyptian_environments_epic_temple_interior_epic_20250809_150032_20250809.png'
         }
     
     def _create_character_mapping(self) -> Dict[str, str]:

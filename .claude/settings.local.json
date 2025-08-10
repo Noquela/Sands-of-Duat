@@ -17,7 +17,9 @@
       "Bash(pip install:*)",
       "Bash(mv:*)",
       "Bash(pip uninstall:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(powershell:*)",
+      "mcp__mcp-pyautogui__hotkey"
     ],
     "deny": []
   }

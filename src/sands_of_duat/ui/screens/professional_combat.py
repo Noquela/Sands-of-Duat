@@ -114,7 +114,26 @@ class CombatCard3D:
         
         # Artwork area
         art_rect = pygame.Rect(10, 40, self.width - 20, 80)
-        pygame.draw.rect(self.surface, Colors.LAPIS_LAZULI, art_rect)
+        
+        # Load actual card artwork using asset loader
+        from ...core.asset_loader import get_asset_loader
+        asset_loader = get_asset_loader()
+        
+        # Try to load artwork for this card
+        card_artwork = asset_loader.load_card_art_by_name(self.data.name)
+        if not card_artwork:
+            # Try fallback by rarity
+            card_artwork = asset_loader.get_random_card_art_by_rarity(self.data.rarity)
+        
+        if card_artwork:
+            # Scale artwork to fit in card art area
+            scaled_artwork = pygame.transform.scale(card_artwork, (art_rect.width, art_rect.height))
+            self.surface.blit(scaled_artwork, art_rect)
+        else:
+            # Fallback to original blue rectangle
+            pygame.draw.rect(self.surface, Colors.LAPIS_LAZULI, art_rect)
+        
+        # Always draw the golden border
         pygame.draw.rect(self.surface, Colors.GOLD, art_rect, 2)
         
         # Card name
@@ -333,18 +352,38 @@ class ProfessionalCombat:
         print("Professional Combat System initialized - Ready for Egyptian warfare!")
     
     def _create_background(self):
-        """Create atmospheric combat background."""
-        background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        """Create atmospheric combat background with Egyptian temple art."""
+        from ...core.asset_loader import get_asset_loader
         
-        # Egyptian underworld gradient
-        for y in range(SCREEN_HEIGHT):
-            ratio = y / SCREEN_HEIGHT
-            r = int(20 + ratio * 15)
-            g = int(10 + ratio * 10)
-            b = int(40 + ratio * 20)
-            background.fill((r, g, b), (0, y, SCREEN_WIDTH, 1))
+        # Try to load the generated Egyptian temple background
+        asset_loader = get_asset_loader()
+        temple_bg = asset_loader.load_background('combat')
         
-        return background
+        if temple_bg:
+            # Scale the temple background to fit screen
+            background = pygame.transform.scale(temple_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
+            
+            # Add atmospheric overlay for depth
+            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            
+            # Subtle dark gradient overlay to enhance readability
+            for y in range(SCREEN_HEIGHT):
+                ratio = y / SCREEN_HEIGHT  
+                alpha = int(40 + ratio * 30)  # Subtle darkening
+                overlay.fill((0, 0, 20, alpha), (0, y, SCREEN_WIDTH, 1))
+            
+            background.blit(overlay, (0, 0))
+            return background
+        else:
+            # Fallback to original gradient if asset loading fails
+            background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+            for y in range(SCREEN_HEIGHT):
+                ratio = y / SCREEN_HEIGHT
+                r = int(20 + ratio * 15)
+                g = int(10 + ratio * 10)
+                b = int(40 + ratio * 20)
+                background.fill((r, g, b), (0, y, SCREEN_WIDTH, 1))
+            return background
     
     def _spawn_battlefield_particles(self):
         """Spawn atmospheric particles."""
@@ -870,6 +909,26 @@ class ProfessionalCombat:
                                self.enemy.health, self.enemy.max_health, Colors.RED)
         self._render_mana_crystals(surface, (50, 110), 
                                   self.enemy.mana, self.enemy.max_mana)
+        
+        # Enemy portrait - Load gorgeous Anubis artwork!
+        from ...core.asset_loader import get_asset_loader
+        asset_loader = get_asset_loader()
+        anubis_portrait = asset_loader.load_character_portrait('anubis_boss')
+        
+        if anubis_portrait:
+            # Scale to fit in UI area (right side)
+            portrait_size = (150, 200)
+            scaled_portrait = pygame.transform.scale(anubis_portrait, portrait_size)
+            portrait_pos = (SCREEN_WIDTH - 200, 30)  # Top-right corner
+            
+            # Draw ornate frame around portrait
+            frame_rect = pygame.Rect(portrait_pos[0] - 5, portrait_pos[1] - 5, 
+                                   portrait_size[0] + 10, portrait_size[1] + 10)
+            pygame.draw.rect(surface, Colors.GOLD, frame_rect, 4)
+            pygame.draw.rect(surface, Colors.BLACK, frame_rect, 2)
+            
+            # Draw the portrait
+            surface.blit(scaled_portrait, portrait_pos)
         
         # Enemy label
         enemy_label = font.render("ANUBIS - JUDGE OF THE DEAD", True, Colors.RED)
