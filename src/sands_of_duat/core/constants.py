@@ -107,23 +107,37 @@ class Layout:
     BUTTON_WIDTH_STANDARD = 200
     BUTTON_WIDTH_WIDE = 300
     
-    # Card Dimensions
-    CARD_WIDTH = 120
-    CARD_HEIGHT = 180
-    CARD_SCALE_HOVER = 1.1
-    CARD_SCALE_SELECTED = 1.05
-    
     # Health/Mana Bar
     BAR_WIDTH = 200
     BAR_HEIGHT = 20
     BAR_BORDER = 2
     
-    # Ultrawide-specific layouts
+    # Ultrawide-specific layouts - DEFINE FIRST
     IS_ULTRAWIDE = SCREEN_WIDTH >= 2560
     
-    # Content area (centered for ultrawide)
+    # Card Dimensions (scaled for ultra high resolution assets)
+    # Enhanced card sizing for ultrawide displays
+    BASE_CARD_SCALE = min(1.5, SCREEN_HEIGHT / 900)  # Increased base scale for better visibility
+    
+    # Ultrawide gets even larger cards to fill the space better
     if IS_ULTRAWIDE:
-        CONTENT_WIDTH = min(2400, SCREEN_WIDTH - (SCREEN_MARGIN * 4))
+        CARD_WIDTH = int(200 * BASE_CARD_SCALE)   # Much larger for ultrawide
+        CARD_HEIGHT = int(300 * BASE_CARD_SCALE)  # Proportional increase
+    else:
+        CARD_WIDTH = int(150 * BASE_CARD_SCALE)
+        CARD_HEIGHT = int(225 * BASE_CARD_SCALE)
+    
+    CARD_SCALE_HOVER = 1.15  # More noticeable hover effect
+    CARD_SCALE_SELECTED = 1.08
+    CARD_SCALE_TRANSITION_SPEED = 0.15  # Smooth scaling animation
+    
+    # High resolution card rendering
+    CARD_SOURCE_WIDTH = 1024   # Ultra high res source resolution
+    CARD_SOURCE_HEIGHT = 1536  # Matches generated asset resolution
+    
+    # Content area - using much more of the ultrawide space
+    if IS_ULTRAWIDE:
+        CONTENT_WIDTH = min(3200, SCREEN_WIDTH - (SCREEN_MARGIN * 2))  # Use 90% of ultrawide width
         CONTENT_X_OFFSET = (SCREEN_WIDTH - CONTENT_WIDTH) // 2
     else:
         CONTENT_WIDTH = SCREEN_WIDTH - (SCREEN_MARGIN * 2)
@@ -136,6 +150,22 @@ class Layout:
     UI_SAFE_HEIGHT = SCREEN_HEIGHT - (SCREEN_MARGIN * 2)
     UI_SAFE_TOP = SCREEN_MARGIN
     UI_SAFE_BOTTOM = SCREEN_HEIGHT - SCREEN_MARGIN
+    
+    # Ultra High Resolution Asset Constants
+    BACKGROUND_SOURCE_WIDTH = 4096   # Ultra panoramic backgrounds
+    BACKGROUND_SOURCE_HEIGHT = 2048  # 2:1 aspect ratio for ultrawide scaling
+    CHARACTER_PORTRAIT_SIZE = 2048   # Square ultra high res portraits
+    UI_ICON_SIZE = 512              # High resolution UI icons
+    
+    # Enhanced responsive font scaling for ultrawide displays
+    BASE_FONT_SCALE = SCREEN_HEIGHT / 1080  # Base scaling from height
+    ULTRAWIDE_BONUS = 0.2 if IS_ULTRAWIDE else 0.0  # Extra scaling for ultrawide readability
+    FONT_SCALE = min(1.5, BASE_FONT_SCALE + ULTRAWIDE_BONUS)  # Enhanced scaling with ultrawide bonus
+    
+    # Enhanced visual effects for high resolution
+    GLOW_RADIUS = max(4, int(8 * FONT_SCALE))
+    SHADOW_OFFSET = max(2, int(3 * FONT_SCALE))
+    BORDER_WIDTH = max(2, int(3 * FONT_SCALE))
 
 # EGYPTIAN MYTHOLOGY CONSTANTS
 class Egyptian:
@@ -171,20 +201,21 @@ class Egyptian:
         'Hour of Solar Rebirth'
     ]
 
-# FONT SIZES
+# FONT SIZES - Enhanced for Ultrawide Readability
 class FontSizes:
-    """Font size constants for different UI elements."""
+    """Font size constants for different UI elements with ultrawide scaling."""
     
-    TITLE_HUGE = 72
-    TITLE_LARGE = 48
-    TITLE_MEDIUM = 36
-    SUBTITLE = 28
-    BUTTON = 24
-    BODY = 20
-    CARD_NAME = 18
-    CARD_TEXT = 14
-    TOOLTIP = 16
-    DEBUG = 12
+    # Apply enhanced scaling for better readability
+    TITLE_HUGE = int(72 * Layout.FONT_SCALE)
+    TITLE_LARGE = int(48 * Layout.FONT_SCALE)
+    TITLE_MEDIUM = int(36 * Layout.FONT_SCALE)
+    SUBTITLE = int(28 * Layout.FONT_SCALE)
+    BUTTON = int(24 * Layout.FONT_SCALE)
+    BODY = int(20 * Layout.FONT_SCALE)
+    CARD_NAME = int(18 * Layout.FONT_SCALE)
+    CARD_TEXT = int(16 * Layout.FONT_SCALE)  # Increased from 14 for better readability
+    TOOLTIP = int(18 * Layout.FONT_SCALE)    # Increased from 16 for ultrawide
+    DEBUG = int(14 * Layout.FONT_SCALE)      # Increased from 12 for ultrawide
 
 # AUDIO CONSTANTS
 class Audio:

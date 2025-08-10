@@ -167,4 +167,4 @@ screenshots/
 # Temporary files
 *.tmp
 *.bak
-*~
+*~external/ComfyUI/

@@ -78,9 +78,32 @@ class Card:
         cost_pos = (25 - cost_text.get_width() // 2, 25 - cost_text.get_height() // 2)
         self.surface.blit(cost_text, cost_pos)
         
-        # Artwork area (placeholder)
+        # Ultra-high resolution artwork area with asset loader integration
         art_rect = pygame.Rect(15, 50, 150, 100)
-        pygame.draw.rect(self.surface, Colors.LAPIS_LAZULI, art_rect)
+        
+        # Try to load ultra-high resolution card artwork (1024x1536)
+        from ...core.asset_loader import get_asset_loader
+        asset_loader = get_asset_loader()
+        
+        # Try to load animated artwork first, then fallback to static
+        card_artwork = asset_loader.load_card_art_by_name(self.data.name)
+        if not card_artwork:
+            # Try fallback by rarity (use new ultra-high resolution assets)
+            card_artwork = asset_loader.get_random_card_art_by_rarity(self.data.rarity)
+        
+        if card_artwork:
+            # Scale ultra-high resolution artwork with quality scaling
+            scaled_artwork = pygame.transform.smoothscale(card_artwork, (art_rect.width, art_rect.height))
+            self.surface.blit(scaled_artwork, art_rect)
+        else:
+            # Enhanced fallback with Egyptian pattern
+            pygame.draw.rect(self.surface, Colors.LAPIS_LAZULI, art_rect)
+            # Add hieroglyphic-style pattern for ultra-high quality fallback
+            for i in range(3):
+                pattern_rect = pygame.Rect(art_rect.x + 10 + i * 25, art_rect.y + 15, 20, 70)
+                pygame.draw.rect(self.surface, Colors.GOLD, pattern_rect, 1)
+        
+        # Always draw the golden border
         pygame.draw.rect(self.surface, Colors.GOLD, art_rect, 2)
         
         # Card name
@@ -206,15 +229,38 @@ class ProfessionalDeckBuilder:
         print("Professional Deck Builder initialized with Egyptian excellence")
     
     def _create_background(self):
-        """Create enhanced background."""
+        """Create ultra-high resolution enhanced background with Egyptian library theme."""
+        # Try to load the ultra-high resolution generated deck builder background (4096x2048)
+        from ...core.asset_loader import get_asset_loader
+        asset_loader = get_asset_loader()
+        deck_bg = asset_loader.load_background('deck_builder')
+        
+        if deck_bg:
+            # Scale ultra-high resolution background to screen size with quality scaling
+            # Use smoothscale for better quality from 4096x2048 source
+            background = pygame.transform.smoothscale(deck_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
+            
+            # Add atmospheric overlay for enhanced Hades-style depth and readability
+            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            
+            # Enhanced gradient overlay for Egyptian library atmosphere
+            for y in range(SCREEN_HEIGHT):
+                ratio = y / SCREEN_HEIGHT
+                alpha = int(25 + ratio * 20)  # Subtle darkening for UI readability
+                overlay.fill((10, 5, 0, alpha), (0, y, SCREEN_WIDTH, 1))
+            
+            background.blit(overlay, (0, 0))
+            return background
+        
+        # Enhanced fallback: Egyptian library/scroll theme if ultra-high resolution asset loading fails
         background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         
-        # Papyrus-like gradient
+        # Enhanced papyrus-like gradient with Egyptian library ambiance
         for y in range(SCREEN_HEIGHT):
             ratio = y / SCREEN_HEIGHT
-            r = int(45 + ratio * 30)
-            g = int(40 + ratio * 25)
-            b = int(25 + ratio * 15)
+            r = int(45 + ratio * 35)  # Warmer papyrus tones
+            g = int(40 + ratio * 30)  # Aged paper greens
+            b = int(25 + ratio * 20)  # Subtle browns
             background.fill((r, g, b), (0, y, SCREEN_WIDTH, 1))
         
         return background
@@ -472,16 +518,58 @@ class ProfessionalDeckBuilder:
             surface.blit(fade_surface, (0, 0))
     
     def _render_ultrawide_bars(self, surface: pygame.Surface):
-        """Render ultrawide side bars."""
+        """Render sophisticated ultrawide side bars with Egyptian library decorations."""
         if not Layout.IS_ULTRAWIDE:
             return
         
         left_bar = pygame.Rect(0, 0, Layout.CONTENT_X_OFFSET, SCREEN_HEIGHT)
         right_bar = pygame.Rect(Layout.UI_SAFE_RIGHT, 0, Layout.CONTENT_X_OFFSET, SCREEN_HEIGHT)
         
-        pattern_color = (20, 15, 10)
+        # Enhanced Egyptian library theme for ultrawide bars
+        pattern_color = (20, 15, 10)  # Darker papyrus tone
         pygame.draw.rect(surface, pattern_color, left_bar)
         pygame.draw.rect(surface, pattern_color, right_bar)
+        
+        # Add Egyptian scroll decorations for ultra-high resolution aesthetic
+        scroll_color = (*Colors.GOLD, 60)
+        
+        # Vertical scroll patterns
+        for bar_rect in [left_bar, right_bar]:
+            center_x = bar_rect.centerx
+            
+            # Main scroll decoration
+            scroll_width = min(60, bar_rect.width - 20)
+            scroll_rect = pygame.Rect(center_x - scroll_width//2, 50, scroll_width, SCREEN_HEIGHT - 100)
+            
+            # Create papyrus scroll surface
+            scroll_surface = pygame.Surface((scroll_width, SCREEN_HEIGHT - 100), pygame.SRCALPHA)
+            scroll_surface.fill((*Colors.PAPYRUS, 40))
+            
+            # Add scroll top and bottom caps
+            cap_height = 20
+            pygame.draw.ellipse(scroll_surface, (*Colors.GOLD, 80), (5, 0, scroll_width-10, cap_height))
+            pygame.draw.ellipse(scroll_surface, (*Colors.GOLD, 80), (5, SCREEN_HEIGHT-120, scroll_width-10, cap_height))
+            
+            # Add hieroglyphic-style text lines
+            for y in range(cap_height + 20, SCREEN_HEIGHT - 140, 30):
+                line_y = y - 50  # Adjust for scroll position
+                if 0 <= line_y <= SCREEN_HEIGHT - 150:
+                    # Hieroglyphic line patterns
+                    pygame.draw.rect(scroll_surface, (*Colors.GOLD, 60), (10, line_y, scroll_width-20, 2))
+                    pygame.draw.rect(scroll_surface, (*Colors.GOLD, 60), (15, line_y + 5, scroll_width-30, 2))
+                    pygame.draw.rect(scroll_surface, (*Colors.GOLD, 60), (12, line_y + 10, scroll_width-24, 2))
+            
+            surface.blit(scroll_surface, scroll_rect.topleft)
+        
+        # Enhanced border lines with pulsing effect
+        border_alpha = int(120 + 60 * abs(math.sin(self.animation_time * 2)))
+        border_surface = pygame.Surface((4, SCREEN_HEIGHT))
+        border_surface.set_alpha(border_alpha)
+        border_surface.fill(Colors.GOLD)
+        
+        # Draw enhanced border lines
+        surface.blit(border_surface, (Layout.CONTENT_X_OFFSET - 4, 0))
+        surface.blit(border_surface, (Layout.UI_SAFE_RIGHT, 0))
     
     def _render_particles(self, surface: pygame.Surface):
         """Render sand particles."""

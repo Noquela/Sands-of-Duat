@@ -20,7 +20,7 @@ from ..ui.screens.loading_screen import LoadingScreen, LoadingType
 from ..ui.screens.transition_screen import TransitionScreen, TransitionType
 from ..ui.screens.professional_deck_builder import ProfessionalDeckBuilder, DeckBuilderAction
 from ..ui.screens.professional_combat import ProfessionalCombat, CombatAction
-from ..ui.screens.collection_screen import CollectionScreen, CollectionAction
+from ..ui.screens.professional_hall_of_gods import ProfessionalHallOfGods, HallAction
 from ..ui.screens.enhanced_settings_screen import EnhancedSettingsScreen, SettingsAction
 from ..audio.simple_audio_manager import audio_manager
 from .settings_manager import settings_manager
@@ -70,7 +70,7 @@ class GameEngine:
         self.main_menu_screen = MainMenuScreen(self._handle_menu_action)
         self.deck_builder_screen = ProfessionalDeckBuilder(self._handle_deck_builder_action)
         self.combat_screen = ProfessionalCombat(self._handle_combat_action)
-        self.collection_screen = CollectionScreen(self._handle_collection_action)
+        self.collection_screen = ProfessionalHallOfGods(self._handle_collection_action)
         self.settings_screen = EnhancedSettingsScreen(self._handle_settings_action)
         self.current_loading_screen: Optional[LoadingScreen] = None
         self.current_transition_screen: Optional[TransitionScreen] = None
@@ -247,9 +247,9 @@ class GameEngine:
             self.logger.info("🏳️ Combat surrendered")
             self._start_transition(TransitionType.RETURNING_HOME, GameState.COMBAT, GameState.MAIN_MENU)
     
-    def _handle_collection_action(self, action: CollectionAction):
-        """Handle actions from the collection screen."""
-        if action == CollectionAction.BACK_TO_MENU:
+    def _handle_collection_action(self, action: HallAction):
+        """Handle actions from the Hall of Gods."""
+        if action == HallAction.BACK_TO_MENU:
             self._start_transition(TransitionType.RETURNING_HOME, GameState.COLLECTION, GameState.MAIN_MENU)
     
     def _handle_settings_action(self, action: SettingsAction):

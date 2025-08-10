@@ -25,17 +25,19 @@ class LocalSDXLGenerator:
         self.api_base = "http://127.0.0.1:8188"
         self.session = requests.Session()
         
-        # RTX 5070 CUDA 12.8 optimized settings - NO LIMITS
+        # RTX 5070 CUDA 12.8 Ultra High Resolution Settings
         self.config = {
             "batch_size": 1,          # High quality single generation
-            "steps": 50,              # MAXIMUM quality steps
-            "cfg_scale": 9.0,         # Strong guidance for Egyptian style
-            "width": 768,             # High resolution cards
-            "height": 1024,           # Portrait aspect ratio
+            "steps": 60,              # ULTRA quality steps for Hades standard
+            "cfg_scale": 9.5,         # Strong guidance for Egyptian style
+            "width": 1024,            # Ultra high resolution cards
+            "height": 1536,           # Portrait aspect ratio (1.5:1)
             "scheduler": "karras",
-            "sampler": "euler_ancestral",
+            "sampler": "dpmpp_2m",    # Better quality sampler
             "model": "sd_xl_base_1.0.safetensors",
-            "vae": "sdxl_vae.safetensors"
+            "vae": "sdxl_vae.safetensors",
+            "lora_name": "egyptian_hades_style.safetensors",
+            "lora_strength": 0.8      # Strong LoRA influence for consistent style
         }
         
         print(f"LocalSDXLGenerator initialized - RTX 5070 CUDA 12.8")
@@ -205,16 +207,18 @@ class LocalSDXLGenerator:
 class HadesEgyptianPrompts:
     """Professional Hades-Egyptian style prompts for RTX 5070 generation"""
     
-    # Base style targeting Hades game quality
-    BASE_STYLE = """masterpiece, best quality, ultra detailed, hades game art style, 
-    hand painted artwork, egyptian underworld theme, dramatic lighting, 
-    vibrant colors, rich textures, supergiant games quality, 
-    professional game art, award winning illustration"""
+    # Enhanced base style for Ultra High Resolution Hades-Egyptian quality
+    BASE_STYLE = """masterpiece, ultra high quality, 8k resolution, hades game art style, 
+    hand painted digital artwork, egyptian underworld mythology, dramatic cinematic lighting, 
+    vibrant saturated colors, rich detailed textures, supergiant games professional quality, 
+    award winning game illustration, intricate hieroglyphic details, golden egyptian ornaments,
+    mystical atmospheric effects, painted brushstrokes texture, artistic masterpiece"""
     
-    # Consistent negative prompt
-    NEGATIVE_PROMPT = """low quality, blurry, pixelated, photograph, realistic, 
-    3d render, modern, contemporary, bad anatomy, deformed, watermark, text, 
-    amateur, sketch, unfinished, cheap, generic, boring"""
+    # Enhanced negative prompt for ultra quality
+    NEGATIVE_PROMPT = """low quality, blurry, pixelated, cropped, duplicate, disfigured, bad anatomy, 
+    deformed, watermark, text overlay, signature, amateur artwork, sketch, unfinished, cheap, 
+    generic, boring, modern elements, contemporary, photographic, 3d render, realistic photo, 
+    bad composition, low resolution, compression artifacts"""
     
     # All legendary cards with multiple prompt variants for RTX 5070
     LEGENDARY_CARDS = {
@@ -314,6 +318,46 @@ class HadesEgyptianPrompts:
             f"desert heat shimmer effects, geological stone textures, "
             f"mythical creature of ancient Egypt, eternal watchfulness"
         ]
+    }
+    
+    # High Resolution Background Prompts for Different Screens
+    BACKGROUND_PROMPTS = {
+        "main_menu": f"{BASE_STYLE}, majestic egyptian temple entrance, massive stone columns with hieroglyphs, "
+                    f"golden sunset lighting, desert landscape, pyramid silhouettes in distance, "
+                    f"mystical blue and gold atmosphere, cinematic wide angle composition, "
+                    f"ancient egyptian architecture, dramatic perspective, 4096x2048 panoramic view",
+        
+        "deck_builder": f"{BASE_STYLE}, ancient egyptian library interior, papyrus scrolls and stone tablets, "
+                       f"candlelit sanctum, golden hieroglyphic inscriptions on walls, "
+                       f"mystical green and amber lighting, scholarly atmosphere, "
+                       f"detailed architectural elements, wide cinematic composition",
+        
+        "combat": f"{BASE_STYLE}, egyptian underworld battle arena, stone platform surrounded by lava, "
+                 f"dramatic red and orange lighting, shadowy egyptian columns, "
+                 f"mystical energy effects, ancient battleground, epic atmosphere, "
+                 f"cinematic wide angle, underworld environment",
+        
+        "hall_of_gods": f"{BASE_STYLE}, grand egyptian pantheon hall, golden statues of gods, "
+                       f"massive columns reaching to ceiling, divine blue and gold lighting, "
+                       f"ornate hieroglyphic decorations, celestial atmosphere, "
+                       f"majestic architectural grandeur, wide panoramic view",
+        
+        "settings": f"{BASE_STYLE}, egyptian scribe chamber, stone desk with papyrus, "
+                   f"soft candlelight, hieroglyphic wall carvings, peaceful atmosphere, "
+                   f"detailed textures, warm golden lighting, scholarly environment"
+    }
+    
+    # Character Portrait Prompts (2048x2048)
+    CHARACTER_PROMPTS = {
+        "anubis_boss": f"{BASE_STYLE}, imposing Anubis boss portrait, jackal head with glowing eyes, "
+                      f"ornate golden collar, ceremonial egyptian regalia, dramatic lighting, "
+                      f"menacing expression, divine authority, detailed fur texture, "
+                      f"ultra high detail portrait composition, 2048x2048 resolution",
+        
+        "player_hero": f"{BASE_STYLE}, heroic egyptian warrior portrait, determined expression, "
+                      f"bronze armor with hieroglyphic engravings, desert background, "
+                      f"confident pose, detailed facial features, cinematic lighting, "
+                      f"professional character portrait, ultra high resolution"
     }
 
 class EgyptianArtPipeline:
@@ -496,6 +540,76 @@ def generate_all_egyptian_cards() -> Dict[str, bool]:
     """Main entry point for RTX 5070 card generation"""
     pipeline = get_pipeline()
     return pipeline.generate_all_cards()
+
+def generate_all_backgrounds() -> Dict[str, bool]:
+    """Generate all high resolution backgrounds for different screens"""
+    pipeline = get_pipeline()
+    results = {}
+    
+    print("=" * 60)
+    print("RTX 5070 HIGH RESOLUTION BACKGROUND GENERATION")
+    print("4096x2048 PANORAMIC BACKGROUNDS FOR ULTRAWIDE")
+    print("=" * 60)
+    
+    for screen_name, prompt in pipeline.prompts.BACKGROUND_PROMPTS.items():
+        print(f"\n[GENERATING] {screen_name} background...")
+        
+        # Generate at 4096x2048 for ultrawide scaling
+        image = pipeline.generator.generate_image(
+            prompt=prompt,
+            negative_prompt=pipeline.prompts.NEGATIVE_PROMPT,
+            width=4096,
+            height=2048,
+            steps=60,
+            cfg_scale=9.5
+        )
+        
+        if image:
+            filename = f"bg_{screen_name}_4k.png"
+            output_path = pipeline.approved_dir / "backgrounds" / filename
+            image.save(output_path, 'PNG', quality=100)
+            print(f"    [SUCCESS] {filename} saved")
+            results[screen_name] = True
+        else:
+            print(f"    [FAILED] {screen_name} generation failed")
+            results[screen_name] = False
+    
+    return results
+
+def generate_all_characters() -> Dict[str, bool]:
+    """Generate all character portraits in ultra high resolution"""
+    pipeline = get_pipeline()
+    results = {}
+    
+    print("=" * 60)
+    print("RTX 5070 CHARACTER PORTRAIT GENERATION")
+    print("2048x2048 ULTRA HIGH RESOLUTION PORTRAITS")
+    print("=" * 60)
+    
+    for char_name, prompt in pipeline.prompts.CHARACTER_PROMPTS.items():
+        print(f"\n[GENERATING] {char_name} portrait...")
+        
+        # Generate at 2048x2048 for maximum detail
+        image = pipeline.generator.generate_image(
+            prompt=prompt,
+            negative_prompt=pipeline.prompts.NEGATIVE_PROMPT,
+            width=2048,
+            height=2048,
+            steps=60,
+            cfg_scale=9.5
+        )
+        
+        if image:
+            filename = f"char_{char_name}_2k.png"
+            output_path = pipeline.approved_dir / "characters" / filename
+            image.save(output_path, 'PNG', quality=100)
+            print(f"    [SUCCESS] {filename} saved")
+            results[char_name] = True
+        else:
+            print(f"    [FAILED] {char_name} generation failed")
+            results[char_name] = False
+    
+    return results
 
 if __name__ == "__main__":
     # RTX 5070 CUDA 12.8 generation test

@@ -173,47 +173,65 @@ class GeneratedAssetLoader:
         }
     
     def _create_background_mapping(self) -> Dict[str, str]:
-        """Create mapping of game screens to background files."""
+        """Create mapping of game screens to ultra high resolution background files."""
         return {
-            'combat': 'hades_egyptian_environments_epic_temple_interior_epic_20250809_150032_20250809.png',
-            'menu': 'hades_egyptian_environments_epic_temple_interior_epic_20250809_150032_20250809.png', 
-            'deck_builder': 'hades_egyptian_environments_epic_temple_interior_epic_20250809_150032_20250809.png',
-            'main_menu': 'hades_egyptian_environments_epic_temple_interior_epic_20250809_150032_20250809.png',
-            'underworld': 'hades_egyptian_environments_epic_temple_interior_epic_20250809_150032_20250809.png'
+            # Ultra High Resolution Backgrounds (4096x2048)
+            'main_menu': 'bg_main_menu_4k.png',
+            'menu': 'bg_main_menu_4k.png',
+            'deck_builder': 'bg_deck_builder_4k.png',
+            'combat': 'bg_combat_4k.png',
+            'hall_of_gods': 'bg_hall_of_gods_4k.png',
+            'collection': 'bg_hall_of_gods_4k.png',
+            'settings': 'bg_settings_4k.png',
+            'underworld': 'bg_combat_4k.png',
+            
+            # Fallback for any unmapped screens
+            'default': 'bg_main_menu_4k.png'
         }
     
     def _create_character_mapping(self) -> Dict[str, str]:
-        """Create mapping of characters to portrait files."""
+        """Create mapping of characters to ultra high resolution portrait files."""
         return {
-            'player_hero': 'hades_egyptian_characters_epic_egyptian_warrior_epic_20250809_145921_20250809.png',
-            'anubis_boss': 'hades_egyptian_characters_legendary_anubis_deity_legendary_20250809_145745_20250809.png',
-            'mummy_guardian': 'hades_egyptian_characters_rare_mummy_guardian_rare_20250809_150008_20250809.png',
-            'sphinx_guardian': 'hades_egyptian_characters_rare_sphinx_guardian_rare_20250809_145944_20250809.png',
-            'ra_deity': 'hades_egyptian_characters_legendary_ra_sun_god_legendary_20250809_145810_20250809.png',
-            'isis_goddess': 'hades_egyptian_characters_legendary_isis_goddess_legendary_20250809_145834_20250809.png',
-            'set_god': 'hades_egyptian_characters_legendary_set_chaos_god_legendary_20250809_145857_20250809.png'
+            # Ultra High Resolution Character Portraits (2048x2048)
+            'player_hero': 'char_player_hero_2k.png',
+            'anubis_boss': 'char_anubis_boss_2k.png',
+            'mummy_guardian': 'char_mummy_guardian_2k.png',
+            'sphinx_guardian': 'char_sphinx_guardian_2k.png',
+            'ra_deity': 'char_ra_deity_2k.png',
+            'isis_goddess': 'char_isis_goddess_2k.png',
+            'set_god': 'char_set_god_2k.png',
+            
+            # Alternative names for compatibility
+            'anubis': 'char_anubis_boss_2k.png',
+            'player': 'char_player_hero_2k.png',
+            'hero': 'char_player_hero_2k.png'
         }
     
     def _create_ui_mapping(self) -> Dict[str, str]:
-        """Create mapping of UI elements to their files."""
+        """Create mapping of UI elements to ultra high resolution files."""
         return {
-            # Card Frames
+            # Ultra High Resolution Card Frames (1024x1536)
             'frame_legendary': 'ui_card_frame_legendary.png',
             'frame_epic': 'ui_card_frame_epic.png',
             'frame_rare': 'ui_card_frame_rare.png',
             'frame_common': 'ui_card_frame_common.png',
             
-            # Icons
+            # High Resolution Icons (512x512)
             'health_icon': 'ui_ankh_health_icon.png',
             'energy_icon': 'ui_scarab_energy_icon.png',
             'time_icon': 'ui_hourglass_icon.png',
             'victory_icon': 'ui_pyramid_victory_icon.png',
+            'mana_icon': 'ui_scarab_energy_icon.png',
+            'attack_icon': 'ui_khopesh_attack_icon.png',
+            'defense_icon': 'ui_shield_defense_icon.png',
             
-            # Buttons
+            # Enhanced Buttons
             'play_button': 'ui_play_button.png',
             'deck_button': 'ui_deck_button.png',
+            'collection_button': 'ui_collection_button.png',
             'settings_button': 'ui_settings_button.png',
-            'exit_button': 'ui_exit_button.png'
+            'exit_button': 'ui_exit_button.png',
+            'back_button': 'ui_back_button.png'
         }
     
     def _scan_generated_assets(self):
@@ -315,17 +333,23 @@ class GeneratedAssetLoader:
         # Try approved assets first, then fallback to generated
         image_path = None
         
-        # Check approved assets directory structure
+        # Check approved assets directory structure (ultra high resolution)
         if self.approved_art_path.exists():
-            # Check characters directory
-            char_path = self.approved_art_path / "characters" / filename
-            if char_path.exists():
-                image_path = char_path
-            else:
-                # Check environments directory
-                env_path = self.approved_art_path / "environments" / filename
-                if env_path.exists():
-                    image_path = env_path
+            # Priority search order for ultra high resolution assets
+            search_dirs = [
+                self.approved_art_path / "cards",
+                self.approved_art_path / "backgrounds", 
+                self.approved_art_path / "characters",
+                self.approved_art_path / "ui_elements",
+                self.approved_art_path / "animated_cards"
+            ]
+            
+            for search_dir in search_dirs:
+                if search_dir.exists():
+                    candidate_path = search_dir / filename
+                    if candidate_path.exists():
+                        image_path = candidate_path
+                        break
         
         # Fallback to generated art
         if not image_path:

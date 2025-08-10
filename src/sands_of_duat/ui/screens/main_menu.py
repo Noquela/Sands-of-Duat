@@ -61,33 +61,71 @@ class MainMenuScreen:
         self.last_mouse_pos = (0, 0)
     
     def _create_background(self) -> pygame.Surface:
-        """Load generated background asset with fallback."""
-        # Try to load the generated menu background
+        """Load ultra-high resolution generated background asset (4096x2048) with fallback."""
+        # Try to load the ultra-high resolution generated menu background
         asset_loader = get_asset_loader()
         menu_bg = asset_loader.load_background('menu')
         
         if menu_bg:
-            # Scale to screen size if needed
+            # Scale ultra-high resolution background to screen size with quality scaling
             if menu_bg.get_size() != (SCREEN_WIDTH, SCREEN_HEIGHT):
-                menu_bg = pygame.transform.scale(menu_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
+                # Use smoothscale for better quality from 4096x2048 source
+                menu_bg = pygame.transform.smoothscale(menu_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
+            
+            # Add atmospheric overlay for enhanced Hades-style depth
+            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            
+            # Subtle darkening gradient to enhance UI readability over ultra-high resolution art
+            for y in range(SCREEN_HEIGHT):
+                ratio = y / SCREEN_HEIGHT
+                alpha = int(20 + ratio * 15)  # Very subtle darkening
+                overlay.fill((0, 0, 10, alpha), (0, y, SCREEN_WIDTH, 1))
+            
+            menu_bg.blit(overlay, (0, 0))
+            
+            # Add ultra-high resolution particle effect overlay
+            particle_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            import random
+            for _ in range(30):
+                x = random.randint(0, SCREEN_WIDTH)
+                y = random.randint(0, SCREEN_HEIGHT)
+                size = random.randint(1, 3)
+                alpha = random.randint(10, 40)
+                particle_color = (*Colors.GOLD, alpha)
+                pygame.draw.circle(particle_overlay, particle_color, (x, y), size)
+            
+            menu_bg.blit(particle_overlay, (0, 0))
             return menu_bg
         
-        # Fallback: Create gradient if asset loading fails
+        # Enhanced fallback: Create more sophisticated gradient if ultra-high resolution asset loading fails
         background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         
-        # Create gradient effect
+        # Create enhanced Egyptian-themed gradient effect
         for y in range(SCREEN_HEIGHT):
-            # Egyptian night sky gradient
+            # Enhanced Egyptian night sky gradient with warmer tones
             ratio = y / SCREEN_HEIGHT
             
-            # Interpolate between dark blue (top) and darker blue (bottom)
-            r = int(Colors.DARK_BLUE[0] * (1 - ratio * 0.3))
-            g = int(Colors.DARK_BLUE[1] * (1 - ratio * 0.3))
-            b = int(Colors.DARK_BLUE[2] * (1 + ratio * 0.2))
+            # More sophisticated color interpolation for Egyptian atmosphere
+            r = int(30 + Colors.DARK_BLUE[0] * (1 - ratio * 0.4))  # Warmer base
+            g = int(20 + Colors.DARK_BLUE[1] * (1 - ratio * 0.3))  # Subtle greens  
+            b = int(60 + Colors.DARK_BLUE[2] * (1 + ratio * 0.3))  # Deep blues
             
             color = (max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)))
             pygame.draw.line(background, color, (0, y), (SCREEN_WIDTH, y))
         
+        # Add Egyptian pattern overlay to fallback
+        pattern_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        import random
+        for x in range(0, SCREEN_WIDTH, 200):
+            for y in range(0, SCREEN_HEIGHT, 200):
+                # Egyptian-style pattern elements
+                pygame.draw.rect(pattern_surface, (*Colors.GOLD, 10), (x, y, 30, 8))
+                pygame.draw.rect(pattern_surface, (*Colors.GOLD, 10), (x, y + 20, 8, 30))
+                # Add ankh-like symbols
+                if random.random() < 0.3:
+                    pygame.draw.circle(pattern_surface, (*Colors.GOLD, 8), (x + 15, y + 35), 5, 1)
+        
+        background.blit(pattern_surface, (0, 0))
         return background
     
     def _create_buttons(self) -> List[AnimatedButton]:
