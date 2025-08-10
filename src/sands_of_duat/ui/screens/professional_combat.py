@@ -15,9 +15,16 @@ from ...core.constants import (
     Colors, Layout, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER,
     FontSizes, Timing
 )
+from ...core.asset_loader import get_asset_loader
 from ...core.deck_manager import deck_manager
 from ...audio.simple_audio_manager import audio_manager, SoundEffect, AudioTrack
 from ..components.animated_button import AnimatedButton
+from ..components.ultrawide_decorations import ultrawide_decorations
+from ..components.enhanced_ui_components import (
+    EgyptianPanel, EnhancedStatusBar, IconType, CardPreviewPanel, ResponsiveButton
+)
+from ..components.responsive_typography import responsive_typography, TextStyle
+from ..components.smooth_transitions import smooth_transitions, TransitionType, EasingType
 
 class CombatAction(Enum):
     """Combat actions."""
@@ -80,119 +87,30 @@ class CombatCard3D:
         self._render_card()
     
     def _render_card(self):
-        """Render the card with Egyptian styling."""
+        """Render the card using enhanced card renderer with themed frames."""
+        from ..components.enhanced_card_renderer import enhanced_card_renderer
+        
+        # Create surface for the card
         self.surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         
-        # Card background with gradient
-        for i in range(self.height):
-            ratio = i / self.height
-            r = int(245 * (1 - ratio * 0.2))
-            g = int(245 * (1 - ratio * 0.2))
-            b = int(220 * (1 - ratio * 0.1))
-            color = (r, g, b)
-            pygame.draw.line(self.surface, color, (0, i), (self.width, i))
-        
-        # Rarity border
-        rarity_colors = {
-            'common': Colors.DESERT_SAND,
-            'rare': (138, 43, 226),
-            'legendary': (255, 140, 0)
+        # Prepare card data for enhanced renderer
+        card_data = {
+            'name': self.data.name,
+            'cost': self.data.cost,
+            'attack': self.data.attack,
+            'health': self.data.health,
+            'card_type': self.data.card_type,
+            'rarity': self.data.rarity,
+            'description': self.data.description
         }
-        border_color = rarity_colors.get(self.data.rarity, Colors.DESERT_SAND)
-        pygame.draw.rect(self.surface, border_color, (0, 0, self.width, self.height), 3)
         
-        # Cost gem
-        cost_radius = 15
-        cost_center = (20, 20)
-        pygame.draw.circle(self.surface, Colors.LAPIS_LAZULI, cost_center, cost_radius)
-        pygame.draw.circle(self.surface, Colors.GOLD, cost_center, cost_radius, 2)
-        
-        # Cost text
-        font = pygame.font.Font(None, 20)
-        cost_text = font.render(str(self.data.cost), True, Colors.WHITE)
-        cost_rect = cost_text.get_rect(center=cost_center)
-        self.surface.blit(cost_text, cost_rect)
-        
-        # Artwork area
-        art_rect = pygame.Rect(10, 40, self.width - 20, 80)
-        
-        # Load ultra-high resolution card artwork using asset loader
-        from ...core.asset_loader import get_asset_loader
-        asset_loader = get_asset_loader()
-        
-        # Try to load animated artwork first (1024x1536 ultra-high resolution), then fallback to static
-        card_artwork = asset_loader.load_card_art_by_name(self.data.name)
-        if not card_artwork:
-            # Try fallback by rarity (use new ultra-high resolution assets)
-            card_artwork = asset_loader.get_random_card_art_by_rarity(self.data.rarity)
-        
-        if card_artwork:
-            # Scale ultra-high resolution artwork to fit in card art area with proper quality
-            # Use LANCZOS for better quality scaling from 1024x1536 source
-            scaled_artwork = pygame.transform.smoothscale(card_artwork, (art_rect.width, art_rect.height))
-            self.surface.blit(scaled_artwork, art_rect)
-        else:
-            # Enhanced fallback with Egyptian pattern
-            pygame.draw.rect(self.surface, Colors.LAPIS_LAZULI, art_rect)
-            # Add hieroglyphic-style pattern
-            for i in range(3):
-                pattern_rect = pygame.Rect(art_rect.x + 5 + i * 20, art_rect.y + 10, 15, 60)
-                pygame.draw.rect(self.surface, Colors.GOLD, pattern_rect, 1)
-        
-        # Always draw the golden border
-        pygame.draw.rect(self.surface, Colors.GOLD, art_rect, 2)
-        
-        # Card name
-        name_font = pygame.font.Font(None, 18)
-        name_text = name_font.render(self.data.name, True, Colors.BLACK)
-        name_rect = name_text.get_rect(center=(self.width // 2, 135))
-        self.surface.blit(name_text, name_rect)
-        
-        # Attack and Health
-        if self.data.card_type == "creature":
-            # Attack (bottom-left)
-            attack_center = (20, self.height - 20)
-            pygame.draw.circle(self.surface, Colors.DESERT_SAND, attack_center, 12)
-            pygame.draw.circle(self.surface, Colors.GOLD, attack_center, 12, 2)
-            
-            attack_font = pygame.font.Font(None, 18)
-            attack_text = attack_font.render(str(self.data.attack), True, Colors.BLACK)
-            attack_rect = attack_text.get_rect(center=attack_center)
-            self.surface.blit(attack_text, attack_rect)
-            
-            # Health (bottom-right)
-            health_center = (self.width - 20, self.height - 20)
-            pygame.draw.circle(self.surface, Colors.LAPIS_LAZULI, health_center, 12)
-            pygame.draw.circle(self.surface, Colors.GOLD, health_center, 12, 2)
-            
-            health_text = attack_font.render(str(self.data.health), True, Colors.WHITE)
-            health_rect = health_text.get_rect(center=health_center)
-            self.surface.blit(health_text, health_rect)
-        
-        # Description
-        desc_font = pygame.font.Font(None, 12)
-        words = self.data.description.split()
-        lines = []
-        current_line = []
-        
-        for word in words:
-            test_line = ' '.join(current_line + [word])
-            if desc_font.size(test_line)[0] <= self.width - 20:
-                current_line.append(word)
-            else:
-                if current_line:
-                    lines.append(' '.join(current_line))
-                current_line = [word]
-        
-        if current_line:
-            lines.append(' '.join(current_line))
-        
-        y_offset = 150
-        for line in lines[:2]:  # Max 2 lines
-            line_text = desc_font.render(line, True, Colors.BLACK)
-            line_rect = line_text.get_rect(center=(self.width // 2, y_offset))
-            self.surface.blit(line_text, line_rect)
-            y_offset += 12
+        # Use enhanced card renderer with hover and glow effects
+        enhanced_card_renderer.render_card(
+            self.surface, 0, 0, self.width, self.height,
+            self.data.name, card_data,
+            hover_intensity=self.glow_intensity,
+            glow_intensity=self.glow_intensity
+        )
     
     def get_rect(self):
         """Get card rectangle."""
@@ -241,8 +159,28 @@ class CombatCard3D:
                 self.damage_numbers.remove(damage)
     
     def trigger_play_animation(self):
-        """Trigger card play animation."""
+        """Trigger card play animation with smooth transitions."""
         self.play_animation = 1.0
+        
+        # Create smooth card play transition
+        card_id = f"card_{id(self)}"
+        smooth_transitions.scale_element(
+            card_id, 1.0, 1.15, Timing.CARD_FLIP_DURATION / 2,
+            EasingType.EASE_OUT_ELASTIC
+        )
+        
+        # Scale back after peak
+        def scale_back():
+            smooth_transitions.scale_element(
+                card_id, 1.15, 1.0, Timing.CARD_FLIP_DURATION / 2,
+                EasingType.EASE_IN_QUAD
+            )
+        
+        # Schedule scale back (simplified timing)
+        smooth_transitions.start_transition(
+            f"{card_id}_delay", TransitionType.FADE, 0, 1, 
+            Timing.CARD_FLIP_DURATION / 2, EasingType.LINEAR, scale_back
+        )
         
         # Add sparkle particles
         for _ in range(8):
@@ -256,7 +194,13 @@ class CombatCard3D:
             })
     
     def show_damage(self, damage: int):
-        """Show damage number animation."""
+        """Show damage number animation with smooth transitions."""
+        damage_id = f"damage_{pygame.time.get_ticks()}_{id(self)}"
+        start_pos = (self.x + self.width // 2, self.y)
+        
+        # Create smooth floating transition for damage number
+        smooth_transitions.create_damage_number_transition(damage, start_pos)
+        
         self.damage_numbers.append({
             'damage': damage,
             'x': self.x + self.width // 2,
@@ -264,14 +208,21 @@ class CombatCard3D:
             'speed': 100,
             'life': 2.0,
             'max_life': 2.0,
-            'alpha': 255
+            'alpha': 255,
+            'transition_id': damage_id
         })
     
     def render(self, surface: pygame.Surface):
-        """Render the card with all effects."""
-        draw_pos = (int(self.x + self.shake_offset), int(self.y + self.hover_offset))
+        """Render the card with all effects and smooth transitions."""
+        base_pos = (int(self.x + self.shake_offset), int(self.y + self.hover_offset))
         
-        # Glow effect
+        # Apply smooth transitions to card rendering
+        card_id = f"card_{id(self)}"
+        card_rect = smooth_transitions.render_element_with_transitions(
+            surface, self.surface, base_pos, card_id
+        )
+        
+        # Glow effect (positioned relative to card_rect)
         if self.glow_intensity > 0:
             glow_surface = pygame.Surface((self.width + 20, self.height + 20), pygame.SRCALPHA)
             glow_alpha = int(100 * self.glow_intensity)
@@ -281,10 +232,7 @@ class CombatCard3D:
                 glow_rect = pygame.Rect(i, i, self.width + 20 - i*2, self.height + 20 - i*2)
                 pygame.draw.rect(glow_surface, glow_color, glow_rect, 1)
             
-            surface.blit(glow_surface, (draw_pos[0] - 10, draw_pos[1] - 10))
-        
-        # Main card
-        surface.blit(self.surface, draw_pos)
+            surface.blit(glow_surface, (card_rect.x - 10, card_rect.y - 10))
         
         # Particle effects
         for particle in self.particle_effects:
@@ -292,12 +240,16 @@ class CombatCard3D:
             particle_surface.fill((*particle['color'], int(particle['alpha'])))
             surface.blit(particle_surface, (int(particle['x']), int(particle['y'])))
         
-        # Damage numbers
-        font = pygame.font.Font(None, 24)
+        # Damage numbers with enhanced typography
         for damage in self.damage_numbers:
-            damage_text = font.render(f"-{damage['damage']}", True, Colors.RED)
-            damage_text.set_alpha(damage['alpha'])
-            surface.blit(damage_text, (int(damage['x']), int(damage['y'])))
+            # Create temporary surface for damage text with alpha
+            damage_surface = pygame.Surface((100, 30), pygame.SRCALPHA)
+            responsive_typography.render_text(
+                f"-{damage['damage']}", TextStyle.CARD_NAME, damage_surface, 
+                (0, 0), custom_color=Colors.RED
+            )
+            damage_surface.set_alpha(damage['alpha'])
+            surface.blit(damage_surface, (int(damage['x']) - 50, int(damage['y'])))
 
 class ProfessionalCombat:
     """
@@ -313,20 +265,29 @@ class ProfessionalCombat:
         self.phase = CombatPhase.PLAYER_TURN
         self.turn_count = 1
         
+        # Initialize asset loader first
+        self.asset_loader = get_asset_loader()
+        
         # Animation state
         self.animation_time = 0.0
         self.fade_in_progress = 0.0
         self.fade_in_complete = False
+        
+        # Start smooth screen transition
+        smooth_transitions.fade_in_element("combat_screen", Timing.FADE_DURATION)
         self.enemy_turn_timer = 0.0  # Timer for enemy turn delay
+        
+        # Initialize combatants first - BALANCED STATS
+        self.player = Combatant("PHARAOH", 30, 30, 3, 10)
+        self.enemy = Combatant("ANUBIS", 30, 30, 3, 8)  # Equal health, equal starting mana
         
         # Background and effects
         self.background_surface = self._create_background()
         self.battlefield_particles = []
         self.combat_effects = []
         
-        # Initialize combatants - BALANCED STATS
-        self.player = Combatant("PHARAOH", 30, 30, 3, 10)
-        self.enemy = Combatant("ANUBIS", 30, 30, 3, 8)  # Equal health, equal starting mana
+        # Enhanced UI components (after combatants are initialized)
+        self._initialize_enhanced_ui()
         
         # Card system - use saved deck if available
         if deck_manager.has_saved_deck():
@@ -365,9 +326,6 @@ class ProfessionalCombat:
         self._update_card_positions()
         self._spawn_battlefield_particles()
         
-        # Initialize asset loader for animations
-        from ...core.asset_loader import get_asset_loader
-        self.asset_loader = get_asset_loader()
         
         # Preload combat animations
         self.asset_loader.preload_animations([
@@ -381,64 +339,86 @@ class ProfessionalCombat:
     
     def _create_background(self):
         """Create atmospheric combat background with ultra-high resolution Egyptian temple art."""
-        from ...core.asset_loader import get_asset_loader
+        # Load the specific combat background (bg_combat_4k.png - 4096x2048)
+        combat_bg = self.asset_loader.load_background('combat')
         
-        # Try to load the ultra-high resolution generated Egyptian temple background (4096x2048)
-        asset_loader = get_asset_loader()
-        temple_bg = asset_loader.load_background('combat')
-        
-        if temple_bg:
-            # Scale the ultra-high resolution temple background to fit screen with quality scaling
-            # Use smoothscale for better quality from 4096x2048 source
-            background = pygame.transform.smoothscale(temple_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
+        if combat_bg:
+            # Scale the ultra-high resolution temple background with quality preservation
+            background = pygame.transform.smoothscale(combat_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
             
-            # Add atmospheric overlay for depth and Hades-style ambiance
+            # Lighter overlay to show more of the beautiful 4K artwork
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
             
-            # Enhanced gradient overlay with Egyptian underworld atmosphere  
+            # Reduced opacity to showcase the high-quality background art
             for y in range(SCREEN_HEIGHT):
                 ratio = y / SCREEN_HEIGHT  
-                # More sophisticated gradient with Egyptian color scheme
-                alpha = int(35 + ratio * 25)  # Subtle darkening
-                red_tint = int(10 + ratio * 5)   # Subtle red underworld tint
-                blue_tint = int(15 + ratio * 10)  # Deeper blue shadows
-                overlay.fill((red_tint, 5, blue_tint, alpha), (0, y, SCREEN_WIDTH, 1))
+                alpha = int(15 + ratio * 20)  # Much lighter overlay
+                red_tint = int(5 + ratio * 3)   # Subtle warmth
+                blue_tint = int(8 + ratio * 7)  # Subtle depth
+                overlay.fill((red_tint, 3, blue_tint, alpha), (0, y, SCREEN_WIDTH, 1))
             
             background.blit(overlay, (0, 0))
-            
-            # Add subtle particles effect for ultra-high resolution backgrounds
-            particle_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
-            for _ in range(20):
-                x = random.randint(0, SCREEN_WIDTH)
-                y = random.randint(0, SCREEN_HEIGHT)
-                size = random.randint(1, 2)
-                alpha = random.randint(20, 60)
-                particle_color = (*Colors.GOLD, alpha)
-                pygame.draw.circle(particle_overlay, particle_color, (x, y), size)
-            
-            background.blit(particle_overlay, (0, 0))
             return background
         else:
-            # Enhanced fallback with Egyptian theme if ultra-high resolution asset loading fails
+            # Enhanced fallback maintains Egyptian theme
             background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
             for y in range(SCREEN_HEIGHT):
                 ratio = y / SCREEN_HEIGHT
-                # Egyptian-themed gradient colors
-                r = int(25 + ratio * 20)  # Warmer tones
-                g = int(15 + ratio * 15)  # Muted greens
-                b = int(45 + ratio * 25)  # Deep blues
+                r = int(30 + ratio * 25)  # Warmer tones
+                g = int(20 + ratio * 20)  # Golden undertones
+                b = int(50 + ratio * 30)  # Deep mystical blues
                 background.fill((r, g, b), (0, y, SCREEN_WIDTH, 1))
             
-            # Add Egyptian pattern overlay
+            # Add Egyptian temple pattern
             pattern_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
-            for x in range(0, SCREEN_WIDTH, 100):
-                for y in range(0, SCREEN_HEIGHT, 100):
-                    # Simple hieroglyphic-style pattern
-                    pygame.draw.rect(pattern_surface, (*Colors.GOLD, 15), (x, y, 20, 5))
-                    pygame.draw.rect(pattern_surface, (*Colors.GOLD, 15), (x, y + 10, 5, 20))
+            for x in range(0, SCREEN_WIDTH, 120):
+                for y in range(0, SCREEN_HEIGHT, 120):
+                    # Temple column patterns
+                    pygame.draw.rect(pattern_surface, (*Colors.GOLD, 25), (x, y, 25, 8))
+                    pygame.draw.rect(pattern_surface, (*Colors.GOLD, 25), (x, y + 15, 8, 30))
+                    pygame.draw.circle(pattern_surface, (*Colors.GOLD, 20), (x + 12, y + 50), 6, 1)
             
             background.blit(pattern_surface, (0, 0))
             return background
+    
+    def _initialize_enhanced_ui(self):
+        """Initialize enhanced UI components."""
+        # Enhanced status bars with Egyptian icons
+        if Layout.IS_ULTRAWIDE:
+            # Position status bars in the side panels for ultrawide
+            status_x = Layout.CONTENT_X_OFFSET + 20
+            status_width = 200
+        else:
+            status_x = 50
+            status_width = 180
+        
+        # Player status bars
+        self.player_health_bar = EnhancedStatusBar(
+            status_x, SCREEN_HEIGHT - 80, status_width, 25, 
+            IconType.HEALTH, self.player.max_health
+        )
+        self.player_mana_bar = EnhancedStatusBar(
+            status_x, SCREEN_HEIGHT - 50, status_width, 25,
+            IconType.MANA, self.player.max_mana
+        )
+        
+        # Enemy status bars  
+        self.enemy_health_bar = EnhancedStatusBar(
+            status_x, 80, status_width, 25,
+            IconType.HEALTH, self.enemy.max_health
+        )
+        self.enemy_mana_bar = EnhancedStatusBar(
+            status_x, 110, status_width, 25,
+            IconType.MANA, self.enemy.max_mana
+        )
+        
+        # Card preview panel for ultrawide
+        if Layout.IS_ULTRAWIDE:
+            preview_x = Layout.UI_SAFE_RIGHT - 320
+            preview_y = 200
+            self.card_preview_panel = CardPreviewPanel(preview_x, preview_y, 300, 500)
+        else:
+            self.card_preview_panel = None
     
     def _spawn_battlefield_particles(self):
         """Spawn atmospheric particles."""
@@ -817,6 +797,46 @@ class ProfessionalCombat:
         """Update combat system."""
         self.animation_time += dt
         
+        # Update enhanced UI components
+        ultrawide_decorations.update(dt)
+        
+        # Update smooth transitions
+        smooth_transitions.update_transitions(dt)
+        
+        # Update status bars with current values
+        self.player_health_bar.set_value(self.player.health)
+        self.player_health_bar.update(dt)
+        self.player_mana_bar.set_value(self.player.mana)
+        self.player_mana_bar.update(dt)
+        
+        self.enemy_health_bar.set_value(self.enemy.health)
+        self.enemy_health_bar.update(dt)
+        self.enemy_mana_bar.set_value(self.enemy.mana)
+        self.enemy_mana_bar.update(dt)
+        
+        # Update card preview panel
+        if self.card_preview_panel:
+            self.card_preview_panel.update(dt)
+            
+            # Show card details on hover
+            hovered_card = None
+            for card in self.player_hand + self.enemy_hand:
+                if card.get_rect().collidepoint(mouse_pos):
+                    hovered_card = card
+                    break
+            
+            if hovered_card:
+                card_details = {
+                    'cost': hovered_card.data.cost,
+                    'attack': hovered_card.data.attack,
+                    'health': hovered_card.data.health,
+                    'rarity': hovered_card.data.rarity,
+                    'description': hovered_card.data.description
+                }
+                self.card_preview_panel.show_card(hovered_card.data.name, card_details)
+            else:
+                self.card_preview_panel.hide()
+        
         # Update card animations 
         self.asset_loader.update_animations(dt)
         
@@ -916,16 +936,22 @@ class ProfessionalCombat:
                 break
     
     def render(self, surface: pygame.Surface):
-        """Render the combat screen."""
-        # Background
+        """Render the enhanced combat screen."""
+        # Ultra-high resolution background
         surface.blit(self.background_surface, (0, 0))
         
-        # Ultrawide bars
+        # Enhanced ultrawide decorations
         if Layout.IS_ULTRAWIDE:
-            self._render_ultrawide_bars(surface)
+            ultrawide_decorations.render(surface)
         
         # Battlefield particles
         self._render_battlefield_particles(surface)
+        
+        # Enhanced status bars
+        self.player_health_bar.render(surface)
+        self.player_mana_bar.render(surface)
+        self.enemy_health_bar.render(surface)
+        self.enemy_mana_bar.render(surface)
         
         # Combat UI
         self._render_combat_ui(surface)
@@ -949,6 +975,10 @@ class ProfessionalCombat:
         # Instructions
         self._render_instructions(surface)
         
+        # Card preview panel for ultrawide
+        if self.card_preview_panel:
+            self.card_preview_panel.render(surface)
+        
         # Fade-in effect
         if not self.fade_in_complete:
             fade_surface = surface.copy()
@@ -956,31 +986,6 @@ class ProfessionalCombat:
             surface.fill(Colors.BLACK)
             surface.blit(fade_surface, (0, 0))
     
-    def _render_ultrawide_bars(self, surface: pygame.Surface):
-        """Render enhanced ultrawide side panels with useful information."""
-        if not Layout.IS_ULTRAWIDE:
-            return
-        
-        # Much smaller side bars since we're using more content width
-        left_bar = pygame.Rect(0, 0, Layout.CONTENT_X_OFFSET, SCREEN_HEIGHT)
-        right_bar = pygame.Rect(Layout.UI_SAFE_RIGHT, 0, Layout.CONTENT_X_OFFSET, SCREEN_HEIGHT)
-        
-        # More sophisticated pattern instead of solid black
-        pattern_color = (20, 10, 30)
-        pygame.draw.rect(surface, pattern_color, left_bar)
-        pygame.draw.rect(surface, pattern_color, right_bar)
-        
-        # Add decorative elements to the side panels
-        for bar_rect in [left_bar, right_bar]:
-            if bar_rect.width > 50:  # Only add decorations if bars are wide enough
-                center_x = bar_rect.centerx
-                
-                # Egyptian-style vertical decorations
-                for y in range(100, SCREEN_HEIGHT - 100, 150):
-                    # Simple hieroglyphic-style patterns
-                    pygame.draw.circle(surface, (*Colors.GOLD, 60), (center_x, y), 8, 2)
-                    pygame.draw.rect(surface, (*Colors.GOLD, 60), (center_x - 15, y + 20, 30, 3))
-                    pygame.draw.rect(surface, (*Colors.GOLD, 60), (center_x - 3, y + 30, 6, 20))
     
     def _render_battlefield_particles(self, surface: pygame.Surface):
         """Render atmospheric particles."""
@@ -991,23 +996,22 @@ class ProfessionalCombat:
             surface.blit(particle_surface, (int(particle['x']), int(particle['y'])))
     
     def _render_combat_ui(self, surface: pygame.Surface):
-        """Render player and enemy UI."""
-        # Player health and mana
-        self._render_health_bar(surface, (50, SCREEN_HEIGHT - 80), 
-                               self.player.health, self.player.max_health, Colors.GREEN)
-        self._render_mana_crystals(surface, (50, SCREEN_HEIGHT - 50), 
-                                  self.player.mana, self.player.max_mana)
-        
+        """Render enhanced combat UI with labels and portraits."""
         # Player label
-        font = pygame.font.Font(None, FontSizes.BUTTON)
-        player_label = font.render("PHARAOH", True, Colors.GOLD)
-        surface.blit(player_label, (50, SCREEN_HEIGHT - 110))
+        if Layout.IS_ULTRAWIDE:
+            label_x = Layout.CONTENT_X_OFFSET + 20
+        else:
+            label_x = 50
+            
+        # Enhanced typography for character labels
+        responsive_typography.render_text(
+            "PHARAOH", TextStyle.SUBTITLE, surface, (label_x, SCREEN_HEIGHT - 110)
+        )
         
-        # Enemy health and mana
-        self._render_health_bar(surface, (50, 80), 
-                               self.enemy.health, self.enemy.max_health, Colors.RED)
-        self._render_mana_crystals(surface, (50, 110), 
-                                  self.enemy.mana, self.enemy.max_mana)
+        responsive_typography.render_text(
+            "ANUBIS - JUDGE OF THE DEAD", TextStyle.SUBTITLE, surface, 
+            (label_x, 50), custom_color=Colors.RED
+        )
         
         # Enemy portrait - Load ultra-high resolution Anubis artwork (2048x2048)!
         from ...core.asset_loader import get_asset_loader
@@ -1058,9 +1062,6 @@ class ProfessionalCombat:
             # Draw the ultra-high resolution portrait
             surface.blit(scaled_portrait, portrait_pos)
         
-        # Enemy label
-        enemy_label = font.render("ANUBIS - JUDGE OF THE DEAD", True, Colors.RED)
-        surface.blit(enemy_label, (50, 50))
     
     def _render_health_bar(self, surface: pygame.Surface, pos: Tuple[int, int], 
                           current: int, maximum: int, color: Tuple[int, int, int]):
@@ -1079,11 +1080,11 @@ class ProfessionalCombat:
             fill_rect = pygame.Rect(pos[0] + 2, pos[1] + 2, fill_width, bar_height - 4)
             pygame.draw.rect(surface, color, fill_rect)
         
-        # Health text
-        font = pygame.font.Font(None, 18)
-        health_text = font.render(f"{current}/{maximum}", True, Colors.WHITE)
-        text_rect = health_text.get_rect(center=bg_rect.center)
-        surface.blit(health_text, text_rect)
+        # Health text with enhanced typography
+        responsive_typography.render_text(
+            f"{current}/{maximum}", TextStyle.CARD_TEXT, surface, 
+            bg_rect.center, center=True, custom_color=Colors.WHITE
+        )
     
     def _render_mana_crystals(self, surface: pygame.Surface, pos: Tuple[int, int], 
                              current: int, maximum: int):
@@ -1119,13 +1120,18 @@ class ProfessionalCombat:
         # Enemy battlefield
         pygame.draw.rect(surface, Colors.RED, self.enemy_battle_area, 1)
         
-        # Area labels
-        font = pygame.font.Font(None, FontSizes.CARD_TEXT)
-        player_label = font.render("YOUR BATTLEFIELD", True, Colors.GOLD)
-        surface.blit(player_label, (self.player_battle_area.x, self.player_battle_area.bottom + 5))
+        # Area labels with enhanced typography
+        responsive_typography.render_text(
+            "YOUR BATTLEFIELD", TextStyle.CARD_TEXT, surface, 
+            (self.player_battle_area.x, self.player_battle_area.bottom + 5),
+            custom_color=Colors.GOLD
+        )
         
-        enemy_label = font.render("ENEMY BATTLEFIELD", True, Colors.RED)
-        surface.blit(enemy_label, (self.enemy_battle_area.x, self.enemy_battle_area.y - 20))
+        responsive_typography.render_text(
+            "ENEMY BATTLEFIELD", TextStyle.CARD_TEXT, surface, 
+            (self.enemy_battle_area.x, self.enemy_battle_area.y - 20),
+            custom_color=Colors.RED
+        )
     
     def _render_cards(self, surface: pygame.Surface):
         """Render all cards."""
@@ -1159,9 +1165,6 @@ class ProfessionalCombat:
             turn_panel_y = 150
         
         # Larger, more visible turn indicator
-        title_font = pygame.font.Font(None, FontSizes.TITLE_LARGE)
-        subtitle_font = pygame.font.Font(None, FontSizes.SUBTITLE)
-        
         if self.phase == CombatPhase.PLAYER_TURN:
             main_text = "YOUR TURN"
             color = Colors.GOLD
@@ -1169,10 +1172,10 @@ class ProfessionalCombat:
             # Check if can play cards
             if not self._can_player_play_cards():
                 auto_end_text = "No playable cards - Turn will end automatically"
-                auto_font = pygame.font.Font(None, FontSizes.CARD_TEXT)
-                auto_surface = auto_font.render(auto_end_text, True, Colors.RED)
-                auto_rect = auto_surface.get_rect(center=(turn_panel_x, turn_panel_y + 80))
-                surface.blit(auto_surface, auto_rect)
+                responsive_typography.render_text(
+                    auto_end_text, TextStyle.CARD_TEXT, surface,
+                    (turn_panel_x, turn_panel_y + 80), center=True, custom_color=Colors.RED
+                )
         elif self.phase == CombatPhase.ENEMY_TURN:
             main_text = "ENEMY TURN"
             color = Colors.RED  
@@ -1205,25 +1208,17 @@ class ProfessionalCombat:
         
         surface.blit(panel_surface, panel_rect.topleft)
         
-        # Main turn text with enhanced visibility
-        main_surface = title_font.render(main_text, True, color)
-        main_rect = main_surface.get_rect(center=(turn_panel_x, turn_panel_y + 10))
+        # Main turn text with enhanced typography
+        responsive_typography.render_text(
+            main_text, TextStyle.TITLE_LARGE, surface,
+            (turn_panel_x, turn_panel_y + 10), center=True, custom_color=color
+        )
         
-        # Add text shadow for better readability
-        shadow_surface = title_font.render(main_text, True, Colors.BLACK)
-        shadow_rect = shadow_surface.get_rect(center=(turn_panel_x + 2, turn_panel_y + 12))
-        surface.blit(shadow_surface, shadow_rect)
-        surface.blit(main_surface, main_rect)
-        
-        # Subtitle information
-        sub_surface = subtitle_font.render(sub_text, True, Colors.PAPYRUS)
-        sub_rect = sub_surface.get_rect(center=(turn_panel_x, turn_panel_y + 45))
-        
-        # Subtitle shadow
-        sub_shadow = subtitle_font.render(sub_text, True, Colors.BLACK)
-        sub_shadow_rect = sub_shadow.get_rect(center=(turn_panel_x + 1, turn_panel_y + 46))
-        surface.blit(sub_shadow, sub_shadow_rect)
-        surface.blit(sub_surface, sub_rect)
+        # Subtitle information with enhanced typography
+        responsive_typography.render_text(
+            sub_text, TextStyle.SUBTITLE, surface,
+            (turn_panel_x, turn_panel_y + 45), center=True, custom_color=Colors.PAPYRUS
+        )
     
     def _render_combat_effects(self, surface: pygame.Surface):
         """Render special combat effects."""
@@ -1256,9 +1251,6 @@ class ProfessionalCombat:
                 f"Turn: {self.turn_count} • {deck_status} • Phase: {self.phase.name.replace('_', ' ')}"
             ]
         
-        # Enhanced font size for ultrawide readability
-        font = pygame.font.Font(None, FontSizes.TOOLTIP)  # Increased from CARD_TEXT
-        
         # Better positioning for ultrawide displays - avoid overlapping with cards
         if Layout.IS_ULTRAWIDE:
             y_start = SCREEN_HEIGHT - 120  # Higher to avoid overlapping with larger cards
@@ -1270,11 +1262,10 @@ class ProfessionalCombat:
         y = y_start
         
         for instruction in instructions:
-            text_surface = font.render(instruction, True, Colors.DESERT_SAND)
-            text_rect = text_surface.get_rect(center=(SCREEN_CENTER[0], y))
-            
             # Enhanced background for better contrast
-            bg_rect = text_rect.inflate(16, 8)  # Larger padding
+            text_size = responsive_typography.measure_text(instruction, TextStyle.TOOLTIP)
+            bg_rect = pygame.Rect(SCREEN_CENTER[0] - text_size[0]//2 - 8, y - text_size[1]//2 - 4, 
+                                 text_size[0] + 16, text_size[1] + 8)
             bg_surface = pygame.Surface(bg_rect.size, pygame.SRCALPHA)
             bg_surface.fill((*Colors.BLACK, 140))  # Slightly more opaque
             
@@ -1283,12 +1274,12 @@ class ProfessionalCombat:
             
             surface.blit(bg_surface, bg_rect.topleft)
             
-            # Add text shadow for better readability
-            shadow_surface = font.render(instruction, True, Colors.BLACK)
-            shadow_rect = shadow_surface.get_rect(center=(SCREEN_CENTER[0] + 1, y + 1))
-            surface.blit(shadow_surface, shadow_rect)
+            # Render text with enhanced typography
+            responsive_typography.render_text(
+                instruction, TextStyle.TOOLTIP, surface,
+                (SCREEN_CENTER[0], y), center=True, custom_color=Colors.DESERT_SAND
+            )
             
-            surface.blit(text_surface, text_rect)
             y += line_spacing
     
     def reset_animations(self):

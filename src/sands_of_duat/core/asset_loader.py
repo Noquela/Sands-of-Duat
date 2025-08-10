@@ -463,6 +463,21 @@ class GeneratedAssetLoader:
         
         return self.load_image(filename)
     
+    def load_ui_icon(self, icon_name: str) -> Optional[pygame.Surface]:
+        """Load a UI icon by name."""
+        # Try UI mapping first
+        filename = self.ui_mapping.get(icon_name)
+        if filename:
+            return self.load_image(filename)
+            
+        # Try direct filename
+        if icon_name.endswith('.png'):
+            return self.load_image(icon_name)
+        
+        # Try adding .png extension
+        filename = f"{icon_name}.png"
+        return self.load_image(filename)
+    
     def get_random_card_art_by_rarity(self, rarity: str) -> Optional[pygame.Surface]:
         """Get random card art by rarity level."""
         import random

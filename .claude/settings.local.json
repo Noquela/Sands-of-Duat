@@ -30,7 +30,8 @@
       "Bash(\"../../venv/Scripts/python.exe\":*)",
       "Bash(curl:*)",
       "Bash(git rm:*)",
-      "Bash(cmd:*)"
+      "Bash(cmd:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
