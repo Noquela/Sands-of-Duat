@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-SANDS OF DUAT - ASSET LOADING SYSTEM
-===================================
+SANDS OF DUAT - ENHANCED ASSET LOADING SYSTEM
+==============================================
 
-Manages loading and caching of all Egyptian assets including:
-- 44 high-quality AI-generated game assets from generated_art
-- Card artwork, backgrounds, character portraits, UI elements
-- Proper memory management and performance optimization
+SPRINT 2 UPGRADE: Now uses Smart Asset Loader with 4K AI-generated assets
+- Professional Egyptian art pipeline with Stable Diffusion XL
+- Intelligent quality selection based on screen resolution  
+- Fallback system for missing assets
+- Enhanced caching and memory management
 """
 
 import pygame
@@ -17,6 +18,9 @@ import logging
 from enum import Enum
 import time
 from dataclasses import dataclass
+
+# Import the new smart asset loader
+from ..assets.smart_asset_loader import smart_asset_loader
 
 logger = logging.getLogger(__name__)
 
@@ -95,20 +99,22 @@ class GeneratedAssetLoader:
         return current_dir.parent.parent.parent / "assets"
     
     def _initialize(self):
-        """Initialize the asset loading system."""
-        logger.info("Initializing Generated Asset Loader...")
+        """Initialize the asset loading system with SPRINT 2 enhancements."""
+        logger.info("Initializing Enhanced Asset Loader (SPRINT 2)...")
+        
+        # Initialize smart asset loader integration
+        smart_asset_loader.preload_common_assets()
         
         # Check if approved assets exist (priority), fallback to generated
         if self.approved_art_path.exists():
             logger.info(f"Using approved Hades-quality assets from: {self.approved_art_path}")
         elif not self.generated_art_path.exists():
-            logger.error(f"No assets found at: {self.generated_art_path} or {self.approved_art_path}")
-            raise FileNotFoundError(f"No assets found")
+            logger.warning(f"No legacy assets found - using SPRINT 2 smart asset system")
         
         # Scan and categorize assets
         self._scan_generated_assets()
         
-        logger.info(f"Asset loader initialized with {self.get_total_asset_count()} generated assets")
+        logger.info(f"Enhanced asset loader initialized with smart 4K asset pipeline")
     
     def _create_card_mapping(self) -> Dict[str, str]:
         """Create mapping of card names to RTX 5070 generated Egyptian cards."""
@@ -430,7 +436,7 @@ class GeneratedAssetLoader:
     
     def load_background(self, screen_name: str) -> Optional[pygame.Surface]:
         """
-        Load background for a specific screen.
+        Load background for a specific screen with SPRINT 2 smart loading.
         
         Args:
             screen_name: Name of the screen (combat, menu, deck_builder, etc.)
@@ -438,12 +444,22 @@ class GeneratedAssetLoader:
         Returns:
             Full-sized pygame Surface or None
         """
-        filename = self.background_mapping.get(screen_name)
-        if not filename:
-            logger.warning(f"No background mapped for screen: {screen_name}")
-            return None
+        # Try smart asset loader first (SPRINT 2)
+        background = smart_asset_loader.get_background(screen_name)
+        if background:
+            logger.debug(f"Loaded 4K background for {screen_name}")
+            return background
         
-        return self.load_image(filename)
+        # Fallback to legacy system
+        filename = self.background_mapping.get(screen_name)
+        if filename:
+            legacy_bg = self.load_image(filename)
+            if legacy_bg:
+                logger.debug(f"Using legacy background for {screen_name}")
+                return legacy_bg
+        
+        logger.warning(f"No background found for screen: {screen_name}")
+        return None
     
     def load_character_portrait(self, character_name: str) -> Optional[pygame.Surface]:
         """
