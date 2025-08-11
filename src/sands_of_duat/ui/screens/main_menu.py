@@ -17,6 +17,7 @@ from ...core.asset_loader import get_asset_loader
 from ...audio.simple_audio_manager import audio_manager, SoundEffect, AudioTrack
 from ..components.animated_button import AnimatedButton
 from ..components.title_animation import TitleAnimation
+from ..effects.professional_transitions import professional_transitions, TransitionType, EasingType
 
 class MenuAction(Enum):
     """Main menu actions."""

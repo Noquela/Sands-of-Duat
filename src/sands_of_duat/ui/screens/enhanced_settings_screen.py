@@ -60,15 +60,37 @@ class EnhancedSettingsScreen:
         print("Enhanced Settings Screen initialized - Temple of Configuration ready")
     
     def _create_background(self):
-        """Create enhanced Egyptian temple background."""
+        """Create enhanced Egyptian temple background using 4K assets."""
+        # Try to load the ultra-high resolution settings background
+        from ...core.asset_loader import get_asset_loader
+        asset_loader = get_asset_loader()
+        settings_bg = asset_loader.load_background('settings')
+        
+        if settings_bg:
+            # Scale ultra-high resolution background to screen with quality scaling
+            background = pygame.transform.smoothscale(settings_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
+            
+            # Add mystical overlay for better UI readability
+            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            
+            # Enhanced temple atmosphere
+            for y in range(SCREEN_HEIGHT):
+                ratio = y / SCREEN_HEIGHT
+                alpha = int(40 + ratio * 20)  # Subtle darkening for UI
+                overlay.fill((10, 5, 0, alpha), (0, y, SCREEN_WIDTH, 1))
+            
+            background.blit(overlay, (0, 0))
+            return background
+        
+        # Enhanced fallback: Egyptian temple stone gradient
         background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         
-        # Temple stone gradient
+        # Professional temple stone gradient
         for y in range(SCREEN_HEIGHT):
             ratio = y / SCREEN_HEIGHT
-            r = int(35 + ratio * 25)
-            g = int(30 + ratio * 20)
-            b = int(15 + ratio * 10)
+            r = int(35 + ratio * 25)    # Warm stone tones
+            g = int(30 + ratio * 20)    # Sandstone colors
+            b = int(15 + ratio * 10)    # Rich earth browns
             background.fill((r, g, b), (0, y, SCREEN_WIDTH, 1))
         
         return background

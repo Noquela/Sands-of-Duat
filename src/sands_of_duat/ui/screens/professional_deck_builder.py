@@ -18,6 +18,7 @@ from ...core.deck_manager import deck_manager
 from ...core.deck_collection_manager import deck_collection_manager
 from ...audio.simple_audio_manager import audio_manager, SoundEffect, AudioTrack
 from ..components.animated_button import AnimatedButton
+from ..effects.advanced_visual_effects import advanced_visual_effects
 
 class DeckBuilderAction(Enum):
     """Deck builder actions."""
@@ -557,6 +558,18 @@ class ProfessionalDeckBuilder:
                     deck_card = Card(card.data)
                     self.deck_cards.append(deck_card)
                     self._update_deck_positions()
+                    
+                    # Add visual effects for card addition
+                    card_rect = card.get_rect()
+                    advanced_visual_effects.add_particle_trail(
+                        card_rect.centerx, card_rect.centery,
+                        self.deck_area.centerx, self.deck_area.centery,
+                        Colors.GOLD, particle_count=15
+                    )
+                    advanced_visual_effects.add_crystal_shine(
+                        card_rect.x, card_rect.y, card_rect.width, card_rect.height
+                    )
+                    
                     # Play card add sound
                     audio_manager.play_sound(SoundEffect.CARD_PLAY, 0.4)
                 break
@@ -564,6 +577,16 @@ class ProfessionalDeckBuilder:
         # Deck cards (to remove)
         for i, card in enumerate(self.deck_cards):
             if self.deck_area.colliderect(card.get_rect()) and card.handle_click(mouse_pos):
+                # Add visual effects for card removal
+                card_rect = card.get_rect()
+                advanced_visual_effects.add_energy_pulse(
+                    card_rect.centerx, card_rect.centery, 
+                    max_radius=80, color=Colors.LAPIS_LAZULI
+                )
+                advanced_visual_effects.add_sand_swirl(
+                    card_rect.centerx, card_rect.centery, radius=60
+                )
+                
                 self.deck_cards.pop(i)
                 self._update_deck_positions()
                 # Play card remove sound (different pitch)

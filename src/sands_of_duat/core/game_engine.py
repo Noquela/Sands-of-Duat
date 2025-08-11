@@ -25,7 +25,8 @@ from ..ui.screens.enhanced_settings_screen import EnhancedSettingsScreen, Settin
 from ..audio.simple_audio_manager import audio_manager
 from .settings_manager import settings_manager
 from .save_system import save_system
-from ..ui.effects.enhanced_visual_effects import visual_effects
+from ..ui.effects.advanced_visual_effects import advanced_visual_effects
+from ..ui.effects.professional_transitions import professional_transitions
 
 class GameEngine:
     """
@@ -332,8 +333,9 @@ class GameEngine:
         current_screen_name = current_state.name.lower()
         audio_manager.update(dt, current_screen_name)
         
-        # Update visual effects
-        visual_effects.update(dt)
+        # Update advanced visual effects and transitions
+        advanced_visual_effects.update(dt)
+        professional_transitions.update(dt)
         
         # Clear per-frame input state
         self.keys_just_pressed.clear()
@@ -348,8 +350,9 @@ class GameEngine:
         # Render current state
         self.state_manager.render(self.screen)
         
-        # Render visual effects on top
-        visual_effects.render(self.screen)
+        # Render advanced visual effects on top
+        advanced_visual_effects.render(self.screen)
+        professional_transitions.render_transition(self.screen)
         
         # Render debug information
         if Dev.DEBUG_MODE:
@@ -402,8 +405,9 @@ class GameEngine:
                 
                 if success:
                     # Show success effect
-                    visual_effects.create_divine_light(SCREEN_CENTER[0], 100)
-                    audio_manager.play_sound(SoundEffect.HEALING, 0.4)
+                    advanced_visual_effects.add_divine_aura(SCREEN_CENTER[0], 100)
+                    advanced_visual_effects.add_ankh_blessing(SCREEN_CENTER[0], 150)
+                    # audio_manager.play_sound(SoundEffect.HEALING, 0.4)
                     self.logger.info("⚡ Quick save successful")
                 else:
                     self.logger.warning("⚡ Quick save failed")
@@ -420,8 +424,9 @@ class GameEngine:
             
             if save_data:
                 # Show load effect
-                visual_effects.create_sand_storm()
-                audio_manager.play_sound(SoundEffect.TRANSITION, 0.5)
+                advanced_visual_effects.add_sand_swirl(SCREEN_CENTER[0], SCREEN_CENTER[1])
+                advanced_visual_effects.add_hieroglyph_float(SCREEN_CENTER[0], SCREEN_CENTER[1])
+                # audio_manager.play_sound(SoundEffect.TRANSITION, 0.5)
                 self.logger.info("⚡ Quick load successful")
             else:
                 self.logger.info("⚡ No quick save found")
@@ -434,7 +439,7 @@ class GameEngine:
         self.logger.info("🏺 Game Engine shutting down...")
         
         # Cleanup systems
-        visual_effects.clear_effects()
+        advanced_visual_effects.clear_all_effects()
         audio_manager.shutdown()
         
         # Auto-save if enabled

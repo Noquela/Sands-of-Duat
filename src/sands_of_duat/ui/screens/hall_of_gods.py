@@ -17,6 +17,7 @@ from ...core.asset_loader import get_asset_loader
 from ...audio.simple_audio_manager import audio_manager, SoundEffect, AudioTrack
 from ..components.animated_button import AnimatedButton
 from ..components.enhanced_ui_components import EgyptianPanel, CardPreviewPanel
+from ..effects.advanced_visual_effects import advanced_visual_effects
 
 class HallAction(Enum):
     """Hall of Gods actions."""
@@ -400,6 +401,34 @@ class HallOfGodsScreen:
         if self.hovered_card:
             self.selected_card = self.hovered_card
             audio_manager.play_sound(SoundEffect.CARD_PLAY, 0.4)
+            
+            # Add divine selection visual effects
+            card_x = self.card_grid_area.x + (self.hovered_card.x * self.card_spacing_x)
+            card_y = self.card_grid_area.y + (self.hovered_card.y * self.card_spacing_y)
+            
+            # Divine aura for legendary cards
+            if self.selected_card.rarity.lower() == 'legendary':
+                advanced_visual_effects.add_divine_aura(
+                    card_x + self.card_width // 2, 
+                    card_y + self.card_height // 2,
+                    radius=120, color=Colors.GOLD
+                )
+                advanced_visual_effects.add_ankh_blessing(
+                    card_x + self.card_width // 2, 
+                    card_y + self.card_height // 2
+                )
+            else:
+                # Energy pulse for other cards
+                advanced_visual_effects.add_energy_pulse(
+                    card_x + self.card_width // 2, 
+                    card_y + self.card_height // 2,
+                    max_radius=80, color=Colors.LAPIS_LAZULI
+                )
+            
+            # Crystal shine effect
+            advanced_visual_effects.add_crystal_shine(
+                card_x, card_y, self.card_width, self.card_height
+            )
             
             # Show detailed card info
             self.card_preview.show_card(self.selected_card.name, {

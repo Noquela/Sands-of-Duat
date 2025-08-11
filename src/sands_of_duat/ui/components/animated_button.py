@@ -9,6 +9,7 @@ from typing import Tuple, Optional, Callable
 from enum import Enum, auto
 
 from ...core.constants import Colors, Timing, FontSizes, Layout
+from ..effects.advanced_visual_effects import advanced_visual_effects
 
 class ButtonState(Enum):
     """Button interaction states."""
@@ -82,10 +83,17 @@ class AnimatedButton:
         else:
             self.state = ButtonState.NORMAL
         
-        # Play hover sound effect (when audio system is ready)
-        if self.is_hovered and not was_hovered and self.hover_sound:
-            # self.hover_sound.play()
-            pass
+        # Play hover sound effect and trigger visual effects
+        if self.is_hovered and not was_hovered:
+            # Add button glow effect
+            advanced_visual_effects.add_button_glow(
+                self.rect.x, self.rect.y, self.rect.width, self.rect.height,
+                Colors.GOLD, intensity=0.8, duration=1.5
+            )
+            
+            if self.hover_sound:
+                # self.hover_sound.play()
+                pass
         
         # Update animations
         self._update_hover_animation(dt, self.is_hovered)
@@ -129,6 +137,17 @@ class AnimatedButton:
             True if button was clicked
         """
         if self.rect.collidepoint(mouse_pos) and self.state != ButtonState.DISABLED:
+            # Add click visual effects
+            advanced_visual_effects.add_energy_pulse(
+                self.rect.centerx, self.rect.centery, 
+                max_radius=60, color=Colors.LAPIS_LAZULI
+            )
+            
+            # Add crystal shine effect
+            advanced_visual_effects.add_crystal_shine(
+                self.rect.x, self.rect.y, self.rect.width, self.rect.height
+            )
+            
             if self.click_sound:
                 # self.click_sound.play()
                 pass
