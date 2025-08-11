@@ -96,24 +96,24 @@ class Timing:
 class Layout:
     """UI layout and spacing constants with ultrawide support."""
     
+    # Ultrawide-specific layouts - DEFINE FIRST
+    IS_ULTRAWIDE = SCREEN_WIDTH >= 2560
+    
     # Dynamic margins based on screen width
     SCREEN_MARGIN = max(20, SCREEN_WIDTH // 70)  # Scales with screen size
     COMPONENT_PADDING = 10
     BUTTON_PADDING = 15
     CARD_SPACING = 8
     
-    # Component Sizes
-    BUTTON_HEIGHT = 60
-    BUTTON_WIDTH_STANDARD = 200
-    BUTTON_WIDTH_WIDE = 300
+    # Component Sizes - Enhanced for ultrawide visibility
+    BUTTON_HEIGHT = int(70 * (1.4 if IS_ULTRAWIDE else 1.0))  # 40% larger on ultrawide
+    BUTTON_WIDTH_STANDARD = int(250 * (1.4 if IS_ULTRAWIDE else 1.0))
+    BUTTON_WIDTH_WIDE = int(350 * (1.4 if IS_ULTRAWIDE else 1.0))
     
     # Health/Mana Bar
     BAR_WIDTH = 200
     BAR_HEIGHT = 20
     BAR_BORDER = 2
-    
-    # Ultrawide-specific layouts - DEFINE FIRST
-    IS_ULTRAWIDE = SCREEN_WIDTH >= 2560
     
     # Card Dimensions (scaled for ultra high resolution assets)
     # Enhanced card sizing for ultrawide displays
@@ -205,17 +205,17 @@ class Egyptian:
 class FontSizes:
     """Font size constants for different UI elements with ultrawide scaling."""
     
-    # Apply enhanced scaling for better readability
-    TITLE_HUGE = int(72 * Layout.FONT_SCALE)
-    TITLE_LARGE = int(48 * Layout.FONT_SCALE)
-    TITLE_MEDIUM = int(36 * Layout.FONT_SCALE)
-    SUBTITLE = int(28 * Layout.FONT_SCALE)
-    BUTTON = int(24 * Layout.FONT_SCALE)
-    BODY = int(20 * Layout.FONT_SCALE)
-    CARD_NAME = int(18 * Layout.FONT_SCALE)
-    CARD_TEXT = int(16 * Layout.FONT_SCALE)  # Increased from 14 for better readability
-    TOOLTIP = int(18 * Layout.FONT_SCALE)    # Increased from 16 for ultrawide
-    DEBUG = int(14 * Layout.FONT_SCALE)      # Increased from 12 for ultrawide
+    # Apply enhanced scaling for better readability and visual hierarchy
+    TITLE_HUGE = int(88 * Layout.FONT_SCALE)    # Increased from 72 for stronger hierarchy
+    TITLE_LARGE = int(64 * Layout.FONT_SCALE)   # Increased from 48 for better visibility
+    TITLE_MEDIUM = int(48 * Layout.FONT_SCALE)  # Increased from 36 for clarity
+    SUBTITLE = int(32 * Layout.FONT_SCALE)      # Increased from 28 for ultrawide
+    BUTTON = int(26 * Layout.FONT_SCALE)        # Increased from 24 for button clarity
+    BODY = int(24 * Layout.FONT_SCALE)          # Increased from 20 for readability
+    CARD_NAME = int(20 * Layout.FONT_SCALE)     # Increased from 18 for card visibility
+    TOOLTIP = int(18 * Layout.FONT_SCALE)       # Kept for comfortable reading
+    CARD_TEXT = int(16 * Layout.FONT_SCALE)     # Good for card descriptions
+    DEBUG = int(14 * Layout.FONT_SCALE)         # Kept smaller for debug info
 
 # AUDIO CONSTANTS
 class Audio:

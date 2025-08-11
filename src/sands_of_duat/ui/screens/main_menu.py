@@ -12,6 +12,8 @@ from ...core.constants import (
     Colors, Layout, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER,
     FontSizes
 )
+from ..responsive import scaling_manager, ultrawide_layout
+from ..responsive.responsive_components import ResponsiveButton
 from ...core.state_manager import GameState
 from ...core.asset_loader import get_asset_loader
 from ...audio.simple_audio_manager import audio_manager, SoundEffect, AudioTrack
@@ -129,8 +131,8 @@ class MainMenuScreen:
         background.blit(pattern_surface, (0, 0))
         return background
     
-    def _create_buttons(self) -> List[AnimatedButton]:
-        """Create animated menu buttons with Egyptian styling."""
+    def _create_buttons(self) -> List[ResponsiveButton]:
+        """Create responsive menu buttons with proper ultrawide scaling."""
         buttons = []
         
         # Button configuration
@@ -142,27 +144,22 @@ class MainMenuScreen:
             ("RETURN TO MORTAL REALM", MenuAction.QUIT)
         ]
         
-        # Layout calculation
-        button_width = Layout.BUTTON_WIDTH_WIDE
-        button_height = Layout.BUTTON_HEIGHT
-        button_spacing = 20
+        # Get properly scaled button positions
+        positions = scaling_manager.get_button_layout(
+            len(button_configs), 
+            button_type='wide',
+            zone='center_content'
+        )
         
-        # Center buttons in content area
-        total_height = len(button_configs) * button_height + (len(button_configs) - 1) * button_spacing
-        start_y = SCREEN_CENTER[1] + 50  # Below title
-        
-        # Adjust for ultrawide
-        center_x = SCREEN_CENTER[0]
-        
-        for i, (text, action) in enumerate(button_configs):
-            y = start_y + i * (button_height + button_spacing)
-            x = center_x - button_width // 2
-            
-            button = AnimatedButton(
-                x, y, button_width, button_height,
-                text, FontSizes.BUTTON,
-                action=lambda a=action: self._handle_button_action(a)
+        # Create responsive buttons
+        for i, ((text, action), (x, y)) in enumerate(zip(button_configs, positions)):
+            button = ResponsiveButton(
+                text=text,
+                button_type='wide',
+                action=lambda a=action: self._handle_button_action(a),
+                zone='center_content'
             )
+            button.set_position(x, y)
             buttons.append(button)
         
         return buttons
@@ -196,18 +193,9 @@ class MainMenuScreen:
         self.title_animation.update(dt)
         
         # Update buttons
-        for i, button in enumerate(self.buttons):
-            # Check for hover state change for sound effects
-            was_hovered = button.is_hovered
-            button.update(dt, mouse_pos, mouse_pressed)
+        for button in self.buttons:
+            button.update(dt, mouse_pos, mouse_pressed, events)
             
-            # Play hover sound when button becomes hovered
-            if button.is_hovered and not was_hovered:
-                audio_manager.play_sound(SoundEffect.BUTTON_HOVER, 0.3)
-            
-            # Update selected button based on mouse position
-            if button.rect.collidepoint(mouse_pos):
-                self.selected_button_index = i
         
         # Handle events
         for event in events:
@@ -265,14 +253,8 @@ class MainMenuScreen:
         # Render version/sprint info
         self._render_version_info(surface)
         
-        # Render buttons
-        for i, button in enumerate(self.buttons):
-            # Highlight selected button for keyboard navigation
-            if i == self.selected_button_index and self.last_mouse_pos != pygame.mouse.get_pos():
-                # Draw selection indicator
-                indicator_rect = button.rect.inflate(8, 8)
-                pygame.draw.rect(surface, Colors.GOLD, indicator_rect, 2)
-            
+        # Render responsive buttons
+        for button in self.buttons:
             button.render(surface)
         
         # Render control hints

@@ -15,6 +15,9 @@ from ...core.constants import (
     Colors, Layout, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER,
     FontSizes, Timing
 )
+from ..responsive import scaling_manager, ultrawide_layout
+from ..responsive.combat_hud import CombatHUD
+from ..responsive.responsive_components import ResponsiveCard
 from ...core.asset_loader import get_asset_loader
 from ...core.deck_manager import deck_manager
 from ...audio.simple_audio_manager import audio_manager, SoundEffect, AudioTrack
@@ -286,8 +289,16 @@ class ProfessionalCombat:
         self.battlefield_particles = []
         self.combat_effects = []
         
-        # Enhanced UI components (after combatants are initialized)
-        self._initialize_enhanced_ui()
+        # Initialize responsive combat HUD
+        self.combat_hud = CombatHUD()
+        self.combat_hud.set_player_health(self.player.health, self.player.max_health)
+        self.combat_hud.set_player_mana(self.player.mana, self.player.max_mana)
+        self.combat_hud.set_enemy_health(self.enemy.health, self.enemy.max_health)
+        self.combat_hud.set_turn(True)  # Player starts
+        self.combat_hud.set_action_callbacks(
+            self._handle_end_turn,
+            self._handle_surrender
+        )
         
         # Card system - use saved deck if available
         if deck_manager.has_saved_deck():
@@ -530,13 +541,19 @@ class ProfessionalCombat:
     
     def _update_card_positions(self):
         """Update positions of all cards with enhanced ultrawide spacing."""
-        # Enhanced spacing for ultrawide displays
-        if Layout.IS_ULTRAWIDE:
-            card_spacing = min(250, (self.hand_area.width - Layout.CARD_WIDTH) // max(1, len(self.player_hand) - 1))
-            battlefield_spacing = 200  # More space between battlefield cards
-        else:
-            card_spacing = min(160, (self.hand_area.width - Layout.CARD_WIDTH) // max(1, len(self.player_hand) - 1))
-            battlefield_spacing = 160
+        # Use responsive card spacing system
+        card_spacing = scaling_manager.layout.get_card_spacing()
+        
+        # Calculate proper spacing based on available width
+        if self.player_hand:
+            card_width = scaling_manager.get_component_size('card_medium')[0]
+            available_width = self.hand_area.width - card_width
+            cards_count = len(self.player_hand)
+            if cards_count > 1:
+                max_spacing = available_width // (cards_count - 1)
+                card_spacing = min(card_spacing, max_spacing)
+        
+        battlefield_spacing = int(card_spacing * 1.2)  # Slightly wider spacing for battlefield
         
         # Player hand
         if self.player_hand:
@@ -582,6 +599,16 @@ class ProfessionalCombat:
         if self.phase == CombatPhase.PLAYER_TURN and not self._can_player_play_cards():
             print(f"[AUTO-END] No playable cards (Mana: {self.player.mana}), ending turn automatically")
             self._end_turn()
+    
+    def _handle_end_turn(self):
+        """Handle end turn button click."""
+        if self.phase == CombatPhase.PLAYER_TURN:
+            self._end_turn()
+    
+    def _handle_surrender(self):
+        """Handle surrender button click."""
+        if self.on_action:
+            self.on_action(CombatAction.SURRENDER)
     
     def _end_turn(self):
         """End current player turn."""
@@ -797,22 +824,18 @@ class ProfessionalCombat:
         """Update combat system."""
         self.animation_time += dt
         
-        # Update enhanced UI components
-        ultrawide_decorations.update(dt)
+        # Update responsive combat HUD
+        self.combat_hud.update(dt, mouse_pos, mouse_pressed, events)
+        
+        # Keep HUD values synchronized with game state
+        self.combat_hud.set_player_health(self.player.health)
+        self.combat_hud.set_player_mana(self.player.mana)
+        self.combat_hud.set_enemy_health(self.enemy.health)
+        self.combat_hud.set_turn(self.phase == CombatPhase.PLAYER_TURN)
         
         # Update smooth transitions
         smooth_transitions.update_transitions(dt)
         
-        # Update status bars with current values
-        self.player_health_bar.set_value(self.player.health)
-        self.player_health_bar.update(dt)
-        self.player_mana_bar.set_value(self.player.mana)
-        self.player_mana_bar.update(dt)
-        
-        self.enemy_health_bar.set_value(self.enemy.health)
-        self.enemy_health_bar.update(dt)
-        self.enemy_mana_bar.set_value(self.enemy.mana)
-        self.enemy_mana_bar.update(dt)
         
         # Update card preview panel
         if self.card_preview_panel:
@@ -947,11 +970,8 @@ class ProfessionalCombat:
         # Battlefield particles
         self._render_battlefield_particles(surface)
         
-        # Enhanced status bars
-        self.player_health_bar.render(surface)
-        self.player_mana_bar.render(surface)
-        self.enemy_health_bar.render(surface)
-        self.enemy_mana_bar.render(surface)
+        # Render responsive combat HUD (replaces old status bars)
+        self.combat_hud.render(surface)
         
         # Combat UI
         self._render_combat_ui(surface)
