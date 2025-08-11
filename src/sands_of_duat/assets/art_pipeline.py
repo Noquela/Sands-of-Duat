@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
-# Optional AI imports
+# Optional AI imports with proper fallbacks
 try:
     import torch
     from diffusers import StableDiffusionXLPipeline, AutoencoderKL
@@ -22,7 +22,12 @@ except ImportError:
     torch = None
     StableDiffusionXLPipeline = None
     AutoencoderKL = None
-    Image = None
+    # Create dummy classes to prevent AttributeError
+    class DummyImage:
+        class Image: pass
+    Image = DummyImage
+    ImageEnhance = None
+    ImageFilter = None
 
 class AssetType(Enum):
     """Types of assets to generate."""
@@ -274,8 +279,10 @@ class EgyptianArtPipeline:
             self.logger.error(f"Failed to generate {spec.name}: {e}")
             return False
     
-    def _apply_post_processing(self, image: Image.Image, processes: List[str]) -> Image.Image:
+    def _apply_post_processing(self, image, processes: List[str]):
         """Apply post-processing effects to generated images."""
+        if not AI_AVAILABLE:
+            return image
         for process in processes:
             if process == "make_transparent":
                 # Convert white/light backgrounds to transparent
