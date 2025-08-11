@@ -22,6 +22,7 @@ from ..ui.screens.professional_deck_builder import ProfessionalDeckBuilder, Deck
 from ..ui.screens.professional_combat import ProfessionalCombat, CombatAction
 from ..ui.screens.hall_of_gods import HallOfGodsScreen, HallAction
 from ..ui.screens.enhanced_settings_screen import EnhancedSettingsScreen, SettingsAction
+from ..ui.screens.animation_generator_screen import AnimationGeneratorScreen, AnimationAction
 from ..audio.simple_audio_manager import audio_manager
 from .settings_manager import settings_manager
 from .save_system import save_system
@@ -73,6 +74,7 @@ class GameEngine:
         self.combat_screen = ProfessionalCombat(self._handle_combat_action)
         self.collection_screen = HallOfGodsScreen(self._handle_collection_action)
         self.settings_screen = EnhancedSettingsScreen(self._handle_settings_action)
+        self.animation_generator_screen = AnimationGeneratorScreen(self._handle_animation_action)
         self.current_loading_screen: Optional[LoadingScreen] = None
         self.current_transition_screen: Optional[TransitionScreen] = None
         
@@ -163,6 +165,8 @@ class GameEngine:
             self.collection_screen.render(surface)
         elif state == GameState.SETTINGS:
             self.settings_screen.render(surface)
+        elif state == GameState.ANIMATION_GENERATOR:
+            self.animation_generator_screen.render(surface)
         elif state == GameState.LOADING:
             if self.current_loading_screen:
                 self.current_loading_screen.render(surface)
@@ -220,6 +224,8 @@ class GameEngine:
             self._start_transition(TransitionType.DECK_BUILDING, GameState.MAIN_MENU, GameState.DECK_BUILDER)
         elif action == MenuAction.COLLECTION:
             self._start_transition(TransitionType.COLLECTING_CARDS, GameState.MAIN_MENU, GameState.COLLECTION)
+        elif action == MenuAction.ANIMATION_GENERATOR:
+            self._start_transition(TransitionType.SETTINGS_MENU, GameState.MAIN_MENU, GameState.ANIMATION_GENERATOR)
         elif action == MenuAction.SETTINGS:
             self._start_transition(TransitionType.SETTINGS_MENU, GameState.MAIN_MENU, GameState.SETTINGS)
         elif action == MenuAction.QUIT:
@@ -263,6 +269,19 @@ class GameEngine:
         elif action == SettingsAction.RESET_DEFAULTS:
             self.logger.info("Settings reset to defaults")
     
+    def _handle_animation_action(self, action: AnimationAction):
+        """Handle actions from the animation generator screen."""
+        if action == AnimationAction.BACK_TO_MENU:
+            self._start_transition(TransitionType.RETURNING_HOME, GameState.ANIMATION_GENERATOR, GameState.MAIN_MENU)
+        elif action == AnimationAction.GENERATE_SINGLE:
+            self.logger.info("Generating single card animation")
+        elif action == AnimationAction.GENERATE_GOD_COLLECTION:
+            self.logger.info("Generating god collection animations")
+        elif action == AnimationAction.GENERATE_ALL_CARDS:
+            self.logger.info("Generating all card animations")
+        elif action == AnimationAction.TOGGLE_COMFYUI:
+            self.logger.info("Toggling ComfyUI connection")
+    
     def _start_transition(self, transition_type: TransitionType, from_state: GameState, to_state: GameState):
         """Start a transition between game states."""
         self.current_transition_screen = TransitionScreen(
@@ -288,6 +307,8 @@ class GameEngine:
             self.collection_screen.reset_animations()
         elif target_state == GameState.SETTINGS:
             self.settings_screen.reset_animations()
+        elif target_state == GameState.ANIMATION_GENERATOR:
+            self.animation_generator_screen.reset_animations()
         
         self.state_manager.change_state(target_state, "fade", 0.5)
     
@@ -322,6 +343,9 @@ class GameEngine:
         elif current_state == GameState.SETTINGS:
             mouse_pressed = any(self.mouse_buttons)
             self.settings_screen.update(dt, self.current_events, self.mouse_pos, mouse_pressed)
+        elif current_state == GameState.ANIMATION_GENERATOR:
+            mouse_pressed = any(self.mouse_buttons)
+            self.animation_generator_screen.update(dt, self.current_events, self.mouse_pos, mouse_pressed)
         elif current_state == GameState.LOADING:
             if self.current_loading_screen:
                 self.current_loading_screen.update(dt)

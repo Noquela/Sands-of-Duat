@@ -19,6 +19,7 @@ class GameState(Enum):
     COMBAT = auto()
     SETTINGS = auto()
     COLLECTION = auto()
+    ANIMATION_GENERATOR = auto()
     VICTORY = auto()
     DEFEAT = auto()
     LOADING = auto()
