@@ -4,7 +4,6 @@ Handles communication with ComfyUI for Egyptian card animation generation.
 """
 
 import asyncio
-import aiohttp
 import json
 import os
 import base64
@@ -14,6 +13,22 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 import logging
 from datetime import datetime
+
+# Optional imports for AI generation
+try:
+    import aiohttp
+    AIOHTTP_AVAILABLE = True
+except ImportError:
+    aiohttp = None
+    AIOHTTP_AVAILABLE = False
+
+# Import local AI generator as fallback
+try:
+    from .local_ai_generator import LocalAIGenerator
+    LOCAL_AI_AVAILABLE = True
+except ImportError:
+    LocalAIGenerator = None
+    LOCAL_AI_AVAILABLE = False
 
 @dataclass
 class AnimationRequest:
@@ -76,6 +91,10 @@ class ComfyUIManager:
     
     async def initialize(self) -> bool:
         """Initialize connection to ComfyUI."""
+        if not AIOHTTP_AVAILABLE:
+            self.logger.error("aiohttp not available - cannot initialize ComfyUI connection")
+            return False
+            
         try:
             self.session = aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=self.request_timeout)

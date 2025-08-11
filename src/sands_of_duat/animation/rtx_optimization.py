@@ -3,14 +3,27 @@ RTX 5070 Optimization Module - GPU Performance Tuning
 Optimizes ComfyUI and AnimateDiff generation for RTX 5070 hardware.
 """
 
-import psutil
-import GPUtil
 import logging
 import asyncio
 from typing import Dict, Optional, Any, List
 from dataclasses import dataclass
 from pathlib import Path
 import json
+
+# Optional imports for GPU monitoring
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    psutil = None
+    PSUTIL_AVAILABLE = False
+
+try:
+    import GPUtil
+    GPUTIL_AVAILABLE = True
+except ImportError:
+    GPUtil = None
+    GPUTIL_AVAILABLE = False
 
 @dataclass
 class GPUMetrics:
@@ -95,6 +108,10 @@ class RTXOptimizer:
     
     def _detect_gpu(self) -> Optional[GPUMetrics]:
         """Detect GPU hardware and capabilities."""
+        if not GPUTIL_AVAILABLE:
+            self.logger.warning("GPUtil not available - GPU detection disabled")
+            return None
+            
         try:
             gpus = GPUtil.getGPUs()
             

@@ -22,7 +22,22 @@ from ..ui.screens.professional_deck_builder import ProfessionalDeckBuilder, Deck
 from ..ui.screens.professional_combat import ProfessionalCombat, CombatAction
 from ..ui.screens.hall_of_gods import HallOfGodsScreen, HallAction
 from ..ui.screens.enhanced_settings_screen import EnhancedSettingsScreen, SettingsAction
-from ..ui.screens.animation_generator_screen import AnimationGeneratorScreen, AnimationAction
+
+# Optional animation screen import
+try:
+    from ..ui.screens.animation_generator_screen import AnimationGeneratorScreen, AnimationAction
+    ANIMATION_SCREEN_AVAILABLE = True
+except ImportError:
+    ANIMATION_SCREEN_AVAILABLE = False
+    # Create dummy classes
+    class AnimationGeneratorScreen:
+        def __init__(self, on_action=None): pass
+        def update(self, dt, events, mouse_pos, mouse_pressed): pass
+        def render(self, surface): pass
+        def reset_animations(self): pass
+    
+    class AnimationAction:
+        BACK_TO_MENU = "back_to_menu"
 from ..audio.simple_audio_manager import audio_manager
 from .settings_manager import settings_manager
 from .save_system import save_system
@@ -74,7 +89,11 @@ class GameEngine:
         self.combat_screen = ProfessionalCombat(self._handle_combat_action)
         self.collection_screen = HallOfGodsScreen(self._handle_collection_action)
         self.settings_screen = EnhancedSettingsScreen(self._handle_settings_action)
-        self.animation_generator_screen = AnimationGeneratorScreen(self._handle_animation_action)
+        # Initialize animation screen if available
+        if ANIMATION_SCREEN_AVAILABLE:
+            self.animation_generator_screen = AnimationGeneratorScreen(self._handle_animation_action)
+        else:
+            self.animation_generator_screen = AnimationGeneratorScreen()
         self.current_loading_screen: Optional[LoadingScreen] = None
         self.current_transition_screen: Optional[TransitionScreen] = None
         
