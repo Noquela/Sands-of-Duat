@@ -15,6 +15,7 @@ from ...core.constants import (
     FontSizes, Timing
 )
 from ...core.deck_manager import deck_manager
+from ...core.deck_collection_manager import deck_collection_manager
 from ...audio.simple_audio_manager import audio_manager, SoundEffect, AudioTrack
 from ..components.animated_button import AnimatedButton
 
@@ -24,6 +25,9 @@ class DeckBuilderAction(Enum):
     SAVE_DECK = auto()
     CLEAR_DECK = auto()
     EXPORT_DECK = auto()
+    SAVE_DECK_AS = auto()
+    LOAD_DECK = auto()
+    DELETE_DECK = auto()
 
 class CardData:
     """Simple card data structure."""
@@ -224,6 +228,11 @@ class ProfessionalDeckBuilder:
         self.scroll_offset = 0
         self.max_scroll = 0
         
+        # Deck management
+        self.current_deck_name = "Working Deck"
+        self.show_deck_menu = False
+        self.deck_menu_alpha = 0.0
+        
         # Layout
         self.collection_area = pygame.Rect(50, 180, SCREEN_WIDTH * 0.7 - 100, SCREEN_HEIGHT - 280)
         self.deck_area = pygame.Rect(SCREEN_WIDTH * 0.7, 180, SCREEN_WIDTH * 0.3 - 50, SCREEN_HEIGHT - 280)
@@ -310,9 +319,10 @@ class ProfessionalDeckBuilder:
         
         button_configs = [
             ("BACK TO MENU", DeckBuilderAction.BACK_TO_MENU),
-            ("SAVE DECK", DeckBuilderAction.SAVE_DECK),
-            ("CLEAR ALL", DeckBuilderAction.CLEAR_DECK),
-            ("EXPORT", DeckBuilderAction.EXPORT_DECK)
+            ("SAVE", DeckBuilderAction.SAVE_DECK),
+            ("SAVE AS...", DeckBuilderAction.SAVE_DECK_AS),
+            ("LOAD", DeckBuilderAction.LOAD_DECK),
+            ("CLEAR ALL", DeckBuilderAction.CLEAR_DECK)
         ]
         
         button_width = 130
@@ -357,15 +367,100 @@ class ProfessionalDeckBuilder:
             self._update_deck_positions()
             deck_manager.clear_deck()
         elif action == DeckBuilderAction.SAVE_DECK:
-            # Save current deck to global manager
-            success = deck_manager.save_deck(self.deck_cards)
+            # Save current deck with current name
+            deck_cards_data = [card.data for card in self.deck_cards]
+            
+            # Convert to DeckCard format for collection manager
+            from ...core.deck_collection_manager import DeckCard
+            collection_cards = []
+            for card_data in deck_cards_data:
+                collection_cards.append(DeckCard(
+                    name=card_data.name,
+                    cost=card_data.cost,
+                    attack=card_data.attack,
+                    health=card_data.health,
+                    rarity=card_data.rarity,
+                    description=card_data.description
+                ))
+            
+            success = deck_collection_manager.save_deck(self.current_deck_name, collection_cards)
             if success:
-                print(f"Deck saved successfully! {len(self.deck_cards)} cards ready for combat.")
+                # Also save to legacy system for combat compatibility
+                deck_manager.save_deck(self.deck_cards)
+                print(f"Deck '{self.current_deck_name}' saved successfully! {len(self.deck_cards)} cards ready for combat.")
             else:
                 print("Failed to save deck.")
+        elif action == DeckBuilderAction.SAVE_DECK_AS:
+            self._show_save_as_dialog()
+        elif action == DeckBuilderAction.LOAD_DECK:
+            self._show_load_deck_menu()
+        elif action == DeckBuilderAction.DELETE_DECK:
+            self._show_delete_deck_menu()
         
         if self.on_action:
             self.on_action(action)
+    
+    def _show_save_as_dialog(self):
+        """Show save as dialog (simplified for now)."""
+        print("Save As functionality - would show text input dialog")
+        # For now, create a timestamped deck name
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%H:%M")
+        new_name = f"Deck_{timestamp}"
+        
+        # Convert current cards
+        from ...core.deck_collection_manager import DeckCard
+        collection_cards = []
+        for card in self.deck_cards:
+            collection_cards.append(DeckCard(
+                name=card.data.name,
+                cost=card.data.cost,
+                attack=card.data.attack,
+                health=card.data.health,
+                rarity=card.data.rarity,
+                description=card.data.description
+            ))
+        
+        success = deck_collection_manager.save_deck(new_name, collection_cards, 
+                                                  f"Deck saved at {timestamp}")
+        if success:
+            self.current_deck_name = new_name
+            print(f"Deck saved as '{new_name}'")
+    
+    def _show_load_deck_menu(self):
+        """Show load deck menu (simplified for now)."""
+        saved_decks = deck_collection_manager.get_all_deck_names()
+        if not saved_decks:
+            print("No saved decks found")
+            return
+        
+        print("Available decks:")
+        for i, deck_name in enumerate(saved_decks):
+            deck_info = deck_collection_manager.get_deck_info(deck_name)
+            print(f"{i+1}. {deck_name} ({deck_info.total_cards} cards)")
+        
+        # For now, load the first deck (in full game, would show selection UI)
+        if saved_decks:
+            deck_to_load = saved_decks[0]
+            loaded_cards = deck_collection_manager.load_deck(deck_to_load)
+            if loaded_cards:
+                # Convert to Card objects for display
+                self.deck_cards.clear()
+                for deck_card in loaded_cards:
+                    card_data = CardData(
+                        deck_card.name, deck_card.cost, deck_card.attack,
+                        deck_card.health, deck_card.rarity, deck_card.description
+                    )
+                    display_card = Card(card_data)
+                    self.deck_cards.append(display_card)
+                
+                self.current_deck_name = deck_to_load
+                self._update_deck_positions()
+                print(f"Loaded deck: {deck_to_load}")
+    
+    def _show_delete_deck_menu(self):
+        """Show delete deck menu (simplified for now)."""
+        print("Delete deck functionality - would show confirmation dialog")
     
     def _handle_filter(self, filter_type: str):
         """Handle filter changes."""
@@ -604,10 +699,17 @@ class ProfessionalDeckBuilder:
         title_rect = title_surface.get_rect(center=(SCREEN_CENTER[0], 48))
         surface.blit(title_surface, title_rect)
         
+        # Current deck name
+        deck_font = pygame.font.Font(None, FontSizes.BODY)
+        deck_text = f"Editing: {self.current_deck_name}"
+        deck_surface = deck_font.render(deck_text, True, Colors.LAPIS_LAZULI)
+        deck_rect = deck_surface.get_rect(center=(SCREEN_CENTER[0], 75))
+        surface.blit(deck_surface, deck_rect)
+        
         # Subtitle
-        subtitle_font = pygame.font.Font(None, FontSizes.BODY)
+        subtitle_font = pygame.font.Font(None, FontSizes.CARD_TEXT)
         subtitle_surface = subtitle_font.render("Forge your divine arsenal", True, Colors.PAPYRUS)
-        subtitle_rect = subtitle_surface.get_rect(center=(SCREEN_CENTER[0], 80))
+        subtitle_rect = subtitle_surface.get_rect(center=(SCREEN_CENTER[0], 95))
         surface.blit(subtitle_surface, subtitle_rect)
     
     def _render_panel(self, surface: pygame.Surface, rect: pygame.Rect, title: str):
