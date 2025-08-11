@@ -243,8 +243,6 @@ class GameEngine:
             self._start_transition(TransitionType.DECK_BUILDING, GameState.MAIN_MENU, GameState.DECK_BUILDER)
         elif action == MenuAction.COLLECTION:
             self._start_transition(TransitionType.COLLECTING_CARDS, GameState.MAIN_MENU, GameState.COLLECTION)
-        elif action == MenuAction.ANIMATION_GENERATOR:
-            self._start_transition(TransitionType.SETTINGS_MENU, GameState.MAIN_MENU, GameState.ANIMATION_GENERATOR)
         elif action == MenuAction.SETTINGS:
             self._start_transition(TransitionType.SETTINGS_MENU, GameState.MAIN_MENU, GameState.SETTINGS)
         elif action == MenuAction.QUIT:

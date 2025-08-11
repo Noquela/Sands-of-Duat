@@ -25,7 +25,6 @@ class MenuAction(Enum):
     DECK_BUILDER = auto()
     COLLECTION = auto()
     SETTINGS = auto()
-    ANIMATION_GENERATOR = auto()
     QUIT = auto()
 
 class MainMenuScreen:
@@ -139,7 +138,6 @@ class MainMenuScreen:
             ("ENTER THE UNDERWORLD", MenuAction.START_GAME),
             ("BUILD YOUR DECK", MenuAction.DECK_BUILDER), 
             ("HALL OF GODS", MenuAction.COLLECTION),
-            ("ANIMATION FORGE", MenuAction.ANIMATION_GENERATOR),
             ("TEMPLE SETTINGS", MenuAction.SETTINGS),
             ("RETURN TO MORTAL REALM", MenuAction.QUIT)
         ]
