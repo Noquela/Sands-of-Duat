@@ -56,17 +56,30 @@ class Card:
         """Render the card surface."""
         self.surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         
-        # Card background
-        pygame.draw.rect(self.surface, Colors.PAPYRUS, (0, 0, self.width, self.height))
+        # Try to load high-resolution card frame first
+        from ...core.asset_loader import get_asset_loader
+        asset_loader = get_asset_loader()
         
-        # Rarity border
-        rarity_colors = {
-            'common': Colors.DESERT_SAND,
-            'rare': (138, 43, 226),  # Purple
-            'legendary': (255, 140, 0)  # Orange
-        }
-        border_color = rarity_colors.get(self.data.rarity, Colors.DESERT_SAND)
-        pygame.draw.rect(self.surface, border_color, (0, 0, self.width, self.height), 4)
+        # Get the appropriate frame for this card's rarity
+        frame_surface = asset_loader.get_card_frame_by_rarity(self.data.rarity)
+        
+        if frame_surface:
+            # Scale frame to card size
+            scaled_frame = pygame.transform.smoothscale(frame_surface, (self.width, self.height))
+            self.surface.blit(scaled_frame, (0, 0))
+        else:
+            # Fallback: Card background with rarity border
+            pygame.draw.rect(self.surface, Colors.PAPYRUS, (0, 0, self.width, self.height))
+            
+            # Enhanced rarity border
+            rarity_colors = {
+                'common': Colors.DESERT_SAND,
+                'rare': (138, 43, 226),  # Purple
+                'epic': (255, 140, 0),   # Orange
+                'legendary': (255, 215, 0)  # Gold
+            }
+            border_color = rarity_colors.get(self.data.rarity, Colors.DESERT_SAND)
+            pygame.draw.rect(self.surface, border_color, (0, 0, self.width, self.height), 4)
         
         # Cost crystal
         cost_rect = pygame.Rect(10, 10, 30, 30)
@@ -80,10 +93,6 @@ class Card:
         
         # Ultra-high resolution artwork area with asset loader integration
         art_rect = pygame.Rect(15, 50, 150, 100)
-        
-        # Try to load ultra-high resolution card artwork (1024x1536)
-        from ...core.asset_loader import get_asset_loader
-        asset_loader = get_asset_loader()
         
         # Try to load animated artwork first, then fallback to static
         card_artwork = asset_loader.load_card_art_by_name(self.data.name)

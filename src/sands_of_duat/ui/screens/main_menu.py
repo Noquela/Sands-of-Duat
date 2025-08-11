@@ -308,33 +308,24 @@ class MainMenuScreen:
         """Render version and sprint information."""
         font = pygame.font.Font(None, FontSizes.DEBUG)
         
-        # Version info
-        version_text = "SPRINT 3: Game State Flow & Transitions - IN PROGRESS"
-        version_surface = font.render(version_text, True, Colors.DESERT_SAND)
-        version_rect = version_surface.get_rect(center=(SCREEN_CENTER[0], SCREEN_HEIGHT - 50))
+        # Subtle version info
+        version_text = "Sands of Duat - Enhanced Edition"
+        version_surface = font.render(version_text, True, (*Colors.DESERT_SAND, 120))
+        version_rect = version_surface.get_rect(center=(SCREEN_CENTER[0], SCREEN_HEIGHT - 30))
+        version_surface.set_alpha(120)
         surface.blit(version_surface, version_rect)
-        
-        # Resolution info
-        if Layout.IS_ULTRAWIDE:
-            res_text = f"Optimized for Ultrawide {SCREEN_WIDTH}x{SCREEN_HEIGHT}"
-            res_surface = font.render(res_text, True, Colors.GOLD)
-            res_rect = res_surface.get_rect(center=(SCREEN_CENTER[0], SCREEN_HEIGHT - 30))
-            surface.blit(res_surface, res_rect)
     
     def _render_control_hints(self, surface: pygame.Surface):
-        """Render control hints for better UX."""
-        font = pygame.font.Font(None, FontSizes.CARD_TEXT)
+        """Render elegant control hints for better UX."""
+        font = pygame.font.Font(None, int(FontSizes.CARD_TEXT * 0.8))
         
-        hints = [
-            "↑↓ Navigate  ENTER Select  ESC Quit",
-            "F11 Fullscreen  F1 Debug Info"
-        ]
+        # Only show essential controls in an elegant way
+        hint_text = "Navigate with ↑↓ or Mouse • ENTER or Click to Select"
+        hint_surface = font.render(hint_text, True, (*Colors.DESERT_SAND, 100))
+        hint_surface.set_alpha(100)
         
-        y_offset = 20
-        for hint in hints:
-            hint_surface = font.render(hint, True, Colors.DESERT_SAND)
-            surface.blit(hint_surface, (20, y_offset))
-            y_offset += 25
+        hint_rect = hint_surface.get_rect(center=(SCREEN_CENTER[0], SCREEN_HEIGHT - 60))
+        surface.blit(hint_surface, hint_rect)
     
     def reset_animations(self):
         """Reset all animations for clean menu entry."""

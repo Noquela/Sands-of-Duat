@@ -129,13 +129,29 @@ class GeneratedAssetLoader:
             
             # Alternative names for compatibility
             'Ra - Sun God': 'ra_sun_god.png',
-            'Anubis - Judgment': 'anubis_judge_of_the_dead.png', 
+            'Ra': 'ra_sun_god.png',
+            'Anubis - Judgment': 'anubis_judge_of_the_dead.png',
+            'Anubis': 'anubis_judge_of_the_dead.png',
             'Isis - Protection': 'isis_divine_mother.png',
+            'Isis': 'isis_divine_mother.png',
+            'Horus': 'ra_sun_god.png',  # Use Ra as fallback
+            'Bastet': 'isis_divine_mother.png',  # Use Isis as fallback
+            'Thoth': 'anubis_judge_of_the_dead.png',  # Use Anubis as fallback
+            'Sobek': 'mummy_guardian.png',
+            'Ptah': 'egyptian_warrior.png',
             'Set - Chaos Storm': 'set_chaos_god.png',
             'Egyptian Warrior': 'egyptian_warrior.png',
             'Mummy Guardian': 'mummy_guardian.png',
             'Sphinx Guardian': 'sphinx_guardian.png',
             'Pharaoh\'s Guard': 'pharaoh\'s_guard.png',
+            
+            # Additional deck cards mapping
+            'TEMPLE GUARD': 'egyptian_warrior.png',
+            'DIVINE LIGHTNING': 'ra_sun_god.png',
+            'ANUBIS BLESSING': 'anubis_judge_of_the_dead.png',
+            'SHADOW SERVANT': 'mummy_guardian.png',
+            'UNDERWORLD CURSE': 'set_chaos_god.png',
+            'DEATH\'S EMBRACE': 'anubis_judge_of_the_dead.png',
             
             # Combat system alternative names
             'JUDGMENT SCALE': 'anubis_judge_of_the_dead.png',
@@ -213,8 +229,8 @@ class GeneratedAssetLoader:
             # Ultra High Resolution Card Frames (1024x1536)
             'frame_legendary': 'ui_card_frame_legendary.png',
             'frame_epic': 'ui_card_frame_epic.png',
-            'frame_rare': 'ui_card_frame_rare.png',
-            'frame_common': 'ui_card_frame_common.png',
+            'frame_rare': 'ui_card_frame_epic.png',     # Use epic as fallback for rare
+            'frame_common': 'ui_card_frame_epic.png',   # Use epic as fallback for common
             
             # High Resolution Icons (512x512)
             'health_icon': 'ui_ankh_health_icon.png',
@@ -222,8 +238,8 @@ class GeneratedAssetLoader:
             'time_icon': 'ui_hourglass_icon.png',
             'victory_icon': 'ui_pyramid_victory_icon.png',
             'mana_icon': 'ui_scarab_energy_icon.png',
-            'attack_icon': 'ui_khopesh_attack_icon.png',
-            'defense_icon': 'ui_shield_defense_icon.png',
+            'attack_icon': 'ui_scarab_energy_icon.png',  # Fallback until khopesh icon available
+            'defense_icon': 'ui_ankh_health_icon.png',   # Fallback until shield icon available
             
             # Enhanced Buttons
             'play_button': 'ui_play_button.png',
