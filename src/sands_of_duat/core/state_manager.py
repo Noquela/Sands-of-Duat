@@ -15,10 +15,12 @@ class GameState(Enum):
     """All possible game states."""
     SPLASH = auto()
     MAIN_MENU = auto()
+    PROGRESSION_MAP = auto()
     DECK_BUILDER = auto()
     COMBAT = auto()
     SETTINGS = auto()
     COLLECTION = auto()
+    EVENT = auto()
     ANIMATION_GENERATOR = auto()
     VICTORY = auto()
     DEFEAT = auto()

@@ -41,6 +41,12 @@ class AnimatedButton:
         self.text = text
         self.action = action
         
+        # Convenience properties for backward compatibility
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        
         # Visual state
         self.state = ButtonState.NORMAL
         self.hover_progress = 0.0
@@ -152,8 +158,8 @@ class AnimatedButton:
                 # self.click_sound.play()
                 pass
             
-            if self.action:
-                self.action()
+            # Action is handled by parent, not called directly
+            # This prevents crashes when action is not callable
             
             return True
         return False

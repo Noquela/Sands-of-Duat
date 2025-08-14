@@ -23,38 +23,41 @@ NATIVE_WIDTH = info.current_w
 NATIVE_HEIGHT = info.current_h
 NATIVE_ASPECT = NATIVE_WIDTH / NATIVE_HEIGHT
 
-# Choose appropriate resolution based on screen
-if NATIVE_ASPECT >= 2.3:  # Ultrawide 21:9 or wider
-    SCREEN_WIDTH = min(ULTRAWIDE_WIDTH, NATIVE_WIDTH)
-    SCREEN_HEIGHT = min(ULTRAWIDE_HEIGHT, NATIVE_HEIGHT)
-elif NATIVE_WIDTH >= 2560:  # High resolution displays
-    SCREEN_WIDTH = min(2560, NATIVE_WIDTH)
-    SCREEN_HEIGHT = min(1440, NATIVE_HEIGHT)
-else:  # Standard displays
-    SCREEN_WIDTH = min(DEFAULT_WIDTH, NATIVE_WIDTH)
-    SCREEN_HEIGHT = min(DEFAULT_HEIGHT, NATIVE_HEIGHT)
+# Force 3440x1440 resolution as requested by user
+SCREEN_WIDTH = 3440
+SCREEN_HEIGHT = 1440
 
 SCREEN_SIZE = (SCREEN_WIDTH, SCREEN_HEIGHT)
 SCREEN_CENTER = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
 
-# EGYPTIAN COLOR PALETTE
+# EGYPTIAN COLOR PALETTE - HADES-LEVEL DRAMATIC
 class Colors:
-    """Egyptian-themed color constants with Hades-level polish."""
+    """Egyptian-themed color constants with Hades-level dramatic polish."""
     
-    # Primary Egyptian Colors
-    GOLD = (255, 215, 0)
+    # Primary Egyptian Colors - Enhanced Drama
+    GOLD = (255, 180, 0)        # Burned gold - more dramatic
     GOLD_DARK = (184, 134, 11)
-    LAPIS_LAZULI = (26, 81, 171)
+    GOLD_BRIGHT = (255, 220, 50) # Bright highlight gold
+    LAPIS_LAZULI = (65, 150, 255) # Electric blue - more vibrant
+    LAPIS_DARK = (26, 81, 171)   # Original for depth
     PAPYRUS = (245, 245, 220)
     DESERT_SAND = (238, 203, 173)
-    DARK_BLUE = (25, 25, 112)
+    DARK_BLUE = (25, 15, 35)     # Deep purple-blue for drama
     
-    # UI Colors
+    # UI Colors - Hades Enhanced
     BLACK = (0, 0, 0)
     WHITE = (255, 255, 255)
-    RED = (220, 20, 20)
-    GREEN = (20, 220, 20)
+    RED = (255, 80, 80)         # Vibrant red for life/damage
+    GREEN = (80, 255, 120)      # Vibrant green for healing
+    PURPLE = (180, 80, 255)     # Electric purple for magic
+    PURPLE_DARK = (138, 43, 226) # Original amethyst for depth
+    GRAY = (128, 128, 128)
     TRANSPARENT = (0, 0, 0, 0)
+    
+    # Hades-Style Dramatic Colors
+    BACKGROUND_PRIMARY = (25, 15, 35)    # Deep purple background
+    BACKGROUND_SECONDARY = (35, 25, 45)  # Lighter purple for panels
+    ACCENT_GLOW = (255, 200, 100)        # Warm glow for highlights
     
     # Interactive Colors
     HOVER_GLOW = (255, 255, 255, 100)
@@ -72,6 +75,11 @@ class Colors:
     CARD_RARE = (255, 215, 0)
     CARD_EPIC = (138, 43, 226)
     CARD_LEGENDARY = (255, 140, 0)
+    
+    # Additional Colors for Map and UI
+    DARK_RED = (139, 0, 0)
+    LIGHT_BLUE = (173, 216, 230)
+    ORANGE = (255, 165, 0)
 
 # TIMING CONSTANTS (60 FPS Targeting)
 class Timing:

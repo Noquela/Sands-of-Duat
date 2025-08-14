@@ -26,8 +26,10 @@ class SmartAssetLoader:
     def __init__(self):
         self.logger = logging.getLogger("smart_asset_loader")
         
-        # Asset directories
+        # Asset directories - Priority order for Hades-quality assets
+        self.approved_hades_dir = Path("assets/approved_hades_quality")
         self.generated_4k_dir = Path("assets/generated_4k")
+        self.game_ready_dir = Path("assets/game_ready")
         self.fallback_dir = Path("assets/fallback")  # Fallback placeholder assets
         
         # Cache for loaded assets
@@ -37,17 +39,40 @@ class SmartAssetLoader:
         # Determine optimal quality based on screen resolution
         self.target_quality = self._determine_target_quality()
         
-        # Asset mappings
+        # Asset mappings - Updated for Hades-quality assets + AI backgrounds
         self.asset_mappings = {
-            # Backgrounds
-            'menu_background': 'background/menu_background.png',
-            'combat_background': 'background/combat_background.png', 
-            'deck_builder_background': 'background/deck_builder_background.png',
-            'collection_background': 'background/collection_background.png',
+            # Backgrounds (4K Hades-quality + AI generated)
+            'menu_background': 'backgrounds/bg_main_menu_4k.png',
+            'bg_main_menu_ai': 'backgrounds/bg_main_menu_4k.png',  # AI alternative
+            'combat_background': 'backgrounds/bg_combat_4k.png', 
+            'bg_combat_ai': 'backgrounds/bg_combat_4k.png',  # AI alternative
+            'deck_builder_background': 'backgrounds/bg_deck_builder_4k.png',
+            'collection_background': 'backgrounds/bg_hall_of_gods_4k.png',
+            'settings_background': 'backgrounds/bg_settings_4k.png',
             
-            # Card frames
+            # Card frames (priority: Hades-quality → generated_4k)
+            'ui_card_frame_common': 'card_frame/common_frame.png',
+            'ui_card_frame_rare': 'card_frame/rare_frame.png', 
+            'ui_card_frame_epic': 'card_frame/epic_frame.png',
+            'ui_card_frame_legendary': 'card_frame/legendary_frame.png',
             'card_frame_common': 'card_frame/common_frame.png',
             'card_frame_rare': 'card_frame/rare_frame.png',
+            'card_frame_epic': 'card_frame/epic_frame.png',
+            'card_frame_legendary': 'card_frame/legendary_frame.png',
+            
+            # Hades-quality cards (from approved_hades_quality/cards)
+            'anubis_judge_of_the_dead': 'cards/anubis_judge_of_the_dead.png',
+            'egyptian_warrior': 'cards/egyptian_warrior.png',
+            'isis_divine_mother': 'cards/isis_divine_mother.png',
+            'mummy_guardian': 'cards/mummy_guardian.png',
+            'pharaohs_guard': 'cards/pharaoh\'s_guard.png',
+            'ra_sun_god': 'cards/ra_sun_god.png',
+            'set_chaos_god': 'cards/set_chaos_god.png',
+            'sphinx_guardian': 'cards/sphinx_guardian.png',
+            
+            # Characters (from approved_hades_quality/characters)
+            'player_hero': 'characters/char_player_hero_2k.png',
+            'anubis_boss': 'characters/char_anubis_boss_2k.png',
             'card_frame_epic': 'card_frame/epic_frame.png',
             'card_frame_legendary': 'card_frame/legendary_frame.png',
             
@@ -59,11 +84,21 @@ class SmartAssetLoader:
             'portrait_thoth': 'character_portrait/thoth_portrait.png',
             'portrait_horus': 'character_portrait/horus_portrait.png',
             
-            # UI elements
-            'icon_health': 'ui_element/health_icon.png',
-            'icon_mana': 'ui_element/mana_icon.png',
-            'icon_attack': 'ui_element/attack_icon.png',
-            'icon_shield': 'ui_element/shield_icon.png'
+            # UI elements (Egyptian-themed icons)
+            'icon_health': 'ui_elements/ui_health_icon.png',
+            'icon_mana': 'ui_elements/ui_mana_icon.png',
+            'icon_attack': 'ui_elements/ui_attack_icon.png',
+            'icon_shield': 'ui_elements/ui_shield_icon.png',
+            'icon_energy': 'ui_elements/ui_energy_icon.png',
+            'icon_action_points': 'ui_elements/ui_action_points_icon.png',
+            
+            # Alternative UI element names
+            'ui_health_icon': 'ui_elements/ui_health_icon.png',
+            'ui_mana_icon': 'ui_elements/ui_mana_icon.png',
+            'ui_attack_icon': 'ui_elements/ui_attack_icon.png',
+            'ui_shield_icon': 'ui_elements/ui_shield_icon.png',
+            'ui_energy_icon': 'ui_elements/ui_energy_icon.png',
+            'ui_action_points_icon': 'ui_elements/ui_action_points_icon.png'
         }
         
         self.logger.info(f"Smart asset loader initialized - Target quality: {self.target_quality.value}")
@@ -98,8 +133,12 @@ class SmartAssetLoader:
         if cache_key in self._surface_cache:
             return self._surface_cache[cache_key]
         
-        # Try to load generated 4K asset first
-        surface = self._load_generated_asset(asset_name)
+        # Try to load assets in priority order: Hades-quality -> Game-ready -> Generated 4K
+        surface = self._load_hades_quality_asset(asset_name)
+        if not surface:
+            surface = self._load_game_ready_asset(asset_name)
+        if not surface:
+            surface = self._load_generated_asset(asset_name)
         
         # Fallback to placeholder if needed
         if not surface:
@@ -116,9 +155,63 @@ class SmartAssetLoader:
         
         return surface
     
-    def _load_generated_asset(self, asset_name: str) -> Optional[pygame.Surface]:
-        """Load AI-generated 4K asset."""
+    def _load_hades_quality_asset(self, asset_name: str) -> Optional[pygame.Surface]:
+        """Load Hades-quality approved asset (highest priority)."""
         if asset_name not in self.asset_mappings:
+            return None
+        
+        asset_path = self.approved_hades_dir / self.asset_mappings[asset_name]
+        
+        if asset_path.exists():
+            try:
+                surface = pygame.image.load(str(asset_path))
+                self.logger.info(f"✨ Loaded Hades-quality asset: {asset_name}")
+                return surface
+            except Exception as e:
+                self.logger.warning(f"Failed to load Hades-quality asset {asset_name}: {e}")
+        
+        return None
+    
+    def _load_game_ready_asset(self, asset_name: str) -> Optional[pygame.Surface]:
+        """Load game-ready asset (second priority)."""
+        if asset_name not in self.asset_mappings:
+            return None
+        
+        asset_path = self.game_ready_dir / self.asset_mappings[asset_name]
+        
+        if asset_path.exists():
+            try:
+                surface = pygame.image.load(str(asset_path))
+                self.logger.debug(f"Loaded game-ready asset: {asset_name}")
+                return surface
+            except Exception as e:
+                self.logger.warning(f"Failed to load game-ready asset {asset_name}: {e}")
+        
+        return None
+    
+    def _load_generated_asset(self, asset_name: str) -> Optional[pygame.Surface]:
+        """Load AI-generated 4K asset with fallback patterns."""
+        if asset_name not in self.asset_mappings:
+            # Try common patterns for generated assets
+            fallback_patterns = {
+                'bg_main_menu_ai': 'background/menu_background.png',
+                'bg_combat_ai': 'background/combat_background.png',
+                'menu_background': 'background/menu_background.png',
+                'combat_background': 'background/combat_background.png',
+                'deck_builder_background': 'background/deck_builder_background.png',
+                'collection_background': 'background/collection_background.png',
+                'settings_background': 'background/settings_background.png'
+            }
+            
+            if asset_name in fallback_patterns:
+                asset_path = self.generated_4k_dir / fallback_patterns[asset_name]
+                if asset_path.exists():
+                    try:
+                        surface = pygame.image.load(str(asset_path))
+                        self.logger.info(f"🎨 Loaded AI-generated asset: {asset_name}")
+                        return surface
+                    except Exception as e:
+                        self.logger.warning(f"Failed to load AI asset {asset_name}: {e}")
             return None
         
         asset_path = self.generated_4k_dir / self.asset_mappings[asset_name]
@@ -126,7 +219,7 @@ class SmartAssetLoader:
         if asset_path.exists():
             try:
                 surface = pygame.image.load(str(asset_path))
-                self.logger.debug(f"Loaded 4K asset: {asset_name}")
+                self.logger.info(f"🎨 Loaded AI-generated asset: {asset_name}")
                 return surface
             except Exception as e:
                 self.logger.warning(f"Failed to load 4K asset {asset_name}: {e}")
@@ -190,8 +283,9 @@ class SmartAssetLoader:
         """Create a simple card frame placeholder."""
         surface = pygame.Surface((width, height), pygame.SRCALPHA)
         
-        # Fill with transparent background
-        surface.fill((0, 0, 0, 0))
+        # Fill with transparent background - Use set_alpha to avoid invalid color argument
+        surface.fill((0, 0, 0))
+        surface.set_alpha(0)
         
         # Draw border
         border_width = 8

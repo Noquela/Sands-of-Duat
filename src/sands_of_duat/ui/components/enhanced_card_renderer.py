@@ -216,7 +216,13 @@ class EnhancedCardRenderer:
         
         # Name background for readability
         name_bg = pygame.Surface((name_surface.get_width() + 10, name_surface.get_height() + 4), pygame.SRCALPHA)
-        name_bg.fill((0, 0, 0, 150) if text_color == Colors.WHITE else (255, 255, 255, 150))
+        # Use RGB color and set alpha separately to avoid invalid color argument
+        if text_color == Colors.WHITE:
+            name_bg.fill((0, 0, 0))
+            name_bg.set_alpha(150)
+        else:
+            name_bg.fill((255, 255, 255))
+            name_bg.set_alpha(150)
         surface.blit(name_bg, (name_rect.x - 5, name_rect.y - 2))
         surface.blit(name_surface, name_rect)
         
@@ -291,7 +297,8 @@ class EnhancedCardRenderer:
             # Text background for readability
             if color == Colors.WHITE:
                 bg_surface = pygame.Surface((line_surface.get_width() + 8, line_surface.get_height() + 2), pygame.SRCALPHA)
-                bg_surface.fill((0, 0, 0, 120))
+                bg_surface.fill((0, 0, 0))
+                bg_surface.set_alpha(120)
                 surface.blit(bg_surface, (line_rect.x - 4, line_rect.y - 1))
             
             surface.blit(line_surface, line_rect)

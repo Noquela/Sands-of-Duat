@@ -14,6 +14,7 @@ from ...core.constants import (
     Colors, Layout, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER,
     FontSizes, Timing
 )
+from ..responsive.scaling_manager import scaling_manager
 from ...core.deck_manager import deck_manager
 from ...core.deck_collection_manager import deck_collection_manager
 from ...audio.simple_audio_manager import audio_manager, SoundEffect, AudioTrack
@@ -707,32 +708,33 @@ class ProfessionalDeckBuilder:
             surface.blit(particle_surface, (int(particle['x']), int(particle['y'])))
     
     def _render_title(self, surface: pygame.Surface):
-        """Render the main title."""
-        font = pygame.font.Font(None, FontSizes.TITLE_LARGE)
+        """SPRINT 1: Render the main title with enhanced typography hierarchy."""
+        # SPRINT 1: Use scaling manager for enhanced font hierarchy
+        title_font = scaling_manager.get_font('title_large')
         title_text = "SACRED DECK BUILDER"
         
         # Glow effect
-        glow_surface = font.render(title_text, True, Colors.DESERT_SAND)
-        glow_rect = glow_surface.get_rect(center=(SCREEN_CENTER[0], 50))
+        glow_surface = title_font.render(title_text, True, Colors.DESERT_SAND)
+        glow_rect = glow_surface.get_rect(center=(SCREEN_CENTER[0], scaling_manager.scale_value(50)))
         glow_surface.set_alpha(150)
         surface.blit(glow_surface, glow_rect)
         
         # Main title
-        title_surface = font.render(title_text, True, Colors.GOLD)
-        title_rect = title_surface.get_rect(center=(SCREEN_CENTER[0], 48))
+        title_surface = title_font.render(title_text, True, Colors.GOLD)
+        title_rect = title_surface.get_rect(center=(SCREEN_CENTER[0], scaling_manager.scale_value(48)))
         surface.blit(title_surface, title_rect)
         
         # Current deck name
-        deck_font = pygame.font.Font(None, FontSizes.BODY)
+        deck_font = scaling_manager.get_font('body')
         deck_text = f"Editing: {self.current_deck_name}"
         deck_surface = deck_font.render(deck_text, True, Colors.LAPIS_LAZULI)
-        deck_rect = deck_surface.get_rect(center=(SCREEN_CENTER[0], 75))
+        deck_rect = deck_surface.get_rect(center=(SCREEN_CENTER[0], scaling_manager.scale_value(75)))
         surface.blit(deck_surface, deck_rect)
         
         # Subtitle
-        subtitle_font = pygame.font.Font(None, FontSizes.CARD_TEXT)
+        subtitle_font = scaling_manager.get_font('card_text')
         subtitle_surface = subtitle_font.render("Forge your divine arsenal", True, Colors.PAPYRUS)
-        subtitle_rect = subtitle_surface.get_rect(center=(SCREEN_CENTER[0], 95))
+        subtitle_rect = subtitle_surface.get_rect(center=(SCREEN_CENTER[0], scaling_manager.scale_value(95)))
         surface.blit(subtitle_surface, subtitle_rect)
     
     def _render_panel(self, surface: pygame.Surface, rect: pygame.Rect, title: str):

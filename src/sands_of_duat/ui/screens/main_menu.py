@@ -27,6 +27,7 @@ class MenuAction(Enum):
     DECK_BUILDER = auto()
     COLLECTION = auto()
     SETTINGS = auto()
+    ANIMATION_FORGE = auto()
     QUIT = auto()
 
 class MainMenuScreen:

@@ -162,8 +162,9 @@ class ProfessionalTransitions:
             self.current_transition.easing_type
         )
         
-        # Clear transition surface
-        self.transition_surface.fill((0, 0, 0, 0))
+        # Clear transition surface - Use set_alpha to avoid invalid color argument
+        self.transition_surface.fill((0, 0, 0))
+        self.transition_surface.set_alpha(0)
         
         # Render based on transition type
         if self.current_transition.transition_type == TransitionType.FADE:

@@ -15,7 +15,8 @@ from ...core.constants import (
     Colors, Layout, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CENTER,
     FontSizes, Timing
 )
-from ..responsive import scaling_manager, ultrawide_layout
+from ..responsive.scaling_manager import scaling_manager
+from ..responsive import ultrawide_layout
 from ..responsive.combat_hud import CombatHUD
 from ..responsive.responsive_components import ResponsiveCard
 from ...core.asset_loader import get_asset_loader
@@ -26,8 +27,12 @@ from ..components.ultrawide_decorations import ultrawide_decorations
 from ..components.enhanced_ui_components import (
     EgyptianPanel, EnhancedStatusBar, IconType, CardPreviewPanel, ResponsiveButton
 )
+from ..components.enhanced_card_hover import EnhancedCardHover, HoverState
+from ..components.energy_feedback_system import EnergyFeedbackSystem, EnergyState
 from ..components.responsive_typography import responsive_typography, TextStyle
 from ..components.smooth_transitions import smooth_transitions, TransitionType, EasingType
+from ..animations.card_animator import card_animator, AnimationType
+from ..animations.combat_effects import combat_effects, EffectType, ParticleType
 
 class CombatAction(Enum):
     """Combat actions."""
@@ -64,7 +69,7 @@ class Combatant:
     portrait: Optional[pygame.Surface] = None
 
 class CombatCard3D:
-    """Professional 3D-style combat card with animations."""
+    """Professional 3D-style combat card with Hades-level hover effects."""
     
     def __init__(self, data: CombatCard, x: int = 0, y: int = 0):
         self.data = data
@@ -74,7 +79,21 @@ class CombatCard3D:
         self.width = Layout.CARD_WIDTH
         self.height = Layout.CARD_HEIGHT
         
-        # Animation state
+        # Base rectangle for positioning
+        self.base_rect = pygame.Rect(x, y, self.width, self.height)
+        
+        # Enhanced hover system
+        card_data = {
+            'name': data.name,
+            'cost': data.cost,
+            'attack': data.attack,
+            'health': data.health,
+            'description': data.description,
+            'rarity': data.rarity
+        }
+        self.hover_system = EnhancedCardHover(self.base_rect, card_data)
+        
+        # Legacy animation state (for backward compatibility)
         self.hover_offset = 0
         self.is_hovered = False
         self.is_dragging = False
@@ -121,12 +140,17 @@ class CombatCard3D:
                           int(self.y + self.hover_offset), 
                           self.width, self.height)
     
-    def update(self, dt: float, mouse_pos: Tuple[int, int]):
-        """Update card animations."""
-        # Hover detection
-        self.is_hovered = self.get_rect().collidepoint(mouse_pos)
+    def update(self, dt: float, mouse_pos: Tuple[int, int], is_selected: bool = False):
+        """Update card animations with Hades-level hover effects."""
+        # Update enhanced hover system
+        self.is_hovered = self.hover_system.update(dt, mouse_pos, is_selected)
         
-        # Hover animation
+        # Update position from hover system
+        current_rect = self.hover_system.get_render_rect()
+        self.x = current_rect.x
+        self.y = current_rect.y
+        
+        # Legacy animation compatibility
         target_offset = -15 if self.is_hovered else 0
         self.hover_offset += (target_offset - self.hover_offset) * dt * 8
         
@@ -216,8 +240,13 @@ class CombatCard3D:
         })
     
     def render(self, surface: pygame.Surface):
-        """Render the card with all effects and smooth transitions."""
-        base_pos = (int(self.x + self.shake_offset), int(self.y + self.hover_offset))
+        """Render the card with Hades-level effects and transitions."""
+        # Render enhanced glow effect first (behind card)
+        self.hover_system.render_glow(surface)
+        
+        # Get current render position from hover system
+        current_rect = self.hover_system.get_render_rect()
+        base_pos = (int(current_rect.x + self.shake_offset), int(current_rect.y))
         
         # Apply smooth transitions to card rendering
         card_id = f"card_{id(self)}"
@@ -225,22 +254,11 @@ class CombatCard3D:
             surface, self.surface, base_pos, card_id
         )
         
-        # Glow effect (positioned relative to card_rect)
-        if self.glow_intensity > 0:
-            glow_surface = pygame.Surface((self.width + 20, self.height + 20), pygame.SRCALPHA)
-            glow_alpha = int(100 * self.glow_intensity)
-            glow_color = (*Colors.GOLD, glow_alpha)
-            
-            for i in range(5):
-                glow_rect = pygame.Rect(i, i, self.width + 20 - i*2, self.height + 20 - i*2)
-                pygame.draw.rect(glow_surface, glow_color, glow_rect, 1)
-            
-            surface.blit(glow_surface, (card_rect.x - 10, card_rect.y - 10))
-        
         # Particle effects
         for particle in self.particle_effects:
             particle_surface = pygame.Surface((4, 4), pygame.SRCALPHA)
-            particle_surface.fill((*particle['color'], int(particle['alpha'])))
+            particle_surface.fill(particle['color'][:3])
+            particle_surface.set_alpha(int(particle['alpha']))
             surface.blit(particle_surface, (int(particle['x']), int(particle['y'])))
         
         # Damage numbers with enhanced typography
@@ -253,6 +271,10 @@ class CombatCard3D:
             )
             damage_surface.set_alpha(damage['alpha'])
             surface.blit(damage_surface, (int(damage['x']) - 50, int(damage['y'])))
+            
+    def render_tooltip(self, surface: pygame.Surface):
+        """Render tooltip if hovering (should be called after all cards)."""
+        self.hover_system.render_tooltip(surface)
 
 class ProfessionalCombat:
     """
@@ -300,6 +322,17 @@ class ProfessionalCombat:
             self._handle_surrender
         )
         
+        # Enhanced energy feedback system
+        energy_x = 50
+        energy_y = SCREEN_HEIGHT - 100
+        energy_width = 200
+        energy_height = 30
+        self.energy_system = EnergyFeedbackSystem(
+            energy_x, energy_y, energy_width, energy_height,
+            max_energy=self.player.max_mana, 
+            initial_energy=self.player.mana
+        )
+        
         # Card system - use saved deck if available
         if deck_manager.has_saved_deck():
             self.player_hand = self._create_hand_from_saved_deck()
@@ -333,6 +366,9 @@ class ProfessionalCombat:
             self.player_battle_area = pygame.Rect(200, SCREEN_HEIGHT - 400, SCREEN_WIDTH - 400, 150)
             self.enemy_battle_area = pygame.Rect(200, 250, SCREEN_WIDTH - 400, 150)
         
+        # Initialize card preview panel (fix bug)
+        self.card_preview_panel = None
+        
         # Initialize positions
         self._update_card_positions()
         self._spawn_battlefield_particles()
@@ -363,10 +399,11 @@ class ProfessionalCombat:
             # Reduced opacity to showcase the high-quality background art
             for y in range(SCREEN_HEIGHT):
                 ratio = y / SCREEN_HEIGHT  
-                alpha = int(15 + ratio * 20)  # Much lighter overlay
                 red_tint = int(5 + ratio * 3)   # Subtle warmth
                 blue_tint = int(8 + ratio * 7)  # Subtle depth
-                overlay.fill((red_tint, 3, blue_tint, alpha), (0, y, SCREEN_WIDTH, 1))
+                # Create color for this line
+                line_color = (red_tint, 3, blue_tint)
+                overlay.fill(line_color, (0, y, SCREEN_WIDTH, 1))
             
             background.blit(overlay, (0, 0))
             return background
@@ -385,9 +422,9 @@ class ProfessionalCombat:
             for x in range(0, SCREEN_WIDTH, 120):
                 for y in range(0, SCREEN_HEIGHT, 120):
                     # Temple column patterns
-                    pygame.draw.rect(pattern_surface, (*Colors.GOLD, 25), (x, y, 25, 8))
-                    pygame.draw.rect(pattern_surface, (*Colors.GOLD, 25), (x, y + 15, 8, 30))
-                    pygame.draw.circle(pattern_surface, (*Colors.GOLD, 20), (x + 12, y + 50), 6, 1)
+                    pygame.draw.rect(pattern_surface, (Colors.GOLD[0], Colors.GOLD[1], Colors.GOLD[2], 25), (x, y, 25, 8))
+                    pygame.draw.rect(pattern_surface, (Colors.GOLD[0], Colors.GOLD[1], Colors.GOLD[2], 25), (x, y + 15, 8, 30))
+                    pygame.draw.circle(pattern_surface, (Colors.GOLD[0], Colors.GOLD[1], Colors.GOLD[2], 20), (x + 12, y + 50), 6, 1)
             
             background.blit(pattern_surface, (0, 0))
             return background
@@ -514,15 +551,15 @@ class ProfessionalCombat:
             ("BACK", CombatAction.BACK_TO_MENU)
         ]
         
-        button_width = 100
-        button_height = 35
-        spacing = 10
+        # SPRINT 1: Use scaling manager for responsive button sizing
+        button_width, button_height = scaling_manager.get_component_size('button_default')
+        spacing = scaling_manager.scale_value(15, 'spacing')
         start_x = SCREEN_WIDTH - (len(button_configs) * (button_width + spacing))
         
         for i, (text, action) in enumerate(button_configs):
             x = start_x + i * (button_width + spacing)
             button = AnimatedButton(
-                x, 20, button_width, button_height, text, FontSizes.CARD_TEXT,
+                x, 20, button_width, button_height, text, scaling_manager.get_font('button').get_height(),
                 action=lambda a=action: self._handle_action(a)
             )
             buttons.append(button)
@@ -624,7 +661,12 @@ class ProfessionalCombat:
             self.phase = CombatPhase.PLAYER_TURN
             self.turn_count += 1
             # Restore mana
+            old_mana = self.player.mana
             self.player.mana = min(self.player.mana + 1, self.player.max_mana)
+            
+            # Update energy system if mana increased
+            if self.player.mana > old_mana:
+                self.energy_system.gain_energy(self.player.mana - old_mana)
     
     def _enemy_turn(self):
         """Handle enemy turn logic with simple AI."""
@@ -648,14 +690,36 @@ class ProfessionalCombat:
         # End enemy turn and start player turn
         self.phase = CombatPhase.PLAYER_TURN
         self.turn_count += 1
+        old_mana = self.player.mana
         self.player.mana = min(self.player.mana + 1, self.player.max_mana)
+        
+        # Update energy system if mana increased
+        if self.player.mana > old_mana:
+            self.energy_system.gain_energy(self.player.mana - old_mana)
     
     def _play_card(self, card: CombatCard3D):
-        """Play a card from hand to battlefield."""
+        """Play a card from hand to battlefield with enhanced animations."""
         if card in self.player_hand and self.player.mana >= card.data.cost:
             self.player_hand.remove(card)
             self.player_battlefield.append(card)
             self.player.mana -= card.data.cost
+            
+            # Update energy system
+            self.energy_system.spend_energy(card.data.cost)
+            
+            # Start play animation
+            card_id = f"player_{id(card)}"
+            card_animator.start_animation(card_id, AnimationType.PLAY)
+            
+            # Add play effects based on card type
+            card_pos = (card.x, card.y)
+            if card.data.card_type == "spell":
+                combat_effects.trigger_effect(EffectType.ENERGY_WAVE, card_pos[0], card_pos[1])
+                combat_effects.trigger_effect(EffectType.PARTICLE_BURST, card_pos[0], card_pos[1],
+                                            particle_type=ParticleType.ENERGY, count=20)
+            else:
+                combat_effects.trigger_effect(EffectType.PARTICLE_BURST, card_pos[0], card_pos[1],
+                                            particle_type=ParticleType.DIVINE, count=15)
             
             card.trigger_play_animation()
             self._update_card_positions()
@@ -705,40 +769,81 @@ class ProfessionalCombat:
         self._check_win_conditions()
     
     def _resolve_spells(self):
-        """Resolve spell effects."""
+        """Resolve spell effects with Hades-level visual effects."""
         # Player spells targeting enemy
         for card in self.player_battlefield[:]:
             if card.data.card_type == "spell":
-                self.enemy.health -= card.data.attack
-                card.show_damage(card.data.attack)
+                damage = card.data.attack
+                is_critical = damage >= 5
+                
+                # Apply damage
+                self.enemy.health -= damage
+                card.show_damage(damage)
                 self.player_battlefield.remove(card)
+                
+                # Get enemy center position for effects
+                enemy_x = SCREEN_WIDTH - 200
+                enemy_y = SCREEN_HEIGHT // 2
+                
+                # Trigger combat effects based on spell type
+                if "LIGHTNING" in card.data.name.upper():
+                    combat_effects.trigger_effect(EffectType.LIGHTNING_STRIKE, 
+                                                enemy_x - 300, enemy_y - 100, 
+                                                end_x=enemy_x, end_y=enemy_y)
+                elif "FIRE" in card.data.name.upper():
+                    combat_effects.trigger_effect(EffectType.FIRE_EXPLOSION, enemy_x, enemy_y)
+                elif "DIVINE" in card.data.name.upper():
+                    combat_effects.trigger_effect(EffectType.DIVINE_LIGHT, enemy_x, enemy_y)
+                else:
+                    combat_effects.trigger_effect(EffectType.ENERGY_WAVE, enemy_x, enemy_y)
+                
+                # Add damage number
+                combat_effects.add_damage_number(enemy_x, enemy_y - 50, damage, is_critical)
                 
                 # Play damage sound effect
                 audio_manager.play_sound(SoundEffect.DAMAGE_DEALT, 0.8)
                 
-                # Add spell effect
+                # Add spell effect for legacy system
                 self.combat_effects.append({
                     'type': 'spell_cast',
                     'time': 2.0,
-                    'damage': card.data.attack,
+                    'damage': damage,
                     'target': 'enemy'
                 })
         
         # Enemy spells targeting player
         for card in self.enemy_battlefield[:]:
             if card.data.card_type == "spell":
-                self.player.health -= card.data.attack
-                card.show_damage(card.data.attack)
+                damage = card.data.attack
+                is_critical = damage >= 5
+                
+                # Apply damage
+                self.player.health -= damage
+                card.show_damage(damage)
                 self.enemy_battlefield.remove(card)
+                
+                # Get player center position for effects
+                player_x = 200
+                player_y = SCREEN_HEIGHT // 2
+                
+                # Trigger combat effects
+                if "CURSE" in card.data.name.upper():
+                    combat_effects.trigger_effect(EffectType.PARTICLE_BURST, player_x, player_y,
+                                                particle_type=ParticleType.POISON, count=20)
+                else:
+                    combat_effects.trigger_effect(EffectType.ENERGY_WAVE, player_x, player_y)
+                
+                # Add damage number
+                combat_effects.add_damage_number(player_x, player_y - 50, damage, is_critical)
                 
                 # Play damage sound effect
                 audio_manager.play_sound(SoundEffect.DAMAGE_DEALT, 0.8)
                 
-                # Add spell effect
+                # Add spell effect for legacy system
                 self.combat_effects.append({
                     'type': 'spell_cast',
                     'time': 2.0,
-                    'damage': card.data.attack,
+                    'damage': damage,
                     'target': 'player'
                 })
     
@@ -760,16 +865,47 @@ class ProfessionalCombat:
                 player_card.data.health -= enemy_damage
                 enemy_card.data.health -= player_damage
                 
-                # Show damage numbers
+                # Get positions for effects
+                player_card_pos = (400, SCREEN_HEIGHT - 200)  # Approximate card position
+                enemy_card_pos = (SCREEN_WIDTH - 400, 200)
+                
+                # Show damage numbers and effects
                 if enemy_damage > 0:
                     player_card.show_damage(enemy_damage)
+                    # Add blood particles for damage
+                    combat_effects.trigger_effect(EffectType.PARTICLE_BURST, 
+                                                player_card_pos[0], player_card_pos[1],
+                                                particle_type=ParticleType.BLOOD, count=8)
+                    combat_effects.add_damage_number(player_card_pos[0], player_card_pos[1] - 30, 
+                                                   enemy_damage, enemy_damage >= 4)
+                
                 if player_damage > 0:
                     enemy_card.show_damage(player_damage)
+                    # Add blood particles for damage
+                    combat_effects.trigger_effect(EffectType.PARTICLE_BURST,
+                                                enemy_card_pos[0], enemy_card_pos[1], 
+                                                particle_type=ParticleType.BLOOD, count=8)
+                    combat_effects.add_damage_number(enemy_card_pos[0], enemy_card_pos[1] - 30,
+                                                   player_damage, player_damage >= 4)
                 
-                # Remove dead creatures
+                # Screen shake for combat impact
+                combat_effects.add_screen_shake(3.0, 0.2)
+                
+                # Remove dead creatures with death effects
                 if player_card.data.health <= 0:
+                    # Death animation
+                    card_animator.start_animation(f"player_{id(player_card)}", AnimationType.DESTROY)
+                    combat_effects.trigger_effect(EffectType.PARTICLE_BURST,
+                                                player_card_pos[0], player_card_pos[1],
+                                                particle_type=ParticleType.DUST, count=15)
                     self.player_battlefield.remove(player_card)
+                
                 if enemy_card.data.health <= 0:
+                    # Death animation
+                    card_animator.start_animation(f"enemy_{id(enemy_card)}", AnimationType.DESTROY)
+                    combat_effects.trigger_effect(EffectType.PARTICLE_BURST,
+                                                enemy_card_pos[0], enemy_card_pos[1],
+                                                particle_type=ParticleType.DUST, count=15)
                     self.enemy_battlefield.remove(enemy_card)
                     enemy_creatures.remove(enemy_card)
                 
@@ -785,24 +921,50 @@ class ProfessionalCombat:
         for player_card in player_creatures:
             if player_card in self.player_battlefield and not enemy_creatures:
                 # Attack enemy directly
-                self.enemy.health -= player_card.data.attack
+                damage = player_card.data.attack
+                is_critical = damage >= 5
+                self.enemy.health -= damage
+                
+                # Enemy position for effects
+                enemy_x = SCREEN_WIDTH - 200
+                enemy_y = SCREEN_HEIGHT // 2
+                
+                # Add direct attack effects
+                combat_effects.trigger_effect(EffectType.PARTICLE_BURST, enemy_x, enemy_y,
+                                            particle_type=ParticleType.SPARK, count=12)
+                combat_effects.add_damage_number(enemy_x, enemy_y - 50, damage, is_critical)
+                combat_effects.add_screen_shake(4.0 if is_critical else 2.5, 0.2)
+                
                 self.combat_effects.append({
                     'type': 'direct_attack',
                     'time': 2.0,
                     'attacker': player_card.data.name,
-                    'damage': player_card.data.attack,
+                    'damage': damage,
                     'target': 'enemy'
                 })
         
         for enemy_card in enemy_creatures:
             if enemy_card in self.enemy_battlefield and not player_creatures:
                 # Attack player directly
-                self.player.health -= enemy_card.data.attack
+                damage = enemy_card.data.attack
+                is_critical = damage >= 5
+                self.player.health -= damage
+                
+                # Player position for effects
+                player_x = 200
+                player_y = SCREEN_HEIGHT // 2
+                
+                # Add direct attack effects
+                combat_effects.trigger_effect(EffectType.PARTICLE_BURST, player_x, player_y,
+                                            particle_type=ParticleType.SPARK, count=12)
+                combat_effects.add_damage_number(player_x, player_y - 50, damage, is_critical)
+                combat_effects.add_screen_shake(4.0 if is_critical else 2.5, 0.2)
+                
                 self.combat_effects.append({
                     'type': 'direct_attack',
                     'time': 2.0,
                     'attacker': enemy_card.data.name,
-                    'damage': enemy_card.data.attack,
+                    'damage': damage,
                     'target': 'player'
                 })
     
@@ -827,9 +989,16 @@ class ProfessionalCombat:
         # Update responsive combat HUD
         self.combat_hud.update(dt, mouse_pos, mouse_pressed, events)
         
+        # Update enhanced energy feedback system
+        self.energy_system.update(dt)
+        
         # Keep HUD values synchronized with game state
         self.combat_hud.set_player_health(self.player.health)
         self.combat_hud.set_player_mana(self.player.mana)
+        
+        # Keep energy system synchronized
+        if self.energy_system.current_energy != self.player.mana:
+            self.energy_system.set_energy(self.player.mana)
         self.combat_hud.set_enemy_health(self.enemy.health)
         self.combat_hud.set_turn(self.phase == CombatPhase.PLAYER_TURN)
         
@@ -973,6 +1142,9 @@ class ProfessionalCombat:
         # Render responsive combat HUD (replaces old status bars)
         self.combat_hud.render(surface)
         
+        # Render enhanced energy feedback system
+        self.energy_system.render(surface)
+        
         # Combat UI
         self._render_combat_ui(surface)
         
@@ -985,8 +1157,11 @@ class ProfessionalCombat:
         # Turn indicator
         self._render_turn_indicator(surface)
         
-        # Combat effects
+        # Combat effects (legacy)
         self._render_combat_effects(surface)
+        
+        # NEW: Professional combat effects system
+        combat_effects.render(surface)
         
         # Buttons
         for button in self.buttons:
@@ -1012,7 +1187,8 @@ class ProfessionalCombat:
         for particle in self.battlefield_particles:
             alpha = int(120 + 80 * abs(math.sin(self.animation_time + particle['phase'])))
             particle_surface = pygame.Surface((particle['size'] * 2, particle['size'] * 2), pygame.SRCALPHA)
-            particle_surface.fill((*particle['color'], alpha))
+            particle_surface.fill(particle['color'][:3])
+            particle_surface.set_alpha(alpha)
             surface.blit(particle_surface, (int(particle['x']), int(particle['y'])))
     
     def _render_combat_ui(self, surface: pygame.Surface):
@@ -1120,7 +1296,8 @@ class ProfessionalCombat:
                 # Filled crystal with glow
                 glow_alpha = int(150 + 100 * abs(math.sin(self.animation_time * 3)))
                 glow_surface = pygame.Surface((crystal_size + 8, crystal_size + 8), pygame.SRCALPHA)
-                glow_surface.fill((*Colors.LAPIS_LAZULI, glow_alpha))
+                glow_surface.fill(Colors.LAPIS_LAZULI)
+                glow_surface.set_alpha(glow_alpha)
                 surface.blit(glow_surface, (crystal_x - 4, pos[1] - 4))
                 
                 pygame.draw.ellipse(surface, Colors.LAPIS_LAZULI, crystal_rect)
@@ -1219,12 +1396,16 @@ class ProfessionalCombat:
         
         # Semi-transparent background
         panel_surface = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
-        panel_surface.fill((*Colors.BLACK, 150))
+        panel_surface.fill(Colors.BLACK)
+        panel_surface.set_alpha(150)
         
         # Glowing border effect
         glow_alpha = int(100 + 80 * abs(math.sin(self.animation_time * 3)))
-        border_color = (*color, glow_alpha)
-        pygame.draw.rect(panel_surface, border_color, (0, 0, panel_width, panel_height), 3)
+        # Create border with proper alpha handling
+        border_surface = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
+        border_surface.fill(color)
+        border_surface.set_alpha(glow_alpha)
+        pygame.draw.rect(panel_surface, color, (0, 0, panel_width, panel_height), 3)
         
         surface.blit(panel_surface, panel_rect.topleft)
         
@@ -1250,7 +1431,8 @@ class ProfessionalCombat:
                     sparkle_x = card.x + random.randint(0, card.width)
                     sparkle_y = card.y + random.randint(0, card.height)
                     sparkle_surface = pygame.Surface((3, 3), pygame.SRCALPHA)
-                    sparkle_surface.fill((*Colors.GOLD, int(effect['time'] * 127)))
+                    sparkle_surface.fill(Colors.GOLD)
+                    sparkle_surface.set_alpha(int(effect['time'] * 127))
                     surface.blit(sparkle_surface, (sparkle_x, sparkle_y))
     
     def _render_instructions(self, surface: pygame.Surface):
@@ -1287,10 +1469,15 @@ class ProfessionalCombat:
             bg_rect = pygame.Rect(SCREEN_CENTER[0] - text_size[0]//2 - 8, y - text_size[1]//2 - 4, 
                                  text_size[0] + 16, text_size[1] + 8)
             bg_surface = pygame.Surface(bg_rect.size, pygame.SRCALPHA)
-            bg_surface.fill((*Colors.BLACK, 140))  # Slightly more opaque
+            bg_surface.fill(Colors.BLACK)
+            bg_surface.set_alpha(140)  # Slightly more opaque
             
             # Add subtle border for enhanced definition
-            pygame.draw.rect(bg_surface, (*Colors.GOLD, 60), (0, 0, bg_rect.width, bg_rect.height), 1)
+            # Create a temporary surface for the border
+            border_surface = pygame.Surface((bg_rect.width, bg_rect.height), pygame.SRCALPHA)
+            border_surface.fill(Colors.GOLD)
+            border_surface.set_alpha(60)
+            pygame.draw.rect(bg_surface, Colors.GOLD, (0, 0, bg_rect.width, bg_rect.height), 1)
             
             surface.blit(bg_surface, bg_rect.topleft)
             

@@ -16,28 +16,34 @@ class ScalingManager:
         # Font scaling cache
         self._font_cache: Dict[Tuple[str, int], pygame.font.Font] = {}
         
-        # Standard font sizes (will be scaled automatically)
+        # Enhanced font sizes for SPRINT 1 - Strong Visual Hierarchy
         self.font_sizes = {
-            'debug': 12,
-            'small': 14,
-            'body': 16,
-            'button': 18,
-            'subtitle': 24,
-            'title_medium': 32,
-            'title_large': 48,
-            'title_huge': 72
+            'debug': 14,
+            'small': 16,
+            'card_text': 18,
+            'tooltip': 20,
+            'body': 24,
+            'card_name': 26,
+            'button': 28,       # Larger buttons for ultrawide
+            'subtitle': 36,
+            'title_medium': 48,
+            'title_large': 64,  # Increased for better hierarchy
+            'title_huge': 88    # Much larger main titles for impact
         }
         
-        # Component base sizes
+        # Enhanced component sizes for SPRINT 1 - Better Visibility
         self.component_sizes = {
-            'button_default': (200, 50),
-            'button_wide': (300, 60),
-            'button_large': (250, 70),
-            'card_small': (80, 112),
-            'card_medium': (120, 168),
-            'card_large': (160, 224),
-            'health_bar': (200, 20),
-            'mana_bar': (150, 16)
+            'button_default': (280, 70),    # 40% larger for ultrawide
+            'button_wide': (420, 84),       # 40% larger for ultrawide
+            'button_large': (350, 98),      # 40% larger for ultrawide
+            'button_icon': (70, 70),        # Square icon buttons
+            'card_small': (112, 156),       # 40% larger cards
+            'card_medium': (168, 235),      # 40% larger cards
+            'card_large': (224, 313),       # 40% larger cards
+            'health_bar': (280, 32),        # Thicker, more visible bars
+            'mana_bar': (210, 28),          # Thicker, more visible bars
+            'turn_indicator': (300, 50),    # Clear turn indicator
+            'tooltip_box': (400, 120)       # Larger tooltips for readability
         }
     
     def get_font(self, font_type: str = 'body', custom_size: Optional[int] = None) -> pygame.font.Font:
@@ -155,49 +161,67 @@ class ScalingManager:
         return text_rect
     
     def get_hud_layout(self) -> Dict[str, pygame.Rect]:
-        """Get HUD element positions for combat screen."""
-        # Top HUD: Health, mana, turn indicator
+        """Get SPRINT 1 enhanced HUD layout - Horizontal bars, clear hierarchy."""
+        # Enhanced zones for better visibility
         top_zone = self.layout.zones['top_hud']
-        
-        # Bottom HUD: Action buttons
         bottom_zone = self.layout.zones['bottom_hud']
         
-        # Health bar (top left)
+        # SPRINT 1: Horizontal health bar spans top width with gradient
         health_width, health_height = self.get_component_size('health_bar')
         health_rect = pygame.Rect(
-            top_zone.x + self.scale_value(20),
-            top_zone.y + (top_zone.height - health_height) // 2,
+            top_zone.x + self.scale_value(40),
+            top_zone.y + self.scale_value(15),
             health_width, health_height
         )
         
-        # Mana bar (top right) 
+        # SPRINT 1: Horizontal mana bar below health with spacing
         mana_width, mana_height = self.get_component_size('mana_bar')
         mana_rect = pygame.Rect(
-            top_zone.right - mana_width - self.scale_value(20),
-            top_zone.y + (top_zone.height - mana_height) // 2,
+            top_zone.x + self.scale_value(40),
+            health_rect.bottom + self.scale_value(10),
             mana_width, mana_height
         )
         
-        # Turn indicator (top center)
+        # SPRINT 1: Large, prominent turn indicator (top center)
+        turn_width, turn_height = self.get_component_size('turn_indicator')
         turn_rect = pygame.Rect(
-            top_zone.x + top_zone.width // 2 - self.scale_value(100),
-            top_zone.y + self.scale_value(10),
-            self.scale_value(200), self.scale_value(30)
+            top_zone.centerx - turn_width // 2,
+            top_zone.y + self.scale_value(20),
+            turn_width, turn_height
         )
         
-        # Action buttons (bottom right)
+        # SPRINT 1: Action buttons grouped in bottom right corner
         button_width, button_height = self.get_component_size('button_default')
-        action_button_rect = pygame.Rect(
-            bottom_zone.right - button_width - self.scale_value(20),
+        button_spacing = self.scale_value(15)
+        
+        # End Turn button (primary action)
+        end_turn_rect = pygame.Rect(
+            bottom_zone.right - button_width - self.scale_value(30),
             bottom_zone.y + (bottom_zone.height - button_height) // 2,
             button_width, button_height
+        )
+        
+        # Secondary action button (left of End Turn)
+        action_rect = pygame.Rect(
+            end_turn_rect.x - button_width - button_spacing,
+            end_turn_rect.y,
+            button_width, button_height
+        )
+        
+        # SPRINT 1: Card counter (bottom left) 
+        card_counter_rect = pygame.Rect(
+            bottom_zone.x + self.scale_value(30),
+            bottom_zone.y + self.scale_value(15),
+            self.scale_value(200), self.scale_value(40)
         )
         
         return {
             'health_bar': health_rect,
             'mana_bar': mana_rect, 
             'turn_indicator': turn_rect,
-            'action_button': action_button_rect,
+            'end_turn_button': end_turn_rect,
+            'action_button': action_rect,
+            'card_counter': card_counter_rect,
             'top_hud': top_zone,
             'bottom_hud': bottom_zone
         }

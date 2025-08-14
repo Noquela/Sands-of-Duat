@@ -70,7 +70,7 @@ class GeneratedAssetLoader:
         self.assets_path = assets_path or self._get_assets_path()
         self.generated_art_path = self.assets_path / "generated_art"
         self.approved_art_path = self.assets_path / "approved_hades_quality"
-        self.animated_cards_path = self.approved_art_path / "animated_cards"
+        self.animated_cards_path = self.assets_path / "game_ready" / "cards"
         self.compressed_sprites_path = self.assets_path / "compressed_sprites"
         
         # Asset caches
@@ -206,6 +206,7 @@ class GeneratedAssetLoader:
             'collection': 'bg_hall_of_gods_4k.png',
             'settings': 'bg_settings_4k.png',
             'underworld': 'bg_combat_4k.png',
+            'map': 'bg_map_4k.png',  # Egyptian progression map background
             
             # Fallback for any unmapped screens
             'default': 'bg_main_menu_4k.png'
@@ -237,6 +238,12 @@ class GeneratedAssetLoader:
             'frame_epic': 'ui_card_frame_epic.png',
             'frame_rare': 'ui_card_frame_epic.png',     # Use epic as fallback for rare
             'frame_common': 'ui_card_frame_epic.png',   # Use epic as fallback for common
+            
+            # Card frames with proper ui_ prefix (for compatibility)
+            'ui_card_frame_legendary': 'ui_card_frame_legendary.png',
+            'ui_card_frame_epic': 'ui_card_frame_epic.png', 
+            'ui_card_frame_rare': 'ui_card_frame_legendary.png',     # Use legendary as fallback
+            'ui_card_frame_common': 'ui_card_frame_epic.png',   # Use epic for common
             
             # High Resolution Icons (512x512)
             'health_icon': 'ui_ankh_health_icon.png',
@@ -357,21 +364,33 @@ class GeneratedAssetLoader:
         
         # Check approved assets directory structure (ultra high resolution)
         if self.approved_art_path.exists():
-            # Priority search order for ultra high resolution assets
-            search_dirs = [
-                self.approved_art_path / "cards",
-                self.approved_art_path / "backgrounds", 
-                self.approved_art_path / "characters",
-                self.approved_art_path / "ui_elements",
-                self.approved_art_path / "animated_cards"
-            ]
-            
-            for search_dir in search_dirs:
-                if search_dir.exists():
-                    candidate_path = search_dir / filename
-                    if candidate_path.exists():
-                        image_path = candidate_path
-                        break
+            # Handle paths with subdirectories (e.g., "events/thoth_oracle")
+            if "/" in filename or "\\" in filename:
+                candidate_path = self.approved_art_path / filename
+                if candidate_path.exists():
+                    image_path = candidate_path
+                elif not filename.endswith('.png'):
+                    # Try with .png extension
+                    candidate_path_png = self.approved_art_path / f"{filename}.png"
+                    if candidate_path_png.exists():
+                        image_path = candidate_path_png
+            else:
+                # Priority search order for ultra high resolution assets
+                search_dirs = [
+                    self.approved_art_path / "cards",
+                    self.approved_art_path / "backgrounds", 
+                    self.approved_art_path / "characters",
+                    self.approved_art_path / "ui_elements",
+                    self.approved_art_path / "animated_cards",
+                    self.approved_art_path / "events"  # Divine event illustrations
+                ]
+                
+                for search_dir in search_dirs:
+                    if search_dir.exists():
+                        candidate_path = search_dir / filename
+                        if candidate_path.exists():
+                            image_path = candidate_path
+                            break
         
         # Fallback to generated art
         if not image_path:
@@ -593,10 +612,19 @@ class GeneratedAssetLoader:
         for search_path in search_paths:
             if search_path.exists():
                 test_path = search_path / filename
-                test_metadata = search_path / filename.replace('.png', '.json')
-                if test_path.exists() and test_metadata.exists():
+                # Try both naming conventions for metadata
+                test_metadata1 = search_path / filename.replace('.png', '.json')
+                test_metadata2 = search_path / filename.replace('_animated.png', '_animation.json')
+                
+                metadata_path_found = None
+                if test_metadata1.exists():
+                    metadata_path_found = test_metadata1
+                elif test_metadata2.exists():
+                    metadata_path_found = test_metadata2
+                    
+                if test_path.exists() and metadata_path_found:
                     spritesheet_path = test_path
-                    metadata_path = test_metadata
+                    metadata_path = metadata_path_found
                     break
         
         if not spritesheet_path or not metadata_path:
@@ -649,7 +677,8 @@ class GeneratedAssetLoader:
         
         frames = []
         frame_width, frame_height = metadata['frame_size']
-        cols = metadata['cols']
+        # Handle both naming conventions
+        cols = metadata.get('cols', metadata.get('sheet_cols', 4))
         frame_count = metadata['frame_count']
         
         for i in range(frame_count):
