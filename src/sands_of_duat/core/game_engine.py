@@ -15,13 +15,18 @@ from .constants import (
     SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_SIZE, SCREEN_CENTER,
     Colors, Timing, FontSizes, Dev, Layout
 )
-from ..ui.screens.main_menu import MainMenuScreen, MenuAction
+from ..ui.screens.main_menu import MainMenuScreen
+from ..ui.screens.professional_main_menu import ProfessionalMainMenu, MenuAction
+from ..ui.screens.enhanced_main_menu import EnhancedMainMenu
+from ..ui.screens.ultra_refined_main_menu import UltraRefinedMainMenu
 from ..ui.screens.loading_screen import LoadingScreen, LoadingType
 from ..ui.screens.transition_screen import TransitionScreen, TransitionType
 from ..ui.screens.professional_deck_builder import ProfessionalDeckBuilder, DeckBuilderAction
 from ..ui.screens.professional_combat import ProfessionalCombat, CombatAction
-from ..ui.screens.hall_of_gods import HallOfGodsScreen, HallAction
-from ..ui.screens.enhanced_settings_screen import EnhancedSettingsScreen, SettingsAction
+from ..ui.screens.progression_map import ProgressionMap, ProgressionMapAction
+from ..ui.screens.enhanced_hall_of_gods import EnhancedHallOfGods, HallAction
+from ..ui.screens.professional_settings import ProfessionalSettings, SettingsAction
+from ..ui.screens.divine_event_screen import DivineEventScreen, EventAction
 
 # Optional animation screen import
 try:
@@ -43,6 +48,8 @@ from .settings_manager import settings_manager
 from .save_system import save_system
 from ..ui.effects.advanced_visual_effects import advanced_visual_effects
 from ..ui.effects.professional_transitions import professional_transitions
+from ..ui.animations.card_animator import card_animator
+from ..ui.animations.combat_effects import combat_effects
 
 class GameEngine:
     """
@@ -83,12 +90,14 @@ class GameEngine:
         if Layout.IS_ULTRAWIDE:
             self.logger.info("🖥️ Ultrawide display detected - using centered layout")
         
-        # UI Screens
-        self.main_menu_screen = MainMenuScreen(self._handle_menu_action)
+        # UI Screens - Using Professional AAA Menu System
+        self.main_menu_screen = ProfessionalMainMenu(self._handle_menu_action)
+        self.progression_map_screen = ProgressionMap(self._handle_progression_map_action)
         self.deck_builder_screen = ProfessionalDeckBuilder(self._handle_deck_builder_action)
         self.combat_screen = ProfessionalCombat(self._handle_combat_action)
-        self.collection_screen = HallOfGodsScreen(self._handle_collection_action)
-        self.settings_screen = EnhancedSettingsScreen(self._handle_settings_action)
+        self.collection_screen = EnhancedHallOfGods(self._handle_collection_action)
+        self.settings_screen = ProfessionalSettings(self._handle_settings_action)
+        self.event_screen = DivineEventScreen(self._handle_event_action)
         # Initialize animation screen if available
         if ANIMATION_SCREEN_AVAILABLE:
             self.animation_generator_screen = AnimationGeneratorScreen(self._handle_animation_action)
@@ -176,6 +185,8 @@ class GameEngine:
         # Render based on state using new screen system
         if state == GameState.MAIN_MENU:
             self.main_menu_screen.render(surface)
+        elif state == GameState.PROGRESSION_MAP:
+            self.progression_map_screen.render(surface)
         elif state == GameState.DECK_BUILDER:
             self.deck_builder_screen.render(surface)
         elif state == GameState.COMBAT:
@@ -184,6 +195,8 @@ class GameEngine:
             self.collection_screen.render(surface)
         elif state == GameState.SETTINGS:
             self.settings_screen.render(surface)
+        elif state == GameState.EVENT:
+            self.event_screen.render(surface)
         elif state == GameState.ANIMATION_GENERATOR:
             self.animation_generator_screen.render(surface)
         elif state == GameState.LOADING:
@@ -236,22 +249,49 @@ class GameEngine:
                 self.mouse_buttons[event.button - 1] = False
     
     def _handle_menu_action(self, action: MenuAction):
-        """Handle actions from the main menu with enhanced transitions."""
+        """Handle actions from the main menu with direct navigation."""
         if action == MenuAction.START_GAME:
-            self._start_transition(TransitionType.ENTERING_COMBAT, GameState.MAIN_MENU, GameState.COMBAT)
+            self.state_manager.change_state(GameState.PROGRESSION_MAP)
         elif action == MenuAction.DECK_BUILDER:
-            self._start_transition(TransitionType.DECK_BUILDING, GameState.MAIN_MENU, GameState.DECK_BUILDER)
+            self.state_manager.change_state(GameState.DECK_BUILDER)
         elif action == MenuAction.COLLECTION:
-            self._start_transition(TransitionType.COLLECTING_CARDS, GameState.MAIN_MENU, GameState.COLLECTION)
+            self.state_manager.change_state(GameState.COLLECTION)
         elif action == MenuAction.SETTINGS:
-            self._start_transition(TransitionType.SETTINGS_MENU, GameState.MAIN_MENU, GameState.SETTINGS)
+            self.state_manager.change_state(GameState.SETTINGS)
+        elif action == MenuAction.ANIMATION_FORGE:
+            self.state_manager.change_state(GameState.ANIMATION_GENERATOR)
         elif action == MenuAction.QUIT:
             self.running = False
+    
+    def _handle_progression_map_action(self, action: ProgressionMapAction, data: Any = None):
+        """Handle actions from the progression map."""
+        if action == ProgressionMapAction.BACK_TO_MENU:
+            self.logger.info("Returning to main menu from progression map...")
+            self.state_manager.change_state(GameState.MAIN_MENU)
+        elif action == ProgressionMapAction.ENTER_NODE:
+            if data and hasattr(data, 'node_type'):
+                self.logger.info(f"🗺️ Entering node: {data.name}")
+                # Route to appropriate screen based on node type
+                if data.node_type.name in ['COMBAT', 'ELITE', 'BOSS']:
+                    self.state_manager.change_state(GameState.COMBAT)
+                elif data.node_type.name == 'TREASURE':
+                    self.state_manager.change_state(GameState.COLLECTION)
+                elif data.node_type.name == 'SHOP':
+                    self.state_manager.change_state(GameState.COLLECTION)
+                elif data.node_type.name == 'REST':
+                    # Future: Rest screen
+                    self.state_manager.change_state(GameState.PROGRESSION_MAP)
+                elif data.node_type.name == 'EVENT':
+                    self.state_manager.change_state(GameState.EVENT)
+        elif action == ProgressionMapAction.VIEW_PROGRESS:
+            self.logger.info("📊 Viewing progress")
+            # Future: Progress screen
     
     def _handle_deck_builder_action(self, action: DeckBuilderAction):
         """Handle actions from the deck builder."""
         if action == DeckBuilderAction.BACK_TO_MENU:
-            self._start_transition(TransitionType.RETURNING_HOME, GameState.DECK_BUILDER, GameState.MAIN_MENU)
+            self.logger.info("Returning to main menu from deck builder...")
+            self.state_manager.change_state(GameState.MAIN_MENU)
         elif action == DeckBuilderAction.SAVE_DECK:
             self.logger.info("💾 Deck saved successfully - ready for combat!")
             # Deck saving is handled in the deck builder screen
@@ -264,22 +304,25 @@ class GameEngine:
     def _handle_combat_action(self, action: CombatAction):
         """Handle actions from the combat system."""
         if action == CombatAction.BACK_TO_MENU:
-            self._start_transition(TransitionType.RETURNING_HOME, GameState.COMBAT, GameState.MAIN_MENU)
+            self.logger.info("Returning to main menu from combat...")
+            self.state_manager.change_state(GameState.MAIN_MENU)
         elif action == CombatAction.END_TURN:
             self.logger.info("🎯 Turn ended")
         elif action == CombatAction.SURRENDER:
             self.logger.info("🏳️ Combat surrendered")
-            self._start_transition(TransitionType.RETURNING_HOME, GameState.COMBAT, GameState.MAIN_MENU)
+            self.state_manager.change_state(GameState.MAIN_MENU)
     
-    def _handle_collection_action(self, action: HallAction):
+    def _handle_collection_action(self, action: HallAction, data: Any = None):
         """Handle actions from the Hall of Gods."""
         if action == HallAction.BACK_TO_MENU:
-            self._start_transition(TransitionType.RETURNING_HOME, GameState.COLLECTION, GameState.MAIN_MENU)
+            self.logger.info("Returning to main menu from collection...")
+            self.state_manager.change_state(GameState.MAIN_MENU)
     
     def _handle_settings_action(self, action: SettingsAction):
         """Handle actions from the settings screen."""
         if action == SettingsAction.BACK_TO_MENU:
-            self._start_transition(TransitionType.RETURNING_HOME, GameState.SETTINGS, GameState.MAIN_MENU)
+            self.logger.info("Returning to main menu from settings...")
+            self.state_manager.change_state(GameState.MAIN_MENU)
         elif action == SettingsAction.APPLY_SETTINGS:
             # Settings are applied within the settings screen
             self.logger.info("Settings applied successfully")
@@ -289,7 +332,8 @@ class GameEngine:
     def _handle_animation_action(self, action: AnimationAction):
         """Handle actions from the animation generator screen."""
         if action == AnimationAction.BACK_TO_MENU:
-            self._start_transition(TransitionType.RETURNING_HOME, GameState.ANIMATION_GENERATOR, GameState.MAIN_MENU)
+            self.logger.info("Returning to main menu from animation generator...")
+            self.state_manager.change_state(GameState.MAIN_MENU)
         elif action == AnimationAction.GENERATE_SINGLE:
             self.logger.info("Generating single card animation")
         elif action == AnimationAction.GENERATE_GOD_COLLECTION:
@@ -298,6 +342,23 @@ class GameEngine:
             self.logger.info("Generating all card animations")
         elif action == AnimationAction.TOGGLE_COMFYUI:
             self.logger.info("Toggling ComfyUI connection")
+    
+    def _handle_event_action(self, action: EventAction, data: Any = None):
+        """Handle actions from the divine event screen."""
+        if action == EventAction.BACK_TO_MAP:
+            self.logger.info("Returning to progression map from event...")
+            self.state_manager.change_state(GameState.PROGRESSION_MAP)
+        elif action == EventAction.CHOOSE_OPTION:
+            if data and 'choice' in data:
+                choice = data['choice']
+                self.logger.info(f"✨ Event choice made: {choice.text}")
+                # Process choice consequences here
+                # Return to map after choice
+                self.state_manager.change_state(GameState.PROGRESSION_MAP)
+        elif action == EventAction.CONTINUE_STORY:
+            self.logger.info("📖 Story continued")
+        elif action == EventAction.COLLECT_REWARD:
+            self.logger.info("🎁 Reward collected")
     
     def _start_transition(self, transition_type: TransitionType, from_state: GameState, to_state: GameState):
         """Start a transition between game states."""
@@ -324,6 +385,8 @@ class GameEngine:
             self.collection_screen.reset_animations()
         elif target_state == GameState.SETTINGS:
             self.settings_screen.reset_animations()
+        elif target_state == GameState.EVENT:
+            self.event_screen.reset_animations()
         elif target_state == GameState.ANIMATION_GENERATOR:
             self.animation_generator_screen.reset_animations()
         
@@ -348,6 +411,9 @@ class GameEngine:
         elif current_state == GameState.MAIN_MENU:
             mouse_pressed = any(self.mouse_buttons)
             self.main_menu_screen.update(dt, self.current_events, self.mouse_pos, mouse_pressed)
+        elif current_state == GameState.PROGRESSION_MAP:
+            mouse_pressed = any(self.mouse_buttons)
+            self.progression_map_screen.update(dt, self.current_events, self.mouse_pos, mouse_pressed)
         elif current_state == GameState.DECK_BUILDER:
             mouse_pressed = any(self.mouse_buttons)
             self.deck_builder_screen.update(dt, self.current_events, self.mouse_pos, mouse_pressed)
@@ -360,6 +426,9 @@ class GameEngine:
         elif current_state == GameState.SETTINGS:
             mouse_pressed = any(self.mouse_buttons)
             self.settings_screen.update(dt, self.current_events, self.mouse_pos, mouse_pressed)
+        elif current_state == GameState.EVENT:
+            mouse_pressed = any(self.mouse_buttons)
+            self.event_screen.update(dt, self.current_events, self.mouse_pos, mouse_pressed)
         elif current_state == GameState.ANIMATION_GENERATOR:
             mouse_pressed = any(self.mouse_buttons)
             self.animation_generator_screen.update(dt, self.current_events, self.mouse_pos, mouse_pressed)
@@ -377,6 +446,10 @@ class GameEngine:
         # Update advanced visual effects and transitions
         advanced_visual_effects.update(dt)
         professional_transitions.update(dt)
+        
+        # Update animation systems
+        card_animator.update(dt)
+        combat_effects.update(dt)
         
         # Clear per-frame input state
         self.keys_just_pressed.clear()

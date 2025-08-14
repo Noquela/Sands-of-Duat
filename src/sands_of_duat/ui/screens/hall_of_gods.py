@@ -39,6 +39,10 @@ class CardInfo:
     lore: str
     unlocked: bool = True
     discovered: bool = True
+    
+    def __hash__(self):
+        """Make CardInfo hashable based on name (unique identifier)."""
+        return hash(self.name)
 
 class HallOfGodsScreen:
     """
