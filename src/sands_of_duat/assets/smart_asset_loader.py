@@ -1,6 +1,6 @@
 """
 Smart Asset Loader - Intelligent loading of 4K generated assets with fallbacks.
-Provides seamless integration of AI-generated Egyptian art into the game.
+SPRINT 2: Enhanced with intelligent asset manager integration.
 """
 
 import pygame
@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 from enum import Enum
 from ..core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
+from .intelligent_asset_manager import intelligent_asset_manager, QualityTier
 
 class AssetQuality(Enum):
     """Asset quality levels for different use cases."""
@@ -35,6 +36,10 @@ class SmartAssetLoader:
         # Cache for loaded assets
         self._surface_cache: Dict[str, pygame.Surface] = {}
         self._metadata_cache: Dict[str, dict] = {}
+        
+        # Cache for missing assets to avoid repeated filesystem checks
+        self._missing_assets_cache: set = set()
+        self._failed_assets_cache: set = set()
         
         # Determine optimal quality based on screen resolution
         self.target_quality = self._determine_target_quality()
@@ -98,10 +103,54 @@ class SmartAssetLoader:
             'ui_attack_icon': 'ui_elements/ui_attack_icon.png',
             'ui_shield_icon': 'ui_elements/ui_shield_icon.png',
             'ui_energy_icon': 'ui_elements/ui_energy_icon.png',
-            'ui_action_points_icon': 'ui_elements/ui_action_points_icon.png'
+            'ui_action_points_icon': 'ui_elements/ui_action_points_icon.png',
+            
+            # Progression map node icons (Egyptian-themed)
+            'node_ankh': 'ui_element/node_ankh.png',
+            'node_pyramid': 'ui_element/node_pyramid.png', 
+            'node_scarab': 'ui_element/node_scarab.png',
+            'node_treasure': 'ui_element/node_treasure.png',
+            'node_eye_horus': 'ui_element/node_eye_horus.png',
+            'node_lotus': 'ui_element/node_lotus.png',
+            'node_scales': 'ui_element/node_scales.png',
+            'node_combat': 'ui_element/node_combat.png',
+            
+            # UI panels (Egyptian-themed)
+            'ui_panel_left': 'ui_panel/ui_panel_left.png',
+            'ui_panel_right': 'ui_panel/ui_panel_right.png',
+            'ui_side_panel': 'ui_panel/ui_side_panel.png',
+            'panel_papyrus': 'ui_panel/panel_papyrus.png'
         }
         
         self.logger.info(f"Smart asset loader initialized - Target quality: {self.target_quality.value}")
+    
+    def _load_intelligent_asset(self, asset_name: str) -> Optional[pygame.Surface]:
+        """SPRINT 2: Load asset using intelligent asset manager."""
+        try:
+            # Map legacy asset quality to intelligent quality tiers
+            quality_mapping = {
+                AssetQuality.ULTRA: QualityTier.LEGENDARY,
+                AssetQuality.HIGH: QualityTier.EPIC,
+                AssetQuality.MEDIUM: QualityTier.RARE,
+                AssetQuality.LOW: QualityTier.COMMON
+            }
+            
+            target_quality = quality_mapping.get(self.target_quality, QualityTier.EPIC)
+            
+            # Try intelligent loading
+            surface = intelligent_asset_manager.load_asset(
+                asset_name=asset_name,
+                preferred_quality=target_quality
+            )
+            
+            if surface:
+                self.logger.info(f"🧠 Intelligent asset loaded: {asset_name}")
+                return surface
+                
+        except Exception as e:
+            self.logger.warning(f"Intelligent asset loading failed for {asset_name}: {e}")
+        
+        return None
     
     def _determine_target_quality(self) -> AssetQuality:
         """Determine optimal asset quality based on display resolution and performance."""
@@ -118,7 +167,7 @@ class SmartAssetLoader:
     
     def load_asset(self, asset_name: str, target_size: Optional[Tuple[int, int]] = None) -> Optional[pygame.Surface]:
         """
-        Load an asset with intelligent quality selection and caching.
+        SPRINT 2: Load an asset with intelligent quality selection and caching.
         
         Args:
             asset_name: Name of the asset to load
@@ -133,8 +182,20 @@ class SmartAssetLoader:
         if cache_key in self._surface_cache:
             return self._surface_cache[cache_key]
         
-        # Try to load assets in priority order: Hades-quality -> Game-ready -> Generated 4K
-        surface = self._load_hades_quality_asset(asset_name)
+        # Check if this asset is known to be missing - avoid expensive filesystem operations
+        if asset_name in self._missing_assets_cache:
+            return None
+        
+        # Check if this asset previously failed to load
+        if asset_name in self._failed_assets_cache:
+            return self._create_emergency_fallback()
+        
+        # SPRINT 2: Try intelligent asset manager first
+        surface = self._load_intelligent_asset(asset_name)
+        
+        # Fallback to legacy loading if intelligent manager fails
+        if not surface:
+            surface = self._load_hades_quality_asset(asset_name)
         if not surface:
             surface = self._load_game_ready_asset(asset_name)
         if not surface:
@@ -142,7 +203,19 @@ class SmartAssetLoader:
         
         # Fallback to placeholder if needed
         if not surface:
-            surface = self._load_fallback_asset(asset_name)
+            try:
+                surface = self._load_fallback_asset(asset_name)
+                if surface:
+                    self.logger.debug(f"⚠️ Asset not found: {asset_name} - using fallback")
+                else:
+                    # Mark as missing to avoid future attempts
+                    self._missing_assets_cache.add(asset_name)
+                    return None
+            except Exception as e:
+                self.logger.error(f"💀 Failed to create fallback for {asset_name}: {e}")
+                # Mark as failed and create emergency fallback
+                self._failed_assets_cache.add(asset_name)
+                surface = self._create_emergency_fallback()
         
         if surface and target_size:
             # Scale to target size with high quality
@@ -283,9 +356,8 @@ class SmartAssetLoader:
         """Create a simple card frame placeholder."""
         surface = pygame.Surface((width, height), pygame.SRCALPHA)
         
-        # Fill with transparent background - Use set_alpha to avoid invalid color argument
-        surface.fill((0, 0, 0))
-        surface.set_alpha(0)
+        # Fill with transparent background
+        surface.fill((0, 0, 0, 0))
         
         # Draw border
         border_width = 8
@@ -330,6 +402,13 @@ class SmartAssetLoader:
         text_rect = text.get_rect(center=(size//2, size//2))
         surface.blit(text, text_rect)
         
+        return surface
+    
+    def _create_emergency_fallback(self) -> pygame.Surface:
+        """Create a simple emergency fallback when all else fails."""
+        surface = pygame.Surface((64, 64), pygame.SRCALPHA)
+        surface.fill((128, 128, 128))  # Gray square
+        pygame.draw.rect(surface, (255, 255, 255), (0, 0, 64, 64), 2)
         return surface
     
     def preload_common_assets(self):
@@ -384,6 +463,8 @@ class SmartAssetLoader:
         """Clear the asset cache to free memory."""
         self._surface_cache.clear()
         self._metadata_cache.clear()
+        self._missing_assets_cache.clear()
+        self._failed_assets_cache.clear()
         self.logger.info("Asset cache cleared")
     
     def get_cache_info(self) -> Dict[str, int]:
