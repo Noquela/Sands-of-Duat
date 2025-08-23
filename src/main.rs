@@ -40,6 +40,7 @@ fn main() {
             ..default()
         }))
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
+        .add_event::<SpawnParticlesEvent>()
         .init_resource::<InputState>()
         .add_systems(Startup, setup)
         .add_systems(Update, (
@@ -54,6 +55,8 @@ fn main() {
             hades_combat_system,
             (projectile_movement_system, projectile_collision_system).chain(),
             hit_effect_system,
+            particle_spawn_system,
+            particle_system,
         ))
         .run();
 }
@@ -208,6 +211,33 @@ struct Projectile {
 
 #[derive(Component)]
 struct EnemyProjectile;
+
+#[derive(Component)]
+struct Particle {
+    velocity: Vec3,
+    ttl: f32,
+    fade_speed: f32,
+    initial_scale: Vec3,
+}
+
+#[derive(Component)]
+struct ParticleSystem {
+    spawn_rate: f32,
+    spawn_timer: f32,
+    particle_lifetime: f32,
+    spawn_radius: f32,
+    velocity_range: f32,
+    color: Color,
+    size: f32,
+}
+
+// Event for spawning particles
+#[derive(Event)]
+struct SpawnParticlesEvent {
+    position: Vec3,
+    color: Color,
+    count: usize,
+}
 
 fn setup(
     mut commands: Commands,
@@ -818,6 +848,7 @@ fn hades_combat_system(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut player_query: Query<(&Transform, &mut Combat), With<Player>>,
     mut enemy_query: Query<(Entity, &Transform, &mut Stats), (With<Enemy>, Without<Player>)>,
+    mut particle_events: EventWriter<SpawnParticlesEvent>,
 ) {
     let (player_transform, mut combat) = player_query.single_mut();
     let dt = time.delta_seconds();
@@ -843,6 +874,13 @@ fn hades_combat_system(
                     timer: 0.0,
                     duration: 0.3,
                     original_scale: enemy_transform.scale,
+                });
+                
+                // Spawn impact particles
+                particle_events.send(SpawnParticlesEvent {
+                    position: enemy_transform.translation,
+                    color: Color::rgb(1.0, 0.8, 0.2),
+                    count: 8,
                 });
                 
                 hits += 1;
@@ -872,6 +910,13 @@ fn hades_combat_system(
                     timer: 0.0,
                     duration: 0.5,
                     original_scale: enemy_transform.scale,
+                });
+                
+                // Spawn special attack particles (purple)
+                particle_events.send(SpawnParticlesEvent {
+                    position: enemy_transform.translation,
+                    color: Color::rgb(0.8, 0.3, 1.0),
+                    count: 12,
                 });
                 
                 hits += 1;
@@ -935,6 +980,13 @@ fn hades_combat_system(
                     original_scale: enemy_transform.scale,
                 });
                 
+                // Spawn AoE particles (red explosion)
+                particle_events.send(SpawnParticlesEvent {
+                    position: enemy_transform.translation,
+                    color: Color::rgb(1.0, 0.3, 0.2),
+                    count: 16,
+                });
+                
                 hits += 1;
                 if enemy_stats.current_health <= 0.0 {
                     commands.entity(entity).despawn();
@@ -973,6 +1025,7 @@ fn projectile_collision_system(
     projectiles: Query<(Entity, &Transform, &Projectile)>,
     mut enemies: Query<(Entity, &Transform, &mut Stats), (With<Enemy>, Without<Player>)>,
     mut player_query: Query<(Entity, &Transform, &mut Stats, &Dash), With<Player>>,
+    mut particle_events: EventWriter<SpawnParticlesEvent>,
 ) {
     for (proj_entity, proj_transform, projectile) in &projectiles {
         if projectile.from_enemy {
@@ -1011,6 +1064,13 @@ fn projectile_collision_system(
                         original_scale: enemy_transform.scale,
                     });
                     
+                    // Spawn projectile impact particles (cyan)
+                    particle_events.send(SpawnParticlesEvent {
+                        position: enemy_transform.translation,
+                        color: Color::rgb(0.3, 0.8, 1.0),
+                        count: 6,
+                    });
+                    
                     // Destroy enemy if dead
                     if enemy_stats.current_health <= 0.0 {
                         commands.entity(enemy_entity).despawn();
@@ -1020,6 +1080,91 @@ fn projectile_collision_system(
                     commands.entity(proj_entity).despawn();
                     break;
                 }
+            }
+        }
+    }
+}
+
+fn particle_spawn_system(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut particle_events: EventReader<SpawnParticlesEvent>,
+) {
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    
+    for event in particle_events.read() {
+        for _ in 0..event.count {
+            let angle = rng.gen::<f32>() * std::f32::consts::TAU;
+            let speed = rng.gen_range(2.0..8.0);
+            let velocity = Vec3::new(
+                angle.cos() * speed,
+                rng.gen_range(1.0..4.0),
+                angle.sin() * speed,
+            );
+            
+            let size = rng.gen_range(0.05..0.15);
+            
+            commands.spawn((
+                PbrBundle {
+                    mesh: meshes.add(Sphere::new(size)),
+                    material: materials.add(StandardMaterial {
+                        base_color: event.color,
+                        emissive: (event.color * 3.0).into(),
+                        ..default()
+                    }),
+                    transform: Transform::from_translation(event.position + Vec3::new(
+                        rng.gen_range(-0.3..0.3),
+                        rng.gen_range(0.1..0.5),
+                        rng.gen_range(-0.3..0.3),
+                    )),
+                    ..default()
+                },
+                Particle {
+                    velocity,
+                    ttl: rng.gen_range(0.5..1.5),
+                    fade_speed: rng.gen_range(2.0..4.0),
+                    initial_scale: Vec3::splat(size),
+                },
+            ));
+        }
+    }
+}
+
+fn particle_system(
+    mut commands: Commands,
+    mut particles: Query<(Entity, &mut Transform, &mut Particle, &Handle<StandardMaterial>)>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    time: Res<Time>,
+) {
+    let dt = time.delta_seconds();
+    
+    for (entity, mut transform, mut particle, material_handle) in &mut particles {
+        // Update lifetime
+        particle.ttl -= dt;
+        
+        if particle.ttl <= 0.0 {
+            commands.entity(entity).despawn();
+            continue;
+        }
+        
+        // Update position
+        transform.translation += particle.velocity * dt;
+        
+        // Apply gravity
+        particle.velocity.y -= 9.8 * dt;
+        
+        // Fade and shrink over time
+        let life_ratio = particle.ttl / 1.0; // Assuming max lifetime of 1.5
+        let scale_factor = life_ratio.max(0.1);
+        transform.scale = particle.initial_scale * scale_factor;
+        
+        // Fade material (optional, can be resource intensive)
+        if let Some(material) = materials.get_mut(material_handle) {
+            let alpha = life_ratio;
+            if let Color::Rgba { red, green, blue, .. } = material.base_color {
+                material.base_color = Color::rgba(red, green, blue, alpha);
             }
         }
     }
