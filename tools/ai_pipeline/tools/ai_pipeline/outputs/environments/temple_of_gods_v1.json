@@ -1,0 +1,10 @@
+{
+  "environment": "temple_of_gods",
+  "variation": 1,
+  "prompt": "masterpiece, best quality, highly detailed, professional game art,\n                Hades game art style, massive Egyptian temple interior, towering stone columns,\n                ornate golden altar, hieroglyphic inscriptions, divine blue lighting,\n                ceremonial braziers with flickering flames, majestic throne room,\n                rich blue and gold color scheme, dramatic perspective, atmospheric haze,\n                hand-painted texture style, cinematic lighting, 4K resolution",
+  "negative_prompt": "low quality, small scale, modern, bright lighting, simple, plain,\n                realistic photography, empty space, amateur, blurry",
+  "generated_at": "2025-08-23T16:39:14.314889",
+  "aspect_ratio": "cinematic_16_9",
+  "resolution": "1024x768",
+  "art_style": "Hades_Egyptian_Cinematic"
+}

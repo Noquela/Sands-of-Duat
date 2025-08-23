@@ -1,0 +1,10 @@
+{
+  "environment": "underworld_passage",
+  "variation": 1,
+  "prompt": "masterpiece, best quality, highly detailed, professional game art,\n                Hades game art style, ancient Egyptian underworld corridor, flowing sand waterfalls,\n                ghostly green mist, ornate stone archways, mysterious hieroglyphic symbols,\n                eerie supernatural lighting, floating particles, ancient mechanisms,\n                dark obsidian colors with emerald glow, foreboding atmosphere,\n                hand-painted texture style, cinematic depth, 4K resolution",
+  "negative_prompt": "low quality, bright, cheerful, modern, simple, plain walls,\n                realistic photography, amateur, blurry, low resolution",
+  "generated_at": "2025-08-23T16:39:45.542025",
+  "aspect_ratio": "cinematic_16_9",
+  "resolution": "1024x768",
+  "art_style": "Hades_Egyptian_Cinematic"
+}

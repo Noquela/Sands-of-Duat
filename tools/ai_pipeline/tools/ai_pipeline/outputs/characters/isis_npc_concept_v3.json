@@ -1,0 +1,9 @@
+{
+  "character": "isis_npc",
+  "variation": 3,
+  "prompt": "masterpiece, best quality, highly detailed, professional game art,\n                Hades game art style, Isis Egyptian goddess NPC, elegant graceful beauty, \n                flowing ornate robes, golden winged headdress, divine jewelry, \n                welcoming peaceful pose, soft ethereal lighting, rich blue and gold colors, \n                hand-painted texture style, stylized feminine proportions, \n                celestial temple background, magical aura, 4K resolution",
+  "negative_prompt": "low quality, blurry, pixelated, amateur, simple, flat lighting, \n                modern clothing, aggressive pose, dark colors, realistic photography, \n                plain background, low resolution, bad anatomy, deformed",
+  "generated_at": "2025-08-23T16:31:14.627680",
+  "model": "SDXL",
+  "resolution": "1024x1024"
+}

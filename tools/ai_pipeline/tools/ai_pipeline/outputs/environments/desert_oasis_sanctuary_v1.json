@@ -1,0 +1,10 @@
+{
+  "environment": "desert_oasis_sanctuary",
+  "variation": 1,
+  "prompt": "masterpiece, best quality, highly detailed, professional game art,\n                Hades game art style, magical Egyptian desert oasis, crystal clear water,\n                ornate pavilion with silk curtains, date palm trees, golden sand dunes,\n                warm sunset lighting, magical shimmer effects, rich warm colors,\n                peaceful sanctuary atmosphere, ornate rugs and cushions,\n                hand-painted texture style, cinematic beauty, 4K resolution",
+  "negative_prompt": "low quality, dark, gloomy, modern, simple, realistic photography,\n                plain, amateur, blurry, low resolution",
+  "generated_at": "2025-08-23T16:40:47.357998",
+  "aspect_ratio": "cinematic_16_9",
+  "resolution": "1024x768",
+  "art_style": "Hades_Egyptian_Cinematic"
+}

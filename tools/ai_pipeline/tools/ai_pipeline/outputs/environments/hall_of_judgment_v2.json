@@ -1,0 +1,10 @@
+{
+  "environment": "hall_of_judgment",
+  "variation": 2,
+  "prompt": "masterpiece, best quality, highly detailed, professional game art,\n                Hades game art style, Egyptian hall of judgment, massive scales of justice,\n                towering Anubis statues, ornate pillars with hieroglyphs, divine lighting,\n                ceremonial pedestals, golden Egyptian artifacts, dramatic shadows,\n                rich dark blues and golds, mystical atmosphere, floating divine particles,\n                hand-painted texture style, epic architectural scale, 4K resolution",
+  "negative_prompt": "low quality, small scale, modern, bright, simple, plain,\n                realistic photography, empty, amateur, blurry",
+  "generated_at": "2025-08-23T16:40:32.035548",
+  "aspect_ratio": "cinematic_16_9",
+  "resolution": "1024x768",
+  "art_style": "Hades_Egyptian_Cinematic"
+}

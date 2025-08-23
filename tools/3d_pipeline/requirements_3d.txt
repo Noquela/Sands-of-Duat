@@ -1,0 +1,50 @@
+# Free 3D Pipeline Requirements for Hades-Quality Assets
+# Run: pip install -r requirements_3d.txt
+
+# Core AI/ML for 3D generation
+torch>=2.0.0
+torchvision
+torchaudio
+diffusers>=0.21.0
+transformers>=4.25.0
+accelerate>=0.20.0
+xformers
+
+# Text-to-3D generation (TripoSR)
+trimesh
+rembg
+pillow>=9.0.0
+opencv-python
+
+# Image processing and enhancement
+scipy
+scikit-image
+imageio
+imageio-ffmpeg
+
+# Real-ESRGAN for upscaling
+basicsr
+facexlib
+gfpgan
+realesrgan
+
+# Stable Diffusion XL local
+safetensors
+omegaconf
+pytorch-lightning
+einops
+
+# 3D processing
+open3d
+pymeshlab
+pywavefront
+
+# Blender Python integration
+bpy  # Note: Install via Blender's Python if needed
+mathutils
+
+# Utilities
+requests
+tqdm
+numpy
+matplotlib

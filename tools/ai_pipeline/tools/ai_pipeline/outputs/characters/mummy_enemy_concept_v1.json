@@ -1,0 +1,9 @@
+{
+  "character": "mummy_enemy",
+  "variation": 1,
+  "prompt": "masterpiece, best quality, highly detailed, professional game art,\n                Hades game art style, ancient Egyptian mummy warrior enemy, wrapped linen bandages, \n                glowing green curse eyes, ornate tomb guardian armor, weathered ancient weapons, \n                menacing combat pose, eerie atmospheric lighting, muted earth tones with green glow, \n                hand-painted texture style, stylized undead proportions, \n                dark tomb corridor background, 4K resolution",
+  "negative_prompt": "low quality, blurry, pixelated, amateur, simple, flat lighting, \n                modern, clean, bright colors, realistic photography, \n                plain background, friendly pose, low resolution, bad anatomy",
+  "generated_at": "2025-08-23T16:29:39.189732",
+  "model": "SDXL",
+  "resolution": "1024x1024"
+}

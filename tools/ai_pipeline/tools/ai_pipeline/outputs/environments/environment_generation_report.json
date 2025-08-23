@@ -1,0 +1,56 @@
+{
+  "generation_summary": {
+    "total_environments": 5,
+    "total_variations": 10,
+    "art_style": "Hades_Egyptian_Cinematic",
+    "resolution": "1024x768_cinematic",
+    "generated_at": "2025-08-23T16:41:03.196750"
+  },
+  "environments": {
+    "pharaoh_tomb_chamber": {
+      "variations_count": 2,
+      "paths": [
+        "tools\\ai_pipeline\\outputs\\environments\\pharaoh_tomb_chamber_v1.png",
+        "tools\\ai_pipeline\\outputs\\environments\\pharaoh_tomb_chamber_v2.png"
+      ],
+      "status": "success",
+      "quality": "Cinematic_Hades_Style"
+    },
+    "temple_of_gods": {
+      "variations_count": 2,
+      "paths": [
+        "tools\\ai_pipeline\\outputs\\environments\\temple_of_gods_v1.png",
+        "tools\\ai_pipeline\\outputs\\environments\\temple_of_gods_v2.png"
+      ],
+      "status": "success",
+      "quality": "Cinematic_Hades_Style"
+    },
+    "underworld_passage": {
+      "variations_count": 2,
+      "paths": [
+        "tools\\ai_pipeline\\outputs\\environments\\underworld_passage_v1.png",
+        "tools\\ai_pipeline\\outputs\\environments\\underworld_passage_v2.png"
+      ],
+      "status": "success",
+      "quality": "Cinematic_Hades_Style"
+    },
+    "hall_of_judgment": {
+      "variations_count": 2,
+      "paths": [
+        "tools\\ai_pipeline\\outputs\\environments\\hall_of_judgment_v1.png",
+        "tools\\ai_pipeline\\outputs\\environments\\hall_of_judgment_v2.png"
+      ],
+      "status": "success",
+      "quality": "Cinematic_Hades_Style"
+    },
+    "desert_oasis_sanctuary": {
+      "variations_count": 2,
+      "paths": [
+        "tools\\ai_pipeline\\outputs\\environments\\desert_oasis_sanctuary_v1.png",
+        "tools\\ai_pipeline\\outputs\\environments\\desert_oasis_sanctuary_v2.png"
+      ],
+      "status": "success",
+      "quality": "Cinematic_Hades_Style"
+    }
+  }
+}

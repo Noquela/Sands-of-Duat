@@ -1,0 +1,10 @@
+{
+  "environment": "pharaoh_tomb_chamber",
+  "variation": 2,
+  "prompt": "masterpiece, best quality, highly detailed, professional game art,\n                Hades game art style, ancient Egyptian pharaoh tomb chamber, massive stone sarcophagus,\n                golden treasures scattered, ornate hieroglyphic wall murals, dramatic torch lighting,\n                atmospheric dust particles, rich earth tones with golden highlights, mysterious shadows,\n                carved stone pillars, ceremonial canopic jars, cinematic composition,\n                hand-painted texture style, epic scale architecture, 4K resolution",
+  "negative_prompt": "low quality, modern, bright daylight, clean, simple, plain walls,\n                empty space, realistic photography, amateur, blurry, pixelated",
+  "generated_at": "2025-08-23T16:38:58.569350",
+  "aspect_ratio": "cinematic_16_9",
+  "resolution": "1024x768",
+  "art_style": "Hades_Egyptian_Cinematic"
+}

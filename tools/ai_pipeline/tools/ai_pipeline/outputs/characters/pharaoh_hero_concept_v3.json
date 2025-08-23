@@ -1,0 +1,9 @@
+{
+  "character": "pharaoh_hero",
+  "variation": 3,
+  "prompt": "masterpiece, best quality, highly detailed, professional game art, \n                Hades game art style, Egyptian pharaoh warrior hero, golden royal armor with intricate hieroglyphs, \n                ornate khopesh sword, cobra crown headdress, confident heroic pose, dramatic cinematic lighting, \n                rich saturated colors, hand-painted texture style, stylized proportions, \n                desert tomb background, dynamic action pose, 4K resolution, trending on artstation",
+  "negative_prompt": "low quality, blurry, pixelated, amateur, simple, flat lighting, \n                modern clothing, realistic photography, plain background, boring pose, \n                low resolution, bad anatomy, deformed, ugly, watermark",
+  "generated_at": "2025-08-23T16:28:28.168314",
+  "model": "SDXL",
+  "resolution": "1024x1024"
+}

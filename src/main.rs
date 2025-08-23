@@ -7,6 +7,8 @@ mod true_3d_system;
 mod placeholder_3d_models;
 mod placeholder_assets;
 mod hades_assets;
+mod hades_3d_system;
+mod hades_visual_polish;
 mod ui;
 mod procedural;
 mod components;
@@ -17,6 +19,9 @@ use sprite_animation::SpriteAnimationPlugin;
 use true_3d_system::True3DPlugin;
 use placeholder_3d_models::Placeholder3DPlugin;
 use hades_assets::HadesAssetsPlugin;
+use hades_3d_system::Hades3DPlugin;
+use hades_visual_polish::HadesVisualPolishPlugin;
+use ui::HadesUIPlugin;
 use ui::{
     MenuSystemPlugin,
     HudSystemPlugin, 
@@ -75,14 +80,17 @@ fn main() {
         .add_plugins(TransitionSystemPlugin)
         .add_plugins(BoonSelectionPlugin)
         .add_plugins(CombatFeedbackPlugin)
+        .add_plugins(HadesUIPlugin) // NEW: Hades-quality Egyptian UI system
         // Game Systems
         .add_plugins(AssetLoaderPlugin)
         .add_plugins(PlaceholderAssetsPlugin) // Create placeholder assets to prevent crashes
         .add_plugins(HadesAssetsPlugin) // NEW: Hades-style Egyptian art system
         .add_plugins(ProceduralPlugin)
         .add_plugins(BoonSystemPlugin) // NEW: Egyptian god boon system with synergies
-        .add_plugins(SpriteAnimationPlugin) // Load RTX-generated 3D isometric assets  
-        .add_plugins(True3DPlugin) // NEW: True 3D system with glTF models and rigging
+        // .add_plugins(SpriteAnimationPlugin) // Disabled: Now using Hades-quality 3D models
+        // .add_plugins(True3DPlugin) // Disabled: Replaced by Hades3DPlugin
+        .add_plugins(Hades3DPlugin) // NEW: Hades-style 3D rendering with dramatic lighting
+        .add_plugins(HadesVisualPolishPlugin) // NEW: Cinematic post-processing and performance optimization
         // .add_plugins(Placeholder3DPlugin) // Disabled: Now using real 3D models
         .add_event::<SpawnParticlesEvent>()
         .add_event::<AudioEvent>()
@@ -1602,7 +1610,7 @@ fn room_enemy_spawn_system(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut game_state: ResMut<GameState>,
     game_assets: Option<Res<GameAssets>>,
-    true_3d_assets: Option<Res<true_3d_system::True3DAssets>>,
+    hades_3d_assets: Option<Res<hades_3d_system::Hades3DAssets>>,
     rooms: Query<&Room>,
 ) {
     // Check if we need to spawn enemies in the current room
@@ -1686,12 +1694,12 @@ fn room_enemy_spawn_system(
                     },
                 };
                 
-                // Spawn TRUE 3D enemy using glTF models
-                if let Some(assets_3d) = &true_3d_assets {
-                    true_3d_system::spawn_3d_enemy(
+                // Spawn Hades-quality 3D enemy using glTF models
+                if let Some(hades_assets) = hades_3d_assets.as_ref() {
+                    hades_3d_system::spawn_hades_enemy(
                         &mut commands,
-                        assets_3d,
-                        enemy_3d_type,
+                        hades_assets,
+                        enemy_type,
                         pos,
                         ai,
                         stats,

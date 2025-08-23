@@ -1,0 +1,9 @@
+{
+  "character": "anubis_boss",
+  "variation": 2,
+  "prompt": "masterpiece, best quality, highly detailed, professional game art,\n                Hades game art style, Anubis Egyptian jackal god boss, powerful intimidating build, \n                ornate black and gold armor, glowing amber eyes, ceremonial staff weapon, \n                dramatic boss pose, threatening stance, epic dramatic lighting, \n                rich dark colors with gold accents, hand-painted texture style, \n                stylized muscular proportions, ancient temple background, 4K resolution",
+  "negative_prompt": "low quality, blurry, pixelated, amateur, simple, flat lighting, \n                cute, friendly, modern, realistic photography, plain background, \n                weak pose, low resolution, bad anatomy, deformed",
+  "generated_at": "2025-08-23T16:29:03.753424",
+  "model": "SDXL",
+  "resolution": "1024x1024"
+}
