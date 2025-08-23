@@ -20,7 +20,10 @@
       "Bash(git push:*)",
       "Bash(\"/c/Users\\Bruno\\.cargo\\bin\\cargo.exe\" run)",
       "Bash(timeout:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(move:*)",
+      "Bash(mv:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": [],

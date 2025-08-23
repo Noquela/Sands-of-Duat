@@ -1,0 +1,82 @@
+{
+  "workflow_name": "Egyptian Character Generator",
+  "description": "Optimized workflow for generating Egyptian-themed character sprites",
+  "target_resolution": [512, 512],
+  "recommended_steps": 30,
+  "cfg_scale": 8.0,
+  "sampler": "dpmpp_2m_karras",
+  
+  "base_prompt_template": "{character_description}, ancient egyptian character design, detailed character art, game sprite, standing pose, centered composition, clean background, {art_style}",
+  
+  "art_styles": {
+    "papyrus": "papyrus art style, ancient egyptian wall painting, flat colors, hieroglyphic details, golden accents",
+    "realistic": "detailed realistic art, high quality rendering, dramatic lighting, rich textures",
+    "pixel": "pixel art style, 16-bit game sprite, retro gaming aesthetic, clean pixels",
+    "cartoon": "stylized cartoon art, clean lines, vibrant colors, game character design"
+  },
+  
+  "character_types": {
+    "pharaoh": {
+      "description": "mighty pharaoh ruler wearing golden headdress, royal egyptian clothing, holding scepter and ankh, majestic pose",
+      "style": "papyrus",
+      "clothing": "golden crown, white and blue royal robes, golden jewelry"
+    },
+    "anubis": {
+      "description": "anubis god of death, jackal head, muscular humanoid body, holding scales of justice, ancient egyptian deity",
+      "style": "realistic", 
+      "clothing": "egyptian kilt, golden armbands, ceremonial collar"
+    },
+    "isis": {
+      "description": "isis goddess of magic, beautiful woman with wings, egyptian crown, flowing robes, magical aura",
+      "style": "realistic",
+      "clothing": "flowing blue and white dress, golden crown with horns, wing accessories"
+    },
+    "ra": {
+      "description": "ra sun god, falcon head with solar disk, golden radiant aura, powerful stance, divine presence",
+      "style": "realistic",
+      "clothing": "golden armor, solar disk crown, luminous effects"
+    },
+    "set": {
+      "description": "set god of chaos, mysterious creature head, dark and intimidating, chaotic energy, storm powers",
+      "style": "realistic",
+      "clothing": "dark robes, storm cloud effects, lightning elements"
+    },
+    "mummy_guardian": {
+      "description": "ancient mummy guardian, wrapped in linen bandages, glowing eyes, protective stance, tomb guardian",
+      "style": "papyrus",
+      "clothing": "weathered linen wrappings, faded gold jewelry, ancient artifacts"
+    },
+    "sphinx": {
+      "description": "majestic sphinx guardian, lion body human head, ancient wisdom, stone texture, desert guardian",
+      "style": "realistic",
+      "clothing": "egyptian headdress, stone-like skin texture, weathered appearance"
+    },
+    "egyptian_warrior": {
+      "description": "elite egyptian warrior, bronze armor, spear and shield, battle-ready pose, desert fighter",
+      "style": "realistic",
+      "clothing": "bronze scale armor, leather accessories, combat gear"
+    },
+    "priest": {
+      "description": "egyptian priest, shaved head, white robes, holding sacred scroll, wise expression, religious symbols",
+      "style": "papyrus",
+      "clothing": "white linen robes, sacred amulets, ritual accessories"
+    },
+    "scarab_beetle": {
+      "description": "giant scarab beetle, metallic carapace, egyptian hieroglyphic patterns, six legs, insectoid enemy",
+      "style": "realistic",
+      "clothing": "natural chitinous shell, golden accents, wing details"
+    }
+  },
+  
+  "quality_prompts": {
+    "positive": "masterpiece, best quality, highly detailed, sharp focus, vibrant colors, perfect anatomy, professional game art",
+    "negative": "blurry, low quality, distorted, deformed, bad anatomy, cropped, watermark, signature, text, multiple characters, modern clothing, contemporary style"
+  },
+  
+  "post_processing": {
+    "background_removal": true,
+    "size_optimization": true,
+    "format": "PNG",
+    "transparency": true
+  }
+}
