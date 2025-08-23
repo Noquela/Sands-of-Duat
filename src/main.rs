@@ -5,10 +5,30 @@ mod asset_loader;
 mod sprite_animation;
 mod true_3d_system;
 mod placeholder_3d_models;
+mod placeholder_assets;
+mod hades_assets;
+mod ui;
+mod procedural;
+mod components;
+mod boons;
+
 use asset_loader::{AssetLoaderPlugin, GameAssets};
 use sprite_animation::SpriteAnimationPlugin;
 use true_3d_system::True3DPlugin;
 use placeholder_3d_models::Placeholder3DPlugin;
+use hades_assets::HadesAssetsPlugin;
+use ui::{
+    MenuSystemPlugin,
+    HudSystemPlugin, 
+    TransitionSystemPlugin,
+    BoonSelectionPlugin,
+    CombatFeedbackPlugin,
+    AppState,
+};
+use procedural::ProceduralPlugin;
+use components::*;
+use boons::BoonSystemPlugin;
+use placeholder_assets::PlaceholderAssetsPlugin;
 
 // 🔧 Controles estilo Hades (Mouse + R/Q)
 // * Mover: WASD
@@ -49,7 +69,18 @@ fn main() {
             ..default()
         }))
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
+        // UI System Plugins - Hades-style complete UX
+        .add_plugins(MenuSystemPlugin)
+        .add_plugins(HudSystemPlugin)
+        .add_plugins(TransitionSystemPlugin)
+        .add_plugins(BoonSelectionPlugin)
+        .add_plugins(CombatFeedbackPlugin)
+        // Game Systems
         .add_plugins(AssetLoaderPlugin)
+        .add_plugins(PlaceholderAssetsPlugin) // Create placeholder assets to prevent crashes
+        .add_plugins(HadesAssetsPlugin) // NEW: Hades-style Egyptian art system
+        .add_plugins(ProceduralPlugin)
+        .add_plugins(BoonSystemPlugin) // NEW: Egyptian god boon system with synergies
         .add_plugins(SpriteAnimationPlugin) // Load RTX-generated 3D isometric assets  
         .add_plugins(True3DPlugin) // NEW: True 3D system with glTF models and rigging
         // .add_plugins(Placeholder3DPlugin) // Disabled: Now using real 3D models
@@ -68,6 +99,9 @@ fn main() {
         .add_systems(Update, (
             read_input,
             fps_counter_system,
+        ))
+        // Game systems only run during gameplay
+        .add_systems(Update, (
             dash_ui_system,
             combat_ui_system,
             health_stamina_ui_system,
@@ -83,12 +117,9 @@ fn main() {
             room_clear_system,
             room_enemy_spawn_system,
             audio_system,
-        ))
+        ).run_if(in_state(AppState::InGame)))
         .run();
 }
-
-#[derive(Component)]
-struct Player;
 
 #[derive(Component)]
 struct Enemy;
@@ -140,92 +171,8 @@ impl Default for HitEffect {
     }
 }
 
-#[derive(Component)]
-struct Stats {
-    max_health: f32,
-    current_health: f32,
-    max_stamina: f32,
-    current_stamina: f32,
-    speed: f32,
-    stamina_regen_rate: f32,
-}
 
-impl Default for Stats {
-    fn default() -> Self {
-        Self {
-            max_health: 100.0,
-            current_health: 100.0,
-            max_stamina: 100.0,
-            current_stamina: 100.0,
-            speed: 9.5, // Faster like Hades
-            stamina_regen_rate: 25.0, // Stamina per second
-        }
-    }
-}
 
-#[derive(Component)]
-struct Dash {
-    cooldown: f32,
-    cooldown_timer: f32,
-    distance: f32,
-    i_frames: f32,
-    i_timer: f32,
-    is_dashing: bool,
-    dash_timer: f32,
-    dash_direction: Vec3,
-    stamina_cost: f32,
-}
-
-impl Default for Dash {
-    fn default() -> Self {
-        Self {
-            cooldown: 0.9,
-            cooldown_timer: 0.0,
-            distance: 5.5,
-            i_frames: 0.15,
-            i_timer: 0.0,
-            is_dashing: false,
-            dash_timer: 0.0,
-            dash_direction: Vec3::ZERO,
-            stamina_cost: 25.0, // Dash costs 25% stamina
-        }
-    }
-}
-
-#[derive(Component)]
-struct Combat {
-    base_damage: i32,
-    // primário (mouse esq) – chain de 3
-    atk_cd: f32,
-    atk_timer: f32,
-    chain_step: u8,
-    // secundário (mouse dir) – especial leve
-    special_cd: f32,
-    special_timer: f32,
-    // Q – cast/projétil
-    q_cd: f32,
-    q_timer: f32,
-    // R – habilidade principal (AoE)
-    r_cd: f32,
-    r_timer: f32,
-}
-
-impl Default for Combat {
-    fn default() -> Self {
-        Self {
-            base_damage: 10,
-            atk_cd: 0.25,
-            atk_timer: 0.0,
-            chain_step: 0,
-            special_cd: 3.0,
-            special_timer: 0.0,
-            q_cd: 1.2,
-            q_timer: 0.0,
-            r_cd: 8.0,
-            r_timer: 0.0,
-        }
-    }
-}
 
 #[derive(Component, Copy, Clone)]
 struct Projectile {

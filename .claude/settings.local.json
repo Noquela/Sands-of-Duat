@@ -44,7 +44,11 @@
       "Bash(grep:*)",
       "Bash(\"C:/Program Files/Blender Foundation/Blender 4.5/blender.exe\" --background --python tools/blender_3d_modeling.py)",
       "Bash(\"C:/Program Files/Blender Foundation/Blender 4.5/blender.exe\" --background --python tools/create_environment_models.py)",
-      "Bash(\"C:/Program Files/Blender Foundation/Blender 4.5/blender.exe\" --background --python tools/create_staff_weapon.py)"
+      "Bash(\"C:/Program Files/Blender Foundation/Blender 4.5/blender.exe\" --background --python tools/create_staff_weapon.py)",
+      "Bash(\"C:/Program Files/Blender Foundation/Blender 4.5/blender.exe\" --background --python tools/advanced_blender_pipeline.py)",
+      "Bash(\"C:/Program Files/Blender Foundation/Blender 4.5/blender.exe\" --background --python tools/create_advanced_enemies.py)",
+      "Bash(\"C:\\Users\\Bruno\\.cargo\\bin\\cargo.exe\" check)",
+      "Bash(taskkill:*)"
     ],
     "deny": [],
     "ask": [],

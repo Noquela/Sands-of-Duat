@@ -84,9 +84,10 @@ fn load_3d_assets(
     let assets_3d = True3DAssets {
         // Hero with full rigging and animations
         hero_scene: asset_server.load("models/hero.glb#Scene0"),
-        hero_idle: asset_server.load("models/hero.glb#Animation0"),
-        hero_walk: asset_server.load("models/hero.glb#Animation1"),
-        hero_attack: asset_server.load("models/hero.glb#Animation2"),
+        // TODO: Add animations when available in hero.glb
+        hero_idle: asset_server.load("models/hero.glb#Scene0"), // Placeholder
+        hero_walk: asset_server.load("models/hero.glb#Scene0"),  // Placeholder
+        hero_attack: asset_server.load("models/hero.glb#Scene0"), // Placeholder
         
         // Weapon models
         khopesh_scene: asset_server.load("models/weapons/khopesh.glb#Scene0"),

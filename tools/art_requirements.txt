@@ -1,0 +1,23 @@
+# Hades-Style Egyptian Art Generation Requirements
+# High-quality AI art generation for game assets
+
+# Core AI/ML Libraries
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+diffusers>=0.21.0
+transformers>=4.30.0
+accelerate>=0.20.0
+
+# Image Processing
+Pillow>=10.0.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# Utilities
+safetensors>=0.3.0
+xformers>=0.0.20  # Optional: faster attention for NVIDIA GPUs
+
+# Progress and UI
+tqdm>=4.65.0
+rich>=13.0.0

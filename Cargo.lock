@@ -2999,6 +2999,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "rand",
+ "rand_chacha",
  "serde",
  "serde_json",
 ]
