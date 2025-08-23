@@ -69,20 +69,18 @@ echo.
 REM ===========================================
 REM Show menu options
 REM ===========================================
-echo RTX 5070 High-Performance Generation Options:
+echo RTX 5070 AI Generation Options:
 echo.
-echo 1. 🧪 Test RTX Performance ^& Connection
-echo 2. 🎨 Generate 4K Character Sprites (RTX Optimized)
-echo 3. 🖼️  Generate 8K Background Environments  
-echo 4. 🔧 Generate HD UI Elements Pack
-echo 5. ⚔️  Generate 4K Weapons ^& Items
-echo 6. 🏛️  Generate Complete Egyptian Asset Pack (4K-8K)
-echo 7. 🚀 MEGA GENERATION - Everything Ultra Quality (50+ assets)
-echo 8. ⚙️  Custom RTX Generation Settings
-echo 9. ❌ Exit
+echo 1. 🔥 Generate Real AI Assets (Uses your RTX 5070!)
+echo 2. 🧪 Test RTX 5070 ^& CUDA Setup
+echo 3. 📦 Install AI Packages (PyTorch CUDA + Diffusers)
+echo 4. 🎨 Generate Egyptian Characters (Stable Diffusion)
+echo 5. 🖼️  Generate Egyptian Backgrounds (Ultra Quality)
+echo 6. 🏛️  Generate Complete AI Asset Pack
+echo 7. ❌ Exit
 echo.
 
-set /p choice="Enter your choice (1-9): "
+set /p choice="Enter your choice (1-7): "
 
 REM ===========================================
 REM Process user choice
@@ -90,80 +88,51 @@ REM ===========================================
 
 if "%choice%"=="1" (
     echo.
-    echo [TEST] Testing ComfyUI connection...
-    python tools\ai_asset_generator.py test
+    echo [RTX 5070] Starting REAL AI asset generation...
+    python rtx_asset_generator.py
     goto :end
 )
 
 if "%choice%"=="2" (
     echo.
-    echo [SINGLE] Generate Single Asset
-    echo Available types: character, background, ui_element, weapon
-    echo.
-    set /p asset_type="Asset type: "
-    set /p asset_name="Asset name/description: "
-    echo.
-    echo [GENERATE] Generating !asset_type!: !asset_name!
-    python tools\ai_asset_generator.py generate !asset_type! "!asset_name!"
+    echo [TEST] Testing RTX 5070 and CUDA setup...
+    python -c "import torch; print('CUDA Available:', torch.cuda.is_available()); print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"
     goto :end
 )
 
 if "%choice%"=="3" (
     echo.
-    echo [BATCH] Generating Character Assets...
-    python tools\ai_asset_generator.py batch character --count 5
+    echo [INSTALL] Installing RTX AI packages...
+    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+    pip install diffusers transformers accelerate xformers
+    pip install pillow requests
+    echo [SUCCESS] AI packages installed!
     goto :end
 )
 
 if "%choice%"=="4" (
     echo.
-    echo [BATCH] Generating UI Element Assets...
-    python tools\ai_asset_generator.py batch ui_element --count 5
+    echo [RTX GEN] Generating Egyptian Characters with Stable Diffusion...
+    python rtx_asset_generator.py
     goto :end
 )
 
 if "%choice%"=="5" (
     echo.
-    echo [BATCH] Generating Weapon Assets...
-    python tools\ai_asset_generator.py batch weapon --count 5
+    echo [RTX GEN] Generating Egyptian Backgrounds with AI...
+    python rtx_asset_generator.py
     goto :end
 )
 
 if "%choice%"=="6" (
     echo.
-    echo [BATCH] Generating Background Assets...
-    python tools\ai_asset_generator.py batch background --count 5
+    echo [RTX GEN] Generating Complete AI Asset Pack...
+    python rtx_asset_generator.py
     goto :end
 )
 
 if "%choice%"=="7" (
-    echo.
-    echo [COMPLETE SET] Generating ALL Assets...
-    echo This will generate 20+ high-quality Egyptian assets
-    echo This may take 15-30 minutes depending on your system
-    echo.
-    set /p confirm="Continue? (y/n): "
-    if /i "!confirm!"=="y" (
-        python tools\ai_asset_generator.py all
-    ) else (
-        echo Generation cancelled.
-    )
-    goto :end
-)
-
-if "%choice%"=="8" (
-    echo.
-    echo [CUSTOM] Custom Command
-    echo Enter Python command arguments for ai_asset_generator.py
-    echo Example: batch character --count 3
-    echo.
-    set /p custom_args="Arguments: "
-    python tools\ai_asset_generator.py !custom_args!
-    goto :end
-)
-
-if "%choice%"=="9" (
-    echo Exiting...
+    echo Exiting RTX AI Generator...
     goto :end
 )
 

@@ -1,0 +1,32 @@
+{
+  "w": 1152,
+  "h": 1152,
+  "cols": 2,
+  "rows": 2,
+  "frames": [
+    {
+      "i": 0,
+      "x": 0,
+      "y": 0,
+      "w": 1152,
+      "h": 1152,
+      "name": "anubis_judge_var1_alpha"
+    },
+    {
+      "i": 1,
+      "x": 1152,
+      "y": 0,
+      "w": 1152,
+      "h": 1152,
+      "name": "anubis_judge_var2_alpha"
+    },
+    {
+      "i": 2,
+      "x": 0,
+      "y": 1152,
+      "w": 1152,
+      "h": 1152,
+      "name": "anubis_judge_var3_alpha"
+    }
+  ]
+}

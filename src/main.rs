@@ -1,6 +1,11 @@
 use bevy::prelude::*;
 use bevy::window::{WindowResolution, PresentMode};
 
+mod asset_loader;
+mod sprite_animation;
+use asset_loader::{AssetLoaderPlugin, GameAssets};
+use sprite_animation::SpriteAnimationPlugin;
+
 // 🔧 Controles estilo Hades (Mouse + R/Q)
 // * Mover: WASD
 // * Dash: Espaço (com i-frames)
@@ -40,6 +45,8 @@ fn main() {
             ..default()
         }))
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
+        .add_plugins(AssetLoaderPlugin)
+        .add_plugins(SpriteAnimationPlugin) // Load RTX-generated 3D isometric assets
         .add_event::<SpawnParticlesEvent>()
         .add_event::<AudioEvent>()
         .init_resource::<InputState>()
@@ -275,7 +282,7 @@ struct Room {
     room_type: RoomType,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum RoomType {
     Combat,
     Treasure,
@@ -317,7 +324,8 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    _asset_server: Res<AssetServer>,
+    asset_server: Res<AssetServer>,
+    game_assets: Option<Res<GameAssets>>,
     _audio_handles: ResMut<AudioHandles>,
 ) {
     // Load audio assets (using procedural sound generation since we don't have audio files)
@@ -358,16 +366,25 @@ fn setup(
         ..default()
     });
 
-    // Player (Hades-style capsule)
+    // Try loading texture directly from asset server for testing
+    info!("🔧 Testing direct asset loading for pharaoh warrior...");
+    let test_texture: Handle<Image> = asset_server.load("test_player.png");
+    
+    let player_material = materials.add(StandardMaterial {
+        base_color_texture: Some(test_texture),
+        alpha_mode: AlphaMode::Blend, // Use alpha blending for transparent backgrounds
+        unlit: false, // Use lighting for 3D atmosphere
+        double_sided: true,
+        base_color: Color::WHITE,
+        ..default()
+    });
+
     commands.spawn((
         PbrBundle {
-            mesh: meshes.add(Capsule3d::new(0.4, 1.0)),
-            material: materials.add(StandardMaterial {
-                base_color: Color::rgb(0.85, 0.9, 1.0),
-                emissive: Color::rgb(0.1, 0.2, 0.3).into(),
-                ..default()
-            }),
-            transform: Transform::from_xyz(0.0, 0.5, 0.0),
+            mesh: meshes.add(Plane3d::default().mesh().size(3.0, 3.0)), // Proper size for 3D character
+            material: player_material,
+            transform: Transform::from_xyz(0.0, 1.5, 0.0) // Center position, elevated to show 3D effect
+                .with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_4)), // Face camera at 45 degrees for isometric
             ..default()
         },
         Player,
@@ -534,8 +551,9 @@ fn setup(
         }),
     );
 
-    // Create rooms layout
-    setup_rooms(&mut commands, &mut meshes, &mut materials);
+    // Create rooms layout with RTX-generated environments
+    let game_assets_ref = game_assets.as_ref().map(|a| a.as_ref());
+    setup_rooms(&mut commands, &mut meshes, &mut materials, game_assets_ref);
 
     // Spawn enemies in current room (room 0 - start room has some enemies)
     let enemy_spawns = [
@@ -546,14 +564,27 @@ fn setup(
     for (pos, enemy_type) in enemy_spawns {
         let (mesh, material, ai, stats) = match enemy_type {
             EnemyType::Chaser => {
-                // Fast, weak chaser
+                // Fast, weak chaser - RTX-generated Anubis sprite
                 (
-                    meshes.add(Cuboid::new(0.8, 0.8, 0.8)),
-                    materials.add(StandardMaterial {
-                        base_color: Color::rgb(0.8, 0.2, 0.2),
-                        emissive: Color::rgb(0.4, 0.1, 0.1).into(),
-                        ..default()
-                    }),
+                    meshes.add(Plane3d::default().mesh().size(2.0, 2.0)), // Billboard for 3D sprite
+                    if let Some(assets) = &game_assets {
+                        info!("✅ Using RTX-generated Anubis Judge sprite for chaser enemy");
+                        materials.add(StandardMaterial {
+                            base_color_texture: Some(assets.anubis_judge.clone()),
+                            alpha_mode: AlphaMode::Blend,
+                            unlit: true,
+                            double_sided: true,
+                            base_color: Color::WHITE,
+                            ..default()
+                        })
+                    } else {
+                        info!("⚠️ Assets not loaded, using red fallback for chaser");
+                        materials.add(StandardMaterial {
+                            base_color: Color::rgb(0.8, 0.2, 0.2),
+                            emissive: Color::rgb(0.4, 0.1, 0.1).into(),
+                            ..default()
+                        })
+                    },
                     AI {
                         target_range: 12.0,
                         chase_speed: 4.0,
@@ -571,14 +602,24 @@ fn setup(
                 )
             },
             EnemyType::Shooter => {
-                // Ranged shooter
+                // Ranged shooter - RTX-generated Mummy Guardian sprite
                 (
-                    meshes.add(Cuboid::new(0.7, 1.2, 0.7)),
-                    materials.add(StandardMaterial {
-                        base_color: Color::rgb(0.2, 0.8, 0.2),
-                        emissive: Color::rgb(0.1, 0.4, 0.1).into(),
-                        ..default()
-                    }),
+                    meshes.add(Plane3d::default().mesh().size(2.0, 2.0)), // Billboard for 3D sprite
+                    if let Some(assets) = &game_assets {
+                        materials.add(StandardMaterial {
+                            base_color_texture: Some(assets.mummy_guardian.clone()),
+                            alpha_mode: AlphaMode::Blend,
+                            unlit: true,
+                            double_sided: true,
+                            ..default()
+                        })
+                    } else {
+                        materials.add(StandardMaterial {
+                            base_color: Color::rgb(0.2, 0.8, 0.2),
+                            emissive: Color::rgb(0.1, 0.4, 0.1).into(),
+                            ..default()
+                        })
+                    },
                     AI {
                         target_range: 15.0,
                         chase_speed: 1.5,
@@ -596,14 +637,24 @@ fn setup(
                 )
             },
             EnemyType::Tank => {
-                // Slow, heavy tank
+                // Slow, heavy tank - RTX-generated Set Chaos sprite  
                 (
-                    meshes.add(Cuboid::new(1.2, 1.2, 1.2)),
-                    materials.add(StandardMaterial {
-                        base_color: Color::rgb(0.6, 0.6, 0.2),
-                        emissive: Color::rgb(0.3, 0.3, 0.1).into(),
-                        ..default()
-                    }),
+                    meshes.add(Plane3d::default().mesh().size(2.5, 2.5)), // Larger billboard for tank
+                    if let Some(assets) = &game_assets {
+                        materials.add(StandardMaterial {
+                            base_color_texture: Some(assets.set_chaos.clone()),
+                            alpha_mode: AlphaMode::Blend,
+                            unlit: true,
+                            double_sided: true,
+                            ..default()
+                        })
+                    } else {
+                        materials.add(StandardMaterial {
+                            base_color: Color::rgb(0.6, 0.6, 0.2),
+                            emissive: Color::rgb(0.3, 0.3, 0.1).into(),
+                            ..default()
+                        })
+                    },
                     AI {
                         target_range: 8.0,
                         chase_speed: 1.0,
@@ -626,7 +677,8 @@ fn setup(
             PbrBundle {
                 mesh,
                 material,
-                transform: Transform::from_translation(pos),
+                transform: Transform::from_translation(pos)
+                    .with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_4)), // Face camera for 3D effect
                 ..default()
             },
             Enemy,
@@ -1292,6 +1344,7 @@ fn setup_rooms(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
+    game_assets: Option<&GameAssets>,
 ) {
     let rooms = [
         (0, Vec2::new(0.0, 0.0), RoomType::Start),      // Starting room
@@ -1303,19 +1356,35 @@ fn setup_rooms(
     for (id, center, room_type) in rooms {
         let room_size = Vec2::new(20.0, 20.0);
         
-        // Room floor
+        // Room floor with RTX-generated 3D environment
         commands.spawn((
             PbrBundle {
                 mesh: meshes.add(Plane3d::default().mesh().size(room_size.x, room_size.y)),
-                material: materials.add(StandardMaterial {
-                    base_color: match room_type {
-                        RoomType::Start => Color::rgb(0.6, 0.8, 0.6),
-                        RoomType::Combat => Color::rgb(0.8, 0.6, 0.6),
-                        RoomType::Boss => Color::rgb(0.8, 0.6, 0.8),
-                        RoomType::Treasure => Color::rgb(0.8, 0.8, 0.6),
-                    },
-                    ..default()
-                }),
+                material: if let Some(assets) = game_assets {
+                    info!("✅ Applying RTX-generated environment texture for {:?} room", room_type);
+                    materials.add(StandardMaterial {
+                        base_color_texture: Some(match room_type {
+                            RoomType::Start => assets.desert_oasis.clone(),
+                            RoomType::Combat => assets.tomb_chamber.clone(),
+                            RoomType::Boss => assets.pyramid_interior.clone(),
+                            RoomType::Treasure => assets.temple_halls.clone(),
+                        }),
+                        alpha_mode: AlphaMode::Opaque, // No transparency for floors
+                        unlit: false, // Use lighting for atmosphere
+                        base_color: Color::WHITE, // Full brightness
+                        ..default()
+                    })
+                } else {
+                    materials.add(StandardMaterial {
+                        base_color: match room_type {
+                            RoomType::Start => Color::rgb(0.6, 0.8, 0.6),
+                            RoomType::Combat => Color::rgb(0.8, 0.6, 0.6),
+                            RoomType::Boss => Color::rgb(0.8, 0.6, 0.8),
+                            RoomType::Treasure => Color::rgb(0.8, 0.8, 0.6),
+                        },
+                        ..default()
+                    })
+                },
                 transform: Transform::from_translation(Vec3::new(center.x, -0.1, center.y)),
                 ..default()
             },
@@ -1328,6 +1397,9 @@ fn setup_rooms(
             },
         ));
 
+        // Add atmospheric 3D environment elements
+        add_room_decorations(commands, meshes, materials, game_assets, center, room_type);
+        
         // Create room walls (visual boundaries)
         create_room_walls(commands, meshes, materials, center, room_size);
     }
@@ -1358,6 +1430,117 @@ fn setup_rooms(
                 active: from_room == 0, // First transition starts active
             },
         ));
+    }
+}
+
+fn add_room_decorations(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    game_assets: Option<&GameAssets>,
+    center: Vec2,
+    room_type: RoomType,
+) {
+    if let Some(assets) = game_assets {
+        info!("✅ Adding 3D environment decorations for {:?} room", room_type);
+        
+        // Add torch braziers for atmospheric lighting
+        let torch_positions = vec![
+            Vec3::new(center.x - 8.0, 1.5, center.y - 8.0),
+            Vec3::new(center.x + 8.0, 1.5, center.y - 8.0),
+            Vec3::new(center.x - 8.0, 1.5, center.y + 8.0),
+            Vec3::new(center.x + 8.0, 1.5, center.y + 8.0),
+        ];
+        
+        for torch_pos in torch_positions {
+            commands.spawn((
+                PbrBundle {
+                    mesh: meshes.add(Plane3d::default().mesh().size(2.0, 2.0)),
+                    material: materials.add(StandardMaterial {
+                        base_color_texture: Some(assets.torch_brazier.clone()),
+                        alpha_mode: AlphaMode::Blend,
+                        unlit: true, // Self-illuminated for atmospheric effect
+                        double_sided: true,
+                        base_color: Color::WHITE,
+                        ..default()
+                    }),
+                    transform: Transform::from_translation(torch_pos)
+                        .with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_4)),
+                    ..default()
+                },
+            ));
+        }
+        
+        // Add room-specific decorations
+        match room_type {
+            RoomType::Start => {
+                // Add Anubis guardian statue in start room
+                commands.spawn((
+                    PbrBundle {
+                        mesh: meshes.add(Plane3d::default().mesh().size(3.0, 3.0)),
+                        material: materials.add(StandardMaterial {
+                            base_color_texture: Some(assets.anubis_guardian_statue.clone()),
+                            alpha_mode: AlphaMode::Blend,
+                            unlit: false,
+                            double_sided: true,
+                            base_color: Color::WHITE,
+                            ..default()
+                        }),
+                        transform: Transform::from_xyz(center.x, 1.5, center.y - 5.0)
+                            .with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_4)),
+                        ..default()
+                    },
+                ));
+            },
+            RoomType::Combat => {
+                // Add stone pillars in combat rooms for cover and atmosphere
+                let pillar_positions = vec![
+                    Vec3::new(center.x - 6.0, 2.0, center.y),
+                    Vec3::new(center.x + 6.0, 2.0, center.y),
+                ];
+                
+                for pillar_pos in pillar_positions {
+                    commands.spawn((
+                        PbrBundle {
+                            mesh: meshes.add(Plane3d::default().mesh().size(2.5, 2.5)),
+                            material: materials.add(StandardMaterial {
+                                base_color_texture: Some(assets.stone_pillar_ornate.clone()),
+                                alpha_mode: AlphaMode::Blend,
+                                unlit: false,
+                                double_sided: true,
+                                base_color: Color::WHITE,
+                                ..default()
+                            }),
+                            transform: Transform::from_translation(pillar_pos)
+                                .with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_4)),
+                            ..default()
+                        },
+                    ));
+                }
+            },
+            RoomType::Boss => {
+                // Add Egyptian wall sections in boss room
+                commands.spawn((
+                    PbrBundle {
+                        mesh: meshes.add(Plane3d::default().mesh().size(4.0, 4.0)),
+                        material: materials.add(StandardMaterial {
+                            base_color_texture: Some(assets.egyptian_wall_section.clone()),
+                            alpha_mode: AlphaMode::Blend,
+                            unlit: false,
+                            double_sided: true,
+                            base_color: Color::WHITE,
+                            ..default()
+                        }),
+                        transform: Transform::from_xyz(center.x, 2.0, center.y + 8.0)
+                            .with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_4)),
+                        ..default()
+                    },
+                ));
+            },
+            RoomType::Treasure => {
+                // Future treasure room decorations
+            },
+        }
     }
 }
 
@@ -1484,6 +1667,7 @@ fn room_enemy_spawn_system(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut game_state: ResMut<GameState>,
+    game_assets: Option<Res<GameAssets>>,
     rooms: Query<&Room>,
 ) {
     // Check if we need to spawn enemies in the current room
@@ -1514,12 +1698,22 @@ fn room_enemy_spawn_system(
             for (pos, enemy_type) in enemy_spawns {
                 let (mesh, material, ai, stats) = match enemy_type {
                     EnemyType::Chaser => (
-                        meshes.add(Cuboid::new(0.8, 0.8, 0.8)),
-                        materials.add(StandardMaterial {
-                            base_color: Color::rgb(0.8, 0.2, 0.2),
-                            emissive: Color::rgb(0.4, 0.1, 0.1).into(),
-                            ..default()
-                        }),
+                        meshes.add(Plane3d::default().mesh().size(2.5, 2.5)), // Proper 3D billboard size
+                        if let Some(assets) = &game_assets {
+                            materials.add(StandardMaterial {
+                                base_color_texture: Some(assets.anubis_judge.clone()),
+                                alpha_mode: AlphaMode::Blend,
+                                unlit: true,
+                                double_sided: true,
+                                ..default()
+                            })
+                        } else {
+                            materials.add(StandardMaterial {
+                                base_color: Color::rgb(0.8, 0.2, 0.2),
+                                emissive: Color::rgb(0.4, 0.1, 0.1).into(),
+                                ..default()
+                            })
+                        },
                         AI {
                             target_range: 12.0,
                             chase_speed: 4.0,
@@ -1536,12 +1730,22 @@ fn room_enemy_spawn_system(
                         },
                     ),
                     EnemyType::Shooter => (
-                        meshes.add(Cuboid::new(0.7, 1.2, 0.7)),
-                        materials.add(StandardMaterial {
-                            base_color: Color::rgb(0.2, 0.8, 0.2),
-                            emissive: Color::rgb(0.1, 0.4, 0.1).into(),
-                            ..default()
-                        }),
+                        meshes.add(Plane3d::default().mesh().size(2.0, 2.0)), // Billboard for 3D sprite
+                        if let Some(assets) = &game_assets {
+                            materials.add(StandardMaterial {
+                                base_color_texture: Some(assets.mummy_guardian.clone()),
+                                alpha_mode: AlphaMode::Blend,
+                                unlit: true,
+                                double_sided: true,
+                                ..default()
+                            })
+                        } else {
+                            materials.add(StandardMaterial {
+                                base_color: Color::rgb(0.2, 0.8, 0.2),
+                                emissive: Color::rgb(0.1, 0.4, 0.1).into(),
+                                ..default()
+                            })
+                        },
                         AI {
                             target_range: 15.0,
                             chase_speed: 1.5,
@@ -1558,12 +1762,22 @@ fn room_enemy_spawn_system(
                         },
                     ),
                     EnemyType::Tank => (
-                        meshes.add(Cuboid::new(1.2, 1.2, 1.2)),
-                        materials.add(StandardMaterial {
-                            base_color: Color::rgb(0.6, 0.6, 0.2),
-                            emissive: Color::rgb(0.3, 0.3, 0.1).into(),
-                            ..default()
-                        }),
+                        meshes.add(Plane3d::default().mesh().size(2.5, 2.5)), // Larger billboard for tank
+                        if let Some(assets) = &game_assets {
+                            materials.add(StandardMaterial {
+                                base_color_texture: Some(assets.set_chaos.clone()),
+                                alpha_mode: AlphaMode::Blend,
+                                unlit: true,
+                                double_sided: true,
+                                ..default()
+                            })
+                        } else {
+                            materials.add(StandardMaterial {
+                                base_color: Color::rgb(0.6, 0.6, 0.2),
+                                emissive: Color::rgb(0.3, 0.3, 0.1).into(),
+                                ..default()
+                            })
+                        },
                         AI {
                             target_range: 8.0,
                             chase_speed: 1.0,
@@ -1585,7 +1799,8 @@ fn room_enemy_spawn_system(
                     PbrBundle {
                         mesh,
                         material,
-                        transform: Transform::from_translation(pos),
+                        transform: Transform::from_translation(pos)
+                            .with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_4)), // Face camera for 3D effect
                         ..default()
                     },
                     Enemy,

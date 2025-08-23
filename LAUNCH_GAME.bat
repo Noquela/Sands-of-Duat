@@ -11,9 +11,17 @@ title Sands of Duat - Launch Game
 
 cd /d "%~dp0"
 
-REM Check if Rust/Cargo is installed
-where cargo >nul 2>nul
-if %errorlevel% neq 0 (
+REM Try different cargo locations
+set CARGO_PATH=
+where cargo >nul 2>nul && set CARGO_PATH=cargo
+if "%CARGO_PATH%"=="" (
+    if exist "%USERPROFILE%\.cargo\bin\cargo.exe" set CARGO_PATH=%USERPROFILE%\.cargo\bin\cargo.exe
+)
+if "%CARGO_PATH%"=="" (
+    if exist "C:\Users\Bruno\.cargo\bin\cargo.exe" set CARGO_PATH=C:\Users\Bruno\.cargo\bin\cargo.exe
+)
+
+if "%CARGO_PATH%"=="" (
     echo [ERROR] Rust/Cargo not found!
     echo.
     echo Please install Rust first:
@@ -26,7 +34,7 @@ if %errorlevel% neq 0 (
 )
 
 echo [SUCCESS] Rust found - Version:
-cargo --version
+"%CARGO_PATH%" --version
 echo.
 
 REM Check if project files exist
@@ -66,7 +74,7 @@ if "%ASSETS_FOUND%"=="true" (
     echo [ASSETS] Visual quality will be enhanced!
 ) else (
     echo [INFO] No custom assets found - using default visuals
-    echo [TIP] Run: tools\direct_asset_generator.py to generate Egyptian assets
+    echo [TIP] Run: python tools\rtx_asset_generator.py to generate REAL AI assets
 )
 
 echo.
@@ -91,7 +99,7 @@ echo [MODE] Release mode for maximum performance
 echo.
 
 REM Launch the game in release mode
-cargo run --release
+"%CARGO_PATH%" run --release
 
 REM Check exit status
 if %errorlevel% equ 0 (
@@ -114,8 +122,8 @@ echo ============================================================
 echo.
 echo Available commands:
 echo  - LAUNCH_GAME.bat          (Play again)
-echo  - tools\generate_ai_assets.bat  (Generate more assets)
-echo  - python tools\direct_asset_generator.py  (Quick asset gen)
+echo  - tools\generate_ai_assets.bat  (Generate RTX AI assets)
+echo  - python tools\rtx_asset_generator.py  (Direct RTX generation)
 echo.
 echo Game statistics:
 echo  - Engine: Bevy 0.13 (Rust)
