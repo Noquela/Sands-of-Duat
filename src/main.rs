@@ -42,6 +42,13 @@ fn main() {
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
         .add_event::<SpawnParticlesEvent>()
         .init_resource::<InputState>()
+        .insert_resource(GameState {
+            current_room: 0,
+            rooms_cleared: 0,
+            total_rooms: 3,
+            previous_room: 0,
+            enemies_spawned: vec![true, false, false], // Room 0 already has enemies spawned
+        })
         .add_systems(Startup, setup)
         .add_systems(Update, (
             read_input,
@@ -57,6 +64,9 @@ fn main() {
             hit_effect_system,
             particle_spawn_system,
             particle_system,
+            room_transition_system,
+            room_clear_system,
+            room_enemy_spawn_system,
         ))
         .run();
 }
@@ -237,6 +247,42 @@ struct SpawnParticlesEvent {
     position: Vec3,
     color: Color,
     count: usize,
+}
+
+// Room system components
+#[derive(Component)]
+struct Room {
+    id: usize,
+    size: Vec2,
+    center: Vec2,
+    cleared: bool,
+    room_type: RoomType,
+}
+
+#[derive(Clone, Copy)]
+enum RoomType {
+    Combat,
+    Treasure,
+    Boss,
+    Start,
+}
+
+#[derive(Component)]
+struct RoomTransition {
+    from_room: usize,
+    to_room: usize,
+    position: Vec3,
+    size: Vec3,
+    active: bool,
+}
+
+#[derive(Resource)]
+struct GameState {
+    current_room: usize,
+    rooms_cleared: usize,
+    total_rooms: usize,
+    previous_room: usize,
+    enemies_spawned: Vec<bool>, // Track which rooms have spawned enemies
 }
 
 fn setup(
@@ -439,9 +485,9 @@ fn setup(
     // Controls help - Hades style
     commands.spawn(
         TextBundle::from_section(
-            "WASD: Move | SPACE: Dash | LMB: Attack | RMB: Special | Q: Cast | R: AoE",
+            "WASD: Move | SPACE: Dash | LMB: Attack | RMB: Special | Q: Cast | R: AoE | E: Interact",
             TextStyle {
-                font_size: 24.0,
+                font_size: 22.0,
                 color: Color::rgb(0.7, 0.7, 0.7),
                 ..default()
             },
@@ -454,13 +500,13 @@ fn setup(
         }),
     );
 
-    // Spawn different types of enemies
+    // Create rooms layout
+    setup_rooms(&mut commands, &mut meshes, &mut materials);
+
+    // Spawn enemies in current room (room 0 - start room has some enemies)
     let enemy_spawns = [
         (Vec3::new(5.0, 0.5, 3.0), EnemyType::Chaser),
         (Vec3::new(-4.0, 0.5, -2.0), EnemyType::Shooter),
-        (Vec3::new(2.0, 0.5, -5.0), EnemyType::Tank),
-        (Vec3::new(-6.0, 0.5, 4.0), EnemyType::Chaser),
-        (Vec3::new(7.0, 0.5, -3.0), EnemyType::Shooter),
     ];
 
     for (pos, enemy_type) in enemy_spawns {
@@ -1166,6 +1212,320 @@ fn particle_system(
             if let Color::Rgba { red, green, blue, .. } = material.base_color {
                 material.base_color = Color::rgba(red, green, blue, alpha);
             }
+        }
+    }
+}
+
+fn setup_rooms(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+) {
+    let rooms = [
+        (0, Vec2::new(0.0, 0.0), RoomType::Start),      // Starting room
+        (1, Vec2::new(25.0, 0.0), RoomType::Combat),    // Combat room 1
+        (2, Vec2::new(50.0, 0.0), RoomType::Boss),      // Boss room
+    ];
+
+    // Create room boundaries
+    for (id, center, room_type) in rooms {
+        let room_size = Vec2::new(20.0, 20.0);
+        
+        // Room floor
+        commands.spawn((
+            PbrBundle {
+                mesh: meshes.add(Plane3d::default().mesh().size(room_size.x, room_size.y)),
+                material: materials.add(StandardMaterial {
+                    base_color: match room_type {
+                        RoomType::Start => Color::rgb(0.6, 0.8, 0.6),
+                        RoomType::Combat => Color::rgb(0.8, 0.6, 0.6),
+                        RoomType::Boss => Color::rgb(0.8, 0.6, 0.8),
+                        RoomType::Treasure => Color::rgb(0.8, 0.8, 0.6),
+                    },
+                    ..default()
+                }),
+                transform: Transform::from_translation(Vec3::new(center.x, -0.1, center.y)),
+                ..default()
+            },
+            Room {
+                id,
+                size: room_size,
+                center,
+                cleared: id == 0, // Start room is already "cleared"
+                room_type,
+            },
+        ));
+
+        // Create room walls (visual boundaries)
+        create_room_walls(commands, meshes, materials, center, room_size);
+    }
+
+    // Create transitions between rooms
+    let transitions = [
+        (0, 1, Vec3::new(12.5, 0.5, 0.0)),  // Room 0 -> Room 1
+        (1, 2, Vec3::new(37.5, 0.5, 0.0)),  // Room 1 -> Room 2
+    ];
+
+    for (from_room, to_room, position) in transitions {
+        commands.spawn((
+            PbrBundle {
+                mesh: meshes.add(Cuboid::new(2.0, 2.0, 1.0)),
+                material: materials.add(StandardMaterial {
+                    base_color: Color::rgb(0.2, 0.8, 1.0),
+                    emissive: Color::rgb(0.1, 0.4, 0.5).into(),
+                    ..default()
+                }),
+                transform: Transform::from_translation(position),
+                ..default()
+            },
+            RoomTransition {
+                from_room,
+                to_room,
+                position,
+                size: Vec3::new(2.0, 2.0, 1.0),
+                active: from_room == 0, // First transition starts active
+            },
+        ));
+    }
+}
+
+fn create_room_walls(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    center: Vec2,
+    size: Vec2,
+) {
+    let wall_height = 3.0;
+    let wall_thickness = 0.5;
+    let half_size = size / 2.0;
+
+    let wall_material = materials.add(StandardMaterial {
+        base_color: Color::rgb(0.4, 0.3, 0.2),
+        ..default()
+    });
+
+    // North wall
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Cuboid::new(size.x + wall_thickness, wall_height, wall_thickness)),
+        material: wall_material.clone(),
+        transform: Transform::from_translation(Vec3::new(center.x, wall_height / 2.0, center.y + half_size.y)),
+        ..default()
+    });
+
+    // South wall
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Cuboid::new(size.x + wall_thickness, wall_height, wall_thickness)),
+        material: wall_material.clone(),
+        transform: Transform::from_translation(Vec3::new(center.x, wall_height / 2.0, center.y - half_size.y)),
+        ..default()
+    });
+
+    // East wall (with gaps for transitions)
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Cuboid::new(wall_thickness, wall_height, size.y - 4.0)), // Gap for transition
+        material: wall_material.clone(),
+        transform: Transform::from_translation(Vec3::new(center.x + half_size.x, wall_height / 2.0, center.y + 2.0)),
+        ..default()
+    });
+    
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Cuboid::new(wall_thickness, wall_height, size.y - 4.0)),
+        material: wall_material.clone(),
+        transform: Transform::from_translation(Vec3::new(center.x + half_size.x, wall_height / 2.0, center.y - 2.0)),
+        ..default()
+    });
+
+    // West wall
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Cuboid::new(wall_thickness, wall_height, size.y + wall_thickness)),
+        material: wall_material,
+        transform: Transform::from_translation(Vec3::new(center.x - half_size.x, wall_height / 2.0, center.y)),
+        ..default()
+    });
+}
+
+fn room_transition_system(
+    mut game_state: ResMut<GameState>,
+    mut player_query: Query<&mut Transform, With<Player>>,
+    transitions: Query<&RoomTransition>,
+    input: Res<InputState>,
+) {
+    if let Ok(mut player_transform) = player_query.get_single_mut() {
+        for transition in &transitions {
+            if !transition.active || transition.from_room != game_state.current_room {
+                continue;
+            }
+
+            let distance = player_transform.translation.distance(transition.position);
+            if distance <= 2.0 && input.interact {
+                // Trigger room transition
+                game_state.previous_room = game_state.current_room;
+                game_state.current_room = transition.to_room;
+                
+                // Move player to new room center
+                let room_centers = [
+                    Vec2::new(0.0, 0.0),   // Room 0
+                    Vec2::new(25.0, 0.0),  // Room 1
+                    Vec2::new(50.0, 0.0),  // Room 2
+                ];
+                
+                if let Some(new_center) = room_centers.get(transition.to_room) {
+                    player_transform.translation = Vec3::new(new_center.x - 5.0, 0.5, new_center.y);
+                }
+                
+                break;
+            }
+        }
+    }
+}
+
+fn room_clear_system(
+    mut game_state: ResMut<GameState>,
+    mut rooms: Query<&mut Room>,
+    mut transitions: Query<&mut RoomTransition>,
+    enemies: Query<&Enemy>,
+) {
+    // Check if current room should be cleared
+    let enemy_count = enemies.iter().count();
+    
+    if enemy_count == 0 {
+        // Clear current room
+        for mut room in &mut rooms {
+            if room.id == game_state.current_room && !room.cleared {
+                room.cleared = true;
+                game_state.rooms_cleared += 1;
+                
+                // Activate next transition
+                for mut transition in &mut transitions {
+                    if transition.from_room == game_state.current_room {
+                        transition.active = true;
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn room_enemy_spawn_system(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut game_state: ResMut<GameState>,
+    rooms: Query<&Room>,
+) {
+    // Check if we need to spawn enemies in the current room
+    if game_state.current_room < game_state.enemies_spawned.len() && 
+       !game_state.enemies_spawned[game_state.current_room] {
+        
+        // Find current room info
+        if let Some(current_room) = rooms.iter().find(|r| r.id == game_state.current_room) {
+            let room_center = current_room.center;
+            
+            let enemy_spawns = match current_room.room_type {
+                RoomType::Start => vec![], // No new enemies in start room
+                RoomType::Combat => vec![
+                    (Vec3::new(room_center.x + 3.0, 0.5, room_center.y + 2.0), EnemyType::Chaser),
+                    (Vec3::new(room_center.x - 2.0, 0.5, room_center.y - 3.0), EnemyType::Shooter),
+                    (Vec3::new(room_center.x + 1.0, 0.5, room_center.y - 1.0), EnemyType::Tank),
+                ],
+                RoomType::Boss => vec![
+                    (Vec3::new(room_center.x, 0.5, room_center.y + 3.0), EnemyType::Tank),
+                    (Vec3::new(room_center.x + 4.0, 0.5, room_center.y), EnemyType::Shooter),
+                    (Vec3::new(room_center.x - 4.0, 0.5, room_center.y), EnemyType::Shooter),
+                    (Vec3::new(room_center.x + 2.0, 0.5, room_center.y - 2.0), EnemyType::Chaser),
+                    (Vec3::new(room_center.x - 2.0, 0.5, room_center.y - 2.0), EnemyType::Chaser),
+                ],
+                RoomType::Treasure => vec![], // No enemies in treasure rooms
+            };
+            
+            for (pos, enemy_type) in enemy_spawns {
+                let (mesh, material, ai, stats) = match enemy_type {
+                    EnemyType::Chaser => (
+                        meshes.add(Cuboid::new(0.8, 0.8, 0.8)),
+                        materials.add(StandardMaterial {
+                            base_color: Color::rgb(0.8, 0.2, 0.2),
+                            emissive: Color::rgb(0.4, 0.1, 0.1).into(),
+                            ..default()
+                        }),
+                        AI {
+                            target_range: 12.0,
+                            chase_speed: 4.0,
+                            attack_cooldown: 0.0,
+                            attack_timer: 0.0,
+                        },
+                        Stats {
+                            max_health: 30.0,
+                            current_health: 30.0,
+                            max_stamina: 0.0,
+                            current_stamina: 0.0,
+                            speed: 4.0,
+                            stamina_regen_rate: 0.0,
+                        },
+                    ),
+                    EnemyType::Shooter => (
+                        meshes.add(Cuboid::new(0.7, 1.2, 0.7)),
+                        materials.add(StandardMaterial {
+                            base_color: Color::rgb(0.2, 0.8, 0.2),
+                            emissive: Color::rgb(0.1, 0.4, 0.1).into(),
+                            ..default()
+                        }),
+                        AI {
+                            target_range: 15.0,
+                            chase_speed: 1.5,
+                            attack_cooldown: 2.0,
+                            attack_timer: 0.0,
+                        },
+                        Stats {
+                            max_health: 40.0,
+                            current_health: 40.0,
+                            max_stamina: 0.0,
+                            current_stamina: 0.0,
+                            speed: 1.5,
+                            stamina_regen_rate: 0.0,
+                        },
+                    ),
+                    EnemyType::Tank => (
+                        meshes.add(Cuboid::new(1.2, 1.2, 1.2)),
+                        materials.add(StandardMaterial {
+                            base_color: Color::rgb(0.6, 0.6, 0.2),
+                            emissive: Color::rgb(0.3, 0.3, 0.1).into(),
+                            ..default()
+                        }),
+                        AI {
+                            target_range: 8.0,
+                            chase_speed: 1.0,
+                            attack_cooldown: 0.0,
+                            attack_timer: 0.0,
+                        },
+                        Stats {
+                            max_health: 120.0,
+                            current_health: 120.0,
+                            max_stamina: 0.0,
+                            current_stamina: 0.0,
+                            speed: 1.0,
+                            stamina_regen_rate: 0.0,
+                        },
+                    ),
+                };
+
+                commands.spawn((
+                    PbrBundle {
+                        mesh,
+                        material,
+                        transform: Transform::from_translation(pos),
+                        ..default()
+                    },
+                    Enemy,
+                    enemy_type,
+                    ai,
+                    stats,
+                ));
+            }
+            
+            // Mark this room as having spawned enemies
+            let current_room_id = game_state.current_room;
+            game_state.enemies_spawned[current_room_id] = true;
         }
     }
 }
