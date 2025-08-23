@@ -1,0 +1,14 @@
+{
+  "name": "anubis_fur_albedo",
+  "prompt": "Black jackal fur texture, seamless tileable, dense canine fur pattern, dark black with subtle highlights, natural animal texture, high resolution material",
+  "negative": "seams, visible edges, not tileable, blurry, low quality, distorted, watermark, text, signature",
+  "seed": 22347,
+  "size": [
+    1024,
+    1024
+  ],
+  "steps": 40,
+  "guidance": 6.5,
+  "seamless": true,
+  "type": "texture"
+}

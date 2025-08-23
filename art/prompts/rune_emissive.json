@@ -1,0 +1,14 @@
+{
+  "name": "rune_emissive",
+  "prompt": "Egyptian magical runes emissive texture, glowing hieroglyphs, bright golden yellow light, mystical symbols, alpha mask for glowing effects, black background",
+  "negative": "seams, visible edges, not tileable, blurry, low quality, distorted, watermark, text, signature",
+  "seed": 32345,
+  "size": [
+    1024,
+    1024
+  ],
+  "steps": 40,
+  "guidance": 6.5,
+  "seamless": false,
+  "type": "texture"
+}

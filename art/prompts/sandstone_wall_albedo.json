@@ -1,0 +1,14 @@
+{
+  "name": "sandstone_wall_albedo",
+  "prompt": "Egyptian temple sandstone wall texture, seamless tileable, carved hieroglyphic blocks, weathered stone surface, desert beige color, architectural texture",
+  "negative": "seams, visible edges, not tileable, blurry, low quality, distorted, watermark, text, signature",
+  "seed": 22348,
+  "size": [
+    1024,
+    1024
+  ],
+  "steps": 40,
+  "guidance": 6.5,
+  "seamless": true,
+  "type": "texture"
+}

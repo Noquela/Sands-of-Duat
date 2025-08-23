@@ -1,0 +1,13 @@
+{
+  "name": "hero_pharaoh_concept",
+  "prompt": "Egyptian pharaoh warrior character concept art, multiple views (front, side, back, 3/4), detailed armor design, khopesh sword, golden ornaments, royal headpiece, athletic build, dark skin, concept sheet style, clean white background",
+  "negative": "blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, cartoon, anime, 3d render, not concept art",
+  "seed": 12345,
+  "size": [
+    1152,
+    1152
+  ],
+  "steps": 50,
+  "guidance": 7.5,
+  "type": "concept"
+}

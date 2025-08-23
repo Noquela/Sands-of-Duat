@@ -1,0 +1,14 @@
+{
+  "name": "eye_of_horus_emissive",
+  "prompt": "Eye of Horus glowing emissive texture, bright golden light, mystical Egyptian symbol, magical glow effect, alpha mask, black background",
+  "negative": "seams, visible edges, not tileable, blurry, low quality, distorted, watermark, text, signature",
+  "seed": 32346,
+  "size": [
+    512,
+    512
+  ],
+  "steps": 40,
+  "guidance": 6.5,
+  "seamless": false,
+  "type": "texture"
+}

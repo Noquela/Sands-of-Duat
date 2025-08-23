@@ -1,3 +1,20 @@
-rembg>=2.0.67
-Pillow>=10.2
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+diffusers>=0.21.0
+transformers>=4.25.0
+accelerate>=0.20.0
+pillow>=10.2
 numpy>=1.26
+
+# Background removal and image processing
+rembg>=2.0.67
+opencv-python>=4.8.0
+scikit-image>=0.19.0
+
+# 3D model processing (optional)
+trimesh>=3.15.0
+pymeshlab>=2022.2
+
+# Texture processing
+imageio>=2.25.0

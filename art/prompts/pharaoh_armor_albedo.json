@@ -1,0 +1,14 @@
+{
+  "name": "pharaoh_armor_albedo",
+  "prompt": "Egyptian pharaoh golden armor texture, seamless tileable, ornate patterns, hieroglyphic details, metallic gold surface, weathered royal armor, high resolution, material texture",
+  "negative": "seams, visible edges, not tileable, blurry, low quality, distorted, watermark, text, signature",
+  "seed": 22345,
+  "size": [
+    1024,
+    1024
+  ],
+  "steps": 40,
+  "guidance": 6.5,
+  "seamless": true,
+  "type": "texture"
+}

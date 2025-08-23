@@ -3,8 +3,12 @@ use bevy::window::{WindowResolution, PresentMode};
 
 mod asset_loader;
 mod sprite_animation;
+mod true_3d_system;
+mod placeholder_3d_models;
 use asset_loader::{AssetLoaderPlugin, GameAssets};
 use sprite_animation::SpriteAnimationPlugin;
+use true_3d_system::True3DPlugin;
+use placeholder_3d_models::Placeholder3DPlugin;
 
 // 🔧 Controles estilo Hades (Mouse + R/Q)
 // * Mover: WASD
@@ -46,7 +50,9 @@ fn main() {
         }))
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
         .add_plugins(AssetLoaderPlugin)
-        .add_plugins(SpriteAnimationPlugin) // Load RTX-generated 3D isometric assets
+        .add_plugins(SpriteAnimationPlugin) // Load RTX-generated 3D isometric assets  
+        .add_plugins(True3DPlugin) // NEW: True 3D system with glTF models and rigging
+        // .add_plugins(Placeholder3DPlugin) // Disabled: Now using real 3D models
         .add_event::<SpawnParticlesEvent>()
         .add_event::<AudioEvent>()
         .init_resource::<InputState>()
@@ -56,7 +62,7 @@ fn main() {
             rooms_cleared: 0,
             total_rooms: 3,
             previous_room: 0,
-            enemies_spawned: vec![true, false, false], // Room 0 already has enemies spawned
+            enemies_spawned: vec![false, false, false], // No enemies spawned initially
         })
         .add_systems(Startup, setup)
         .add_systems(Update, (
@@ -366,32 +372,8 @@ fn setup(
         ..default()
     });
 
-    // Try loading texture directly from asset server for testing
-    info!("🔧 Testing direct asset loading for pharaoh warrior...");
-    let test_texture: Handle<Image> = asset_server.load("test_player.png");
-    
-    let player_material = materials.add(StandardMaterial {
-        base_color_texture: Some(test_texture),
-        alpha_mode: AlphaMode::Blend, // Use alpha blending for transparent backgrounds
-        unlit: false, // Use lighting for 3D atmosphere
-        double_sided: true,
-        base_color: Color::WHITE,
-        ..default()
-    });
-
-    commands.spawn((
-        PbrBundle {
-            mesh: meshes.add(Plane3d::default().mesh().size(3.0, 3.0)), // Proper size for 3D character
-            material: player_material,
-            transform: Transform::from_xyz(0.0, 1.5, 0.0) // Center position, elevated to show 3D effect
-                .with_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_4)), // Face camera at 45 degrees for isometric
-            ..default()
-        },
-        Player,
-        Stats::default(),
-        Dash::default(),
-        Combat::default(),
-    ));
+    // NOTE: Player spawning now handled by Placeholder3DPlugin
+    // Old 2D sprite player disabled in favor of 3D placeholder hero
 
     // FPS Counter UI
     commands.spawn((
@@ -555,7 +537,11 @@ fn setup(
     let game_assets_ref = game_assets.as_ref().map(|a| a.as_ref());
     setup_rooms(&mut commands, &mut meshes, &mut materials, game_assets_ref);
 
-    // Spawn enemies in current room (room 0 - start room has some enemies)
+    // NOTE: Enemy spawning now handled by room_enemy_spawn_system
+    // Initial enemies will spawn when entering Combat rooms
+    
+    // Old static enemy spawning disabled:
+    /*
     let enemy_spawns = [
         (Vec3::new(5.0, 0.5, 3.0), EnemyType::Chaser),
         (Vec3::new(-4.0, 0.5, -2.0), EnemyType::Shooter),
@@ -687,6 +673,7 @@ fn setup(
             stats,
         ));
     }
+    */
 }
 
 fn read_input(
@@ -1347,7 +1334,7 @@ fn setup_rooms(
     game_assets: Option<&GameAssets>,
 ) {
     let rooms = [
-        (0, Vec2::new(0.0, 0.0), RoomType::Start),      // Starting room
+        (0, Vec2::new(0.0, 0.0), RoomType::Combat),     // Starting combat room
         (1, Vec2::new(25.0, 0.0), RoomType::Combat),    // Combat room 1
         (2, Vec2::new(50.0, 0.0), RoomType::Boss),      // Boss room
     ];
@@ -1668,6 +1655,7 @@ fn room_enemy_spawn_system(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut game_state: ResMut<GameState>,
     game_assets: Option<Res<GameAssets>>,
+    true_3d_assets: Option<Res<true_3d_system::True3DAssets>>,
     rooms: Query<&Room>,
 ) {
     // Check if we need to spawn enemies in the current room
@@ -1696,9 +1684,78 @@ fn room_enemy_spawn_system(
             };
             
             for (pos, enemy_type) in enemy_spawns {
+                // Use TRUE 3D models from assets/models/
+                let enemy_3d_type = match enemy_type {
+                    EnemyType::Chaser => true_3d_system::EnemyType::MummyGuardian,
+                    EnemyType::Shooter => true_3d_system::EnemyType::EgyptianWarrior, 
+                    EnemyType::Tank => true_3d_system::EnemyType::AnubisBoss,
+                };
+                
+                let ai = match enemy_type {
+                    EnemyType::Chaser => AI {
+                        target_range: 12.0,
+                        chase_speed: 4.0,
+                        attack_cooldown: 0.0,
+                        attack_timer: 0.0,
+                    },
+                    EnemyType::Shooter => AI {
+                        target_range: 15.0,
+                        chase_speed: 1.5,
+                        attack_cooldown: 2.0,
+                        attack_timer: 0.0,
+                    },
+                    EnemyType::Tank => AI {
+                        target_range: 8.0,
+                        chase_speed: 1.0,
+                        attack_cooldown: 0.0,
+                        attack_timer: 0.0,
+                    },
+                };
+                
+                let stats = match enemy_type {
+                    EnemyType::Chaser => Stats {
+                        max_health: 30.0,
+                        current_health: 30.0,
+                        max_stamina: 0.0,
+                        current_stamina: 0.0,
+                        speed: 4.0,
+                        stamina_regen_rate: 0.0,
+                    },
+                    EnemyType::Shooter => Stats {
+                        max_health: 40.0,
+                        current_health: 40.0,
+                        max_stamina: 0.0,
+                        current_stamina: 0.0,
+                        speed: 1.5,
+                        stamina_regen_rate: 0.0,
+                    },
+                    EnemyType::Tank => Stats {
+                        max_health: 120.0,
+                        current_health: 120.0,
+                        max_stamina: 0.0,
+                        current_stamina: 0.0,
+                        speed: 1.0,
+                        stamina_regen_rate: 0.0,
+                    },
+                };
+                
+                // Spawn TRUE 3D enemy using glTF models
+                if let Some(assets_3d) = &true_3d_assets {
+                    true_3d_system::spawn_3d_enemy(
+                        &mut commands,
+                        assets_3d,
+                        enemy_3d_type,
+                        pos,
+                        ai,
+                        stats,
+                    );
+                    continue;
+                }
+                
+                // Fallback to 2D sprite system
                 let (mesh, material, ai, stats) = match enemy_type {
                     EnemyType::Chaser => (
-                        meshes.add(Plane3d::default().mesh().size(2.5, 2.5)), // Proper 3D billboard size
+                        meshes.add(Plane3d::default().mesh().size(2.5, 2.5)),
                         if let Some(assets) = &game_assets {
                             materials.add(StandardMaterial {
                                 base_color_texture: Some(assets.anubis_judge.clone()),

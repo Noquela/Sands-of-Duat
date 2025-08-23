@@ -1,0 +1,13 @@
+{
+  "name": "mummy_enemy_concept",
+  "prompt": "Egyptian mummy enemy concept art, multiple views, wrapped in ancient bandages, glowing eyes, deteriorated pharaoh armor, shambling pose, undead warrior, concept sheet style, white background",
+  "negative": "blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, cartoon, anime, 3d render, not concept art",
+  "seed": 12347,
+  "size": [
+    1152,
+    1152
+  ],
+  "steps": 50,
+  "guidance": 7.5,
+  "type": "concept"
+}

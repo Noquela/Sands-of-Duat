@@ -1,0 +1,14 @@
+{
+  "name": "mummy_bandage_albedo",
+  "prompt": "Ancient mummy bandages texture, seamless tileable, aged linen wraps, stained and torn fabric, archaeological texture, beige and brown tones, high resolution material",
+  "negative": "seams, visible edges, not tileable, blurry, low quality, distorted, watermark, text, signature",
+  "seed": 22346,
+  "size": [
+    1024,
+    1024
+  ],
+  "steps": 40,
+  "guidance": 6.5,
+  "seamless": true,
+  "type": "texture"
+}

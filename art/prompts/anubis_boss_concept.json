@@ -1,0 +1,13 @@
+{
+  "name": "anubis_boss_concept",
+  "prompt": "Anubis boss character concept art, multiple views, tall imposing jackal-headed god, black fur, golden Egyptian armor, ceremonial staff, muscular humanoid body, intimidating pose, concept sheet style, white background",
+  "negative": "blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, cartoon, anime, 3d render, not concept art",
+  "seed": 12346,
+  "size": [
+    1152,
+    1152
+  ],
+  "steps": 50,
+  "guidance": 7.5,
+  "type": "concept"
+}

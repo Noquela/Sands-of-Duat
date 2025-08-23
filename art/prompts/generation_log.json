@@ -1,0 +1,226 @@
+[
+  {
+    "prompt": "Egyptian pharaoh warrior, golden armor, khopesh sword, muscular build, ancient Egyptian crown, detailed armor plates, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -2105119496367767102,
+    "output": "art\\sdxl\\raw\\characters\\pharaoh_warrior_var1.png",
+    "timestamp": 1755928410.4614565
+  },
+  {
+    "prompt": "Egyptian pharaoh warrior, golden armor, khopesh sword, muscular build, ancient Egyptian crown, detailed armor plates, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -2105119496367767002,
+    "output": "art\\sdxl\\raw\\characters\\pharaoh_warrior_var2.png",
+    "timestamp": 1755928433.161582
+  },
+  {
+    "prompt": "Egyptian pharaoh warrior, golden armor, khopesh sword, muscular build, ancient Egyptian crown, detailed armor plates, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -2105119496367766902,
+    "output": "art\\sdxl\\raw\\characters\\pharaoh_warrior_var3.png",
+    "timestamp": 1755928455.8490348
+  },
+  {
+    "prompt": "Anubis god of death, black jackal head, Egyptian robe, glowing eyes, holding scales of justice, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -4025510175817076978,
+    "output": "art\\sdxl\\raw\\characters\\anubis_judge_var1.png",
+    "timestamp": 1755928478.5488577
+  },
+  {
+    "prompt": "Anubis god of death, black jackal head, Egyptian robe, glowing eyes, holding scales of justice, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -4025510175817076878,
+    "output": "art\\sdxl\\raw\\characters\\anubis_judge_var2.png",
+    "timestamp": 1755928501.2279816
+  },
+  {
+    "prompt": "Anubis god of death, black jackal head, Egyptian robe, glowing eyes, holding scales of justice, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -4025510175817076778,
+    "output": "art\\sdxl\\raw\\characters\\anubis_judge_var3.png",
+    "timestamp": 1755928524.058204
+  },
+  {
+    "prompt": "Isis goddess, beautiful Egyptian woman, flowing robes, golden wings, maternal expression, ankh symbol, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -2061709818123101045,
+    "output": "art\\sdxl\\raw\\characters\\isis_mother_var1.png",
+    "timestamp": 1755928546.9266284
+  },
+  {
+    "prompt": "Isis goddess, beautiful Egyptian woman, flowing robes, golden wings, maternal expression, ankh symbol, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -2061709818123100945,
+    "output": "art\\sdxl\\raw\\characters\\isis_mother_var2.png",
+    "timestamp": 1755928569.878976
+  },
+  {
+    "prompt": "Isis goddess, beautiful Egyptian woman, flowing robes, golden wings, maternal expression, ankh symbol, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -2061709818123100845,
+    "output": "art\\sdxl\\raw\\characters\\isis_mother_var3.png",
+    "timestamp": 1755928592.8934138
+  },
+  {
+    "prompt": "Ra sun god, falcon head, golden solar disk, radiant energy, Egyptian royal garments, powerful stance, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": 6005890349024477075,
+    "output": "art\\sdxl\\raw\\characters\\ra_sun_god_var1.png",
+    "timestamp": 1755928615.9141326
+  },
+  {
+    "prompt": "Ra sun god, falcon head, golden solar disk, radiant energy, Egyptian royal garments, powerful stance, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": 6005890349024477175,
+    "output": "art\\sdxl\\raw\\characters\\ra_sun_god_var2.png",
+    "timestamp": 1755928638.8838768
+  },
+  {
+    "prompt": "Ra sun god, falcon head, golden solar disk, radiant energy, Egyptian royal garments, powerful stance, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": 6005890349024477275,
+    "output": "art\\sdxl\\raw\\characters\\ra_sun_god_var3.png",
+    "timestamp": 1755928661.45873
+  },
+  {
+    "prompt": "Set god of chaos, dark Egyptian deity, red skin, curved horn, menacing expression, dark energy, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": 275822678594233051,
+    "output": "art\\sdxl\\raw\\characters\\set_chaos_god_var1.png",
+    "timestamp": 1755928684.0812433
+  },
+  {
+    "prompt": "Set god of chaos, dark Egyptian deity, red skin, curved horn, menacing expression, dark energy, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": 275822678594233151,
+    "output": "art\\sdxl\\raw\\characters\\set_chaos_god_var2.png",
+    "timestamp": 1755928706.7685075
+  },
+  {
+    "prompt": "Set god of chaos, dark Egyptian deity, red skin, curved horn, menacing expression, dark energy, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": 275822678594233251,
+    "output": "art\\sdxl\\raw\\characters\\set_chaos_god_var3.png",
+    "timestamp": 1755928729.4540854
+  },
+  {
+    "prompt": "Ancient Egyptian mummy, wrapped in bandages, glowing eyes, defensive pose, tomb guardian, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -4442546191522402611,
+    "output": "art\\sdxl\\raw\\characters\\mummy_guardian_var1.png",
+    "timestamp": 1755928752.096965
+  },
+  {
+    "prompt": "Ancient Egyptian mummy, wrapped in bandages, glowing eyes, defensive pose, tomb guardian, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -4442546191522402511,
+    "output": "art\\sdxl\\raw\\characters\\mummy_guardian_var2.png",
+    "timestamp": 1755928774.6180344
+  },
+  {
+    "prompt": "Ancient Egyptian mummy, wrapped in bandages, glowing eyes, defensive pose, tomb guardian, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -4442546191522402411,
+    "output": "art\\sdxl\\raw\\characters\\mummy_guardian_var3.png",
+    "timestamp": 1755928797.1461418
+  },
+  {
+    "prompt": "Egyptian sphinx, lion body with human head, stone texture, majestic pose, ancient wisdom, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -4905809441281653150,
+    "output": "art\\sdxl\\raw\\characters\\sphinx_guardian_var1.png",
+    "timestamp": 1755928819.7916915
+  },
+  {
+    "prompt": "Egyptian sphinx, lion body with human head, stone texture, majestic pose, ancient wisdom, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -4905809441281653050,
+    "output": "art\\sdxl\\raw\\characters\\sphinx_guardian_var2.png",
+    "timestamp": 1755928842.3664267
+  },
+  {
+    "prompt": "Egyptian sphinx, lion body with human head, stone texture, majestic pose, ancient wisdom, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -4905809441281652950,
+    "output": "art\\sdxl\\raw\\characters\\sphinx_guardian_var3.png",
+    "timestamp": 1755928865.091857
+  },
+  {
+    "prompt": "Egyptian soldier, bronze armor, spear and shield, desert warrior, detailed military gear, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -4458858031285224009,
+    "output": "art\\sdxl\\raw\\characters\\egyptian_warrior_var1.png",
+    "timestamp": 1755928887.785697
+  },
+  {
+    "prompt": "Egyptian soldier, bronze armor, spear and shield, desert warrior, detailed military gear, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -4458858031285223909,
+    "output": "art\\sdxl\\raw\\characters\\egyptian_warrior_var2.png",
+    "timestamp": 1755928910.340086
+  },
+  {
+    "prompt": "Egyptian soldier, bronze armor, spear and shield, desert warrior, detailed military gear, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "blurry, low quality, modern clothing, cartoon, anime, multiple characters, crowd, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -4458858031285223809,
+    "output": "art\\sdxl\\raw\\characters\\egyptian_warrior_var3.png",
+    "timestamp": 1755928933.0046828
+  },
+  {
+    "prompt": "seamless desert sand texture, fine golden sand, tileable, top-down view, Egyptian desert, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "3d, perspective, characters, objects, non-tileable, seams, borders, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": 4019295774277337141,
+    "output": "art\\sdxl\\tiles_raw\\sand_desert.png",
+    "timestamp": 1755928955.7020075
+  },
+  {
+    "prompt": "seamless Egyptian stone blocks, carved limestone, hieroglyphs, tileable texture, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "3d, perspective, characters, objects, non-tileable, seams, borders, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": 5271984368821084257,
+    "output": "art\\sdxl\\tiles_raw\\stone_blocks.png",
+    "timestamp": 1755928978.3441756
+  },
+  {
+    "prompt": "seamless ancient Egyptian tomb floor, worn stone, carved patterns, tileable, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "3d, perspective, characters, objects, non-tileable, seams, borders, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -3125444422699822578,
+    "output": "art\\sdxl\\tiles_raw\\tomb_floor.png",
+    "timestamp": 1755929000.9839816
+  },
+  {
+    "prompt": "Egyptian pyramid interior wall, hieroglyphic carvings, aged stone texture, seamless, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "3d, perspective, characters, objects, non-tileable, seams, borders, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -7125024223784071852,
+    "output": "art\\sdxl\\tiles_raw\\pyramid_interior.png",
+    "timestamp": 1755929023.5864582
+  },
+  {
+    "prompt": "Egyptian ankh symbol, golden, detailed carving, icon style, simple background, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "characters, complex background, blurry, low quality, multiple objects, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -7419397680626506443,
+    "output": "art\\sdxl\\ui_raw\\ankh_health.png",
+    "timestamp": 1755929046.2651722
+  },
+  {
+    "prompt": "Egyptian scarab beetle, golden, detailed wings, icon style, energy symbol, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "characters, complex background, blurry, low quality, multiple objects, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -7488993735288613633,
+    "output": "art\\sdxl\\ui_raw\\scarab_energy.png",
+    "timestamp": 1755929068.8663967
+  },
+  {
+    "prompt": "Eye of Horus, Egyptian symbol, golden, detailed, icon style, protection symbol, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "characters, complex background, blurry, low quality, multiple objects, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -5860511309826989601,
+    "output": "art\\sdxl\\ui_raw\\eye_of_horus.png",
+    "timestamp": 1755929091.5623355
+  },
+  {
+    "prompt": "Egyptian khopesh sword, curved blade, golden handle, weapon icon, detailed craftsmanship, Egyptian art style, Hades game style, dark fantasy, cinematic lighting, detailed, sharp focus, transparent background, no background, isolated on transparent, clean edges",
+    "negative": "characters, complex background, blurry, low quality, multiple objects, background, scenery, environment, blurry, low quality, distorted, watermark, text, signature, ugly, deformed, bad anatomy, worst quality, low resolution, jpeg artifacts, solid background, gradient background",
+    "seed": -3101253756353514679,
+    "output": "art\\sdxl\\ui_raw\\khopesh_sword.png",
+    "timestamp": 1755929114.1098201
+  }
+]
