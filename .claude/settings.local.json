@@ -16,7 +16,9 @@
       "Bash(\"/c/Users/Bruno/.cargo/bin/cargo.exe\" check)",
       "Bash(\"/c/Users/Bruno/.cargo/bin/cargo.exe\" run)",
       "Bash(\"/c/Users/Bruno/.cargo/bin/cargo.exe\" run --release)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(\"/c/Users\\Bruno\\.cargo\\bin\\cargo.exe\" run)"
     ],
     "deny": [],
     "ask": [],
