@@ -1890,7 +1890,7 @@ fn audio_system(
             },
         }
         
-        // For testing purposes, we can at least print audio events to console
-        println!("Audio Event: {:?}", event);
+        // Audio events are processed above (currently placeholder comments)
+        // In production, actual audio files would be played here
     }
 }

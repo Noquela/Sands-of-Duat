@@ -562,8 +562,15 @@ fn handle_menu_input(
             AppState::Settings => app_state.set(AppState::MainMenu),
             AppState::InGame => app_state.set(AppState::Paused),
             AppState::Paused => app_state.set(AppState::InGame),
+            AppState::BoonSelection => app_state.set(AppState::InGame),
             _ => {}
         }
+    }
+    
+    // Testing key binding: Press 'B' to access boon selection screen
+    if keys.just_pressed(KeyCode::KeyB) && current_state.get() == &AppState::InGame {
+        info!("🎯 Opening boon selection screen for testing...");
+        app_state.set(AppState::BoonSelection);
     }
 }
 
