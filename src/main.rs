@@ -24,6 +24,7 @@ pub struct InputState {
     pub secondary: bool,  // Mouse Direito: ataque secundário (especial leve)
     pub ability_q: bool,  // Q: habilidade extra (cast)
     pub ability_r: bool,  // R: habilidade principal (AoE)
+    pub mouse_world_pos: Vec3, // Posição do mouse no mundo 3D
 }
 
 fn main() {
@@ -530,6 +531,8 @@ fn read_input(
     kb: Res<ButtonInput<KeyCode>>,
     mouse: Res<ButtonInput<MouseButton>>,
     mut input_state: ResMut<InputState>,
+    windows: Query<&Window>,
+    cameras: Query<(&Camera, &GlobalTransform)>,
 ) {
     // Continuous inputs
     input_state.up = kb.pressed(KeyCode::KeyW);
@@ -546,6 +549,20 @@ fn read_input(
     input_state.secondary = mouse.just_pressed(MouseButton::Right);
     input_state.ability_q = kb.just_pressed(KeyCode::KeyQ);
     input_state.ability_r = kb.just_pressed(KeyCode::KeyR);
+    
+    // Mouse world position calculation
+    if let Ok(window) = windows.get_single() {
+        if let Some(cursor_position) = window.cursor_position() {
+            if let Ok((camera, camera_transform)) = cameras.get_single() {
+                // Convert screen coordinates to world ray
+                if let Some(ray) = camera.viewport_to_world(camera_transform, cursor_position) {
+                    // Project ray onto ground plane (y = 0)
+                    let distance = -ray.origin.y / ray.direction.y;
+                    input_state.mouse_world_pos = ray.origin + ray.direction * distance;
+                }
+            }
+        }
+    }
 }
 
 fn fps_counter_system(
@@ -869,9 +886,18 @@ fn hades_combat_system(
         }
     }
 
-    // Q ABILITY - Cast projectile
+    // Q ABILITY - Cast projectile (follows mouse direction)
     if input.ability_q && combat.q_timer <= 0.0 {
-        let direction = Vec3::new(0.0, 0.0, -1.0); // Forward direction (MVP)
+        // Calculate direction from player to mouse position
+        let direction = (input.mouse_world_pos - player_transform.translation).normalize_or_zero();
+        
+        // Fallback to forward direction if mouse position is invalid
+        let direction = if direction.length_squared() > 0.01 {
+            direction
+        } else {
+            Vec3::new(0.0, 0.0, -1.0)
+        };
+        
         commands.spawn((
             PbrBundle {
                 mesh: meshes.add(Sphere::new(0.15)),
