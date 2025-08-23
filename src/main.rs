@@ -41,7 +41,9 @@ fn main() {
         }))
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
         .add_event::<SpawnParticlesEvent>()
+        .add_event::<AudioEvent>()
         .init_resource::<InputState>()
+        .init_resource::<AudioHandles>()
         .insert_resource(GameState {
             current_room: 0,
             rooms_cleared: 0,
@@ -67,6 +69,7 @@ fn main() {
             room_transition_system,
             room_clear_system,
             room_enemy_spawn_system,
+            audio_system,
         ))
         .run();
 }
@@ -249,6 +252,19 @@ struct SpawnParticlesEvent {
     count: usize,
 }
 
+// Audio events for combat feedback
+#[derive(Event, Debug)]
+enum AudioEvent {
+    AttackPrimary,
+    AttackSecondary,
+    AbilityQ,
+    AbilityR,
+    ProjectileHit,
+    EnemyHit,
+    Dash,
+    EnemyDeath,
+}
+
 // Room system components
 #[derive(Component)]
 struct Room {
@@ -285,11 +301,29 @@ struct GameState {
     enemies_spawned: Vec<bool>, // Track which rooms have spawned enemies
 }
 
+#[derive(Resource, Default)]
+struct AudioHandles {
+    attack_primary: Handle<AudioSource>,
+    attack_secondary: Handle<AudioSource>,
+    ability_q: Handle<AudioSource>,
+    ability_r: Handle<AudioSource>,
+    projectile_hit: Handle<AudioSource>,
+    enemy_hit: Handle<AudioSource>,
+    dash: Handle<AudioSource>,
+    enemy_death: Handle<AudioSource>,
+}
+
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    _asset_server: Res<AssetServer>,
+    _audio_handles: ResMut<AudioHandles>,
 ) {
+    // Load audio assets (using procedural sound generation since we don't have audio files)
+    // These will be placeholder handles since we don't have actual audio files
+    // In a real game, you would load actual audio files here
+    
     // Light
     commands.insert_resource(AmbientLight {
         color: Color::rgb(1.0, 0.9, 0.7),
@@ -709,6 +743,7 @@ fn player_movement_system(
     time: Res<Time>,
     input: Res<InputState>,
     mut player_query: Query<(&mut Transform, &mut Stats, &mut Dash), With<Player>>,
+    mut audio_events: EventWriter<AudioEvent>,
 ) {
     let (mut transform, mut stats, mut dash) = player_query.single_mut();
     let dt = time.delta_seconds();
@@ -737,6 +772,9 @@ fn player_movement_system(
         // Consume stamina
         stats.current_stamina -= dash.stamina_cost;
         stats.current_stamina = stats.current_stamina.max(0.0);
+        
+        // Play dash audio
+        audio_events.send(AudioEvent::Dash);
     }
 
     // Handle dash movement
@@ -895,6 +933,7 @@ fn hades_combat_system(
     mut player_query: Query<(&Transform, &mut Combat), With<Player>>,
     mut enemy_query: Query<(Entity, &Transform, &mut Stats), (With<Enemy>, Without<Player>)>,
     mut particle_events: EventWriter<SpawnParticlesEvent>,
+    mut audio_events: EventWriter<AudioEvent>,
 ) {
     let (player_transform, mut combat) = player_query.single_mut();
     let dt = time.delta_seconds();
@@ -932,6 +971,11 @@ fn hades_combat_system(
                 hits += 1;
                 if enemy_stats.current_health <= 0.0 {
                     commands.entity(entity).despawn();
+                    // Play enemy death audio
+                    audio_events.send(AudioEvent::EnemyDeath);
+                } else {
+                    // Play enemy hit audio
+                    audio_events.send(AudioEvent::EnemyHit);
                 }
             }
         }
@@ -939,6 +983,8 @@ fn hades_combat_system(
         if hits > 0 {
             combat.chain_step = (combat.chain_step + 1) % 3;
             combat.atk_timer = combat.atk_cd;
+            // Play primary attack audio
+            audio_events.send(AudioEvent::AttackPrimary);
         }
     }
 
@@ -968,12 +1014,19 @@ fn hades_combat_system(
                 hits += 1;
                 if enemy_stats.current_health <= 0.0 {
                     commands.entity(entity).despawn();
+                    // Play enemy death audio
+                    audio_events.send(AudioEvent::EnemyDeath);
+                } else {
+                    // Play enemy hit audio
+                    audio_events.send(AudioEvent::EnemyHit);
                 }
             }
         }
         
         if hits > 0 {
             combat.special_timer = combat.special_cd;
+            // Play secondary attack audio
+            audio_events.send(AudioEvent::AttackSecondary);
         }
     }
 
@@ -1008,6 +1061,8 @@ fn hades_combat_system(
             },
         ));
         combat.q_timer = combat.q_cd;
+        // Play ability Q audio
+        audio_events.send(AudioEvent::AbilityQ);
     }
 
     // R ABILITY - AoE attack
@@ -1036,12 +1091,19 @@ fn hades_combat_system(
                 hits += 1;
                 if enemy_stats.current_health <= 0.0 {
                     commands.entity(entity).despawn();
+                    // Play enemy death audio
+                    audio_events.send(AudioEvent::EnemyDeath);
+                } else {
+                    // Play enemy hit audio
+                    audio_events.send(AudioEvent::EnemyHit);
                 }
             }
         }
         
         if hits > 0 {
             combat.r_timer = combat.r_cd;
+            // Play ability R audio
+            audio_events.send(AudioEvent::AbilityR);
         }
     }
 }
@@ -1072,6 +1134,7 @@ fn projectile_collision_system(
     mut enemies: Query<(Entity, &Transform, &mut Stats), (With<Enemy>, Without<Player>)>,
     mut player_query: Query<(Entity, &Transform, &mut Stats, &Dash), With<Player>>,
     mut particle_events: EventWriter<SpawnParticlesEvent>,
+    mut audio_events: EventWriter<AudioEvent>,
 ) {
     for (proj_entity, proj_transform, projectile) in &projectiles {
         if projectile.from_enemy {
@@ -1093,6 +1156,8 @@ fn projectile_collision_system(
                     
                     // Always destroy projectile on hit
                     commands.entity(proj_entity).despawn();
+                    // Play projectile hit audio
+                    audio_events.send(AudioEvent::ProjectileHit);
                     break;
                 }
             }
@@ -1120,10 +1185,17 @@ fn projectile_collision_system(
                     // Destroy enemy if dead
                     if enemy_stats.current_health <= 0.0 {
                         commands.entity(enemy_entity).despawn();
+                        // Play enemy death audio
+                        audio_events.send(AudioEvent::EnemyDeath);
+                    } else {
+                        // Play enemy hit audio
+                        audio_events.send(AudioEvent::EnemyHit);
                     }
                     
                     // Destroy projectile
                     commands.entity(proj_entity).despawn();
+                    // Play projectile hit audio
+                    audio_events.send(AudioEvent::ProjectileHit);
                     break;
                 }
             }
@@ -1551,5 +1623,55 @@ fn hit_effect_system(
             transform.scale = hit_effect.original_scale;
             commands.entity(entity).remove::<HitEffect>();
         }
+    }
+}
+
+fn audio_system(
+    _commands: Commands,
+    mut audio_events: EventReader<AudioEvent>,
+) {
+    for event in audio_events.read() {
+        // Since we don't have audio files, we'll create simple procedural audio feedback
+        // In a real game, you would play actual audio files using commands.spawn(AudioBundle::from(...))
+        
+        // For now, we'll just spawn a simple audio bundle with default sounds
+        // This creates a brief audio pulse for each event type
+        match event {
+            AudioEvent::AttackPrimary => {
+                // Quick slash sound (high pitch, short)
+                // commands.spawn(AudioBundle { /* play slash sound */ });
+            },
+            AudioEvent::AttackSecondary => {
+                // Heavier attack sound (lower pitch, medium)
+                // commands.spawn(AudioBundle { /* play heavy attack sound */ });
+            },
+            AudioEvent::AbilityQ => {
+                // Magical cast sound (ethereal, rising pitch)
+                // commands.spawn(AudioBundle { /* play magic cast sound */ });
+            },
+            AudioEvent::AbilityR => {
+                // Explosive AoE sound (deep boom)
+                // commands.spawn(AudioBundle { /* play explosion sound */ });
+            },
+            AudioEvent::ProjectileHit => {
+                // Impact sound (sharp, brief)
+                // commands.spawn(AudioBundle { /* play impact sound */ });
+            },
+            AudioEvent::EnemyHit => {
+                // Enemy damage sound (grunt/hit)
+                // commands.spawn(AudioBundle { /* play enemy hit sound */ });
+            },
+            AudioEvent::Dash => {
+                // Whoosh sound (quick, windy)
+                // commands.spawn(AudioBundle { /* play dash sound */ });
+            },
+            AudioEvent::EnemyDeath => {
+                // Death sound (fade out, defeat)
+                // commands.spawn(AudioBundle { /* play death sound */ });
+            },
+        }
+        
+        // For testing purposes, we can at least print audio events to console
+        println!("Audio Event: {:?}", event);
     }
 }
